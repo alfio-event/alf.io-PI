@@ -15,19 +15,15 @@
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package alfio
+package alfio.pi.model
 
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.junit4.SpringRunner
+import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
 
-@RunWith(SpringRunner::class)
-@SpringBootTest
-class AlfioPiApplicationTests {
-
-	@Test
-	fun contextLoads() {
-	}
-
+enum class ScanResult {
+    WAITING, SYNC_IN_PROCESS, OK
 }
+
+data class ScanLog(@Column("id") val id: Int,
+                   @Column("ticket_uuid") val ticketUuid: String,
+                   @Column("user") val user: String,
+                   @Column("result") val result: ScanResult)

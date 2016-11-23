@@ -15,19 +15,18 @@
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package alfio
+package alfio.pi.controller
 
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.junit4.SpringRunner
+import alfio.pi.model.ScanLog
+import alfio.pi.repository.ScanLogRepository
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
-@RunWith(SpringRunner::class)
-@SpringBootTest
-class AlfioPiApplicationTests {
+@RestController
+@RequestMapping("/scan-log")
+open class ScanLogApi (val scanLogRepository: ScanLogRepository){
 
-	@Test
-	fun contextLoads() {
-	}
-
+    @RequestMapping("/")
+    open fun loadAll() : List<ScanLog> = scanLogRepository.loadAll()
 }
+
