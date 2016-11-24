@@ -18,6 +18,7 @@
 --entities
 create table scan_log (
     id integer identity not null,
+    event_id integer not null,
     ticket_uuid varchar(255) not null,
     user varchar(255) not null,
     result varchar(255) not null

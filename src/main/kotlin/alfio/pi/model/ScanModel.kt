@@ -18,12 +18,52 @@
 package alfio.pi.model
 
 import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
+import org.springframework.context.ApplicationEvent
+import java.io.Serializable
+import java.math.BigDecimal
 
 enum class ScanResult {
     WAITING, SYNC_IN_PROCESS, OK
 }
 
-data class ScanLog(@Column("id") val id: Int,
+interface ScanLog
+
+data class PersistedScanLog(@Column("id") val id: Int,
+                   @Column("event_id") val eventId: Int,
                    @Column("ticket_uuid") val ticketUuid: String,
                    @Column("user") val user: String,
                    @Column("result") val result: ScanResult)
+
+data class NotYetPersistedScanLog(val eventId: Int, val ticketUuid: String, val user: String, val result: ScanResult) : ScanLog
+
+class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
+
+class Ticket : Serializable {
+    var id: Long? = null
+    var uuid: String? = null
+    var status: String? = null
+    var ticketsReservationId: String? = null
+    var fullName: String? = null
+    val email: String? = null
+}
+
+interface CheckInResponse
+
+data class TicketAndCheckInResult(val ticket: Ticket, val result: CheckInResult) : CheckInResponse
+
+data class EmptyTicketResult(val result: CheckInResult) : CheckInResponse
+
+data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = "");
+
+enum class CheckInStatus(val successful: Boolean = false) {
+    RETRY(),
+    EVENT_NOT_FOUND(),
+    TICKET_NOT_FOUND(),
+    EMPTY_TICKET_CODE(),
+    INVALID_TICKET_CODE(),
+    INVALID_TICKET_STATE(),
+    ALREADY_CHECK_IN(),
+    MUST_PAY(),
+    OK_READY_TO_BE_CHECKED_IN(true),
+    SUCCESS(true);
+}

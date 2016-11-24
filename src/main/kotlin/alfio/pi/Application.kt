@@ -43,7 +43,8 @@ open class Application {
     @Bean
     open fun dataSource() : DataSource {
         val dataSource = HikariDataSource()
-        dataSource.jdbcUrl = "jdbc:hsqldb:file:db/alfio"
+        //dataSource.jdbcUrl = "jdbc:hsqldb:file:db/alfio"
+        dataSource.jdbcUrl = "jdbc:hsqldb:mem:db/alfio"
         dataSource.username = "sa"
         dataSource.password = ""
         dataSource.maximumPoolSize = 10
