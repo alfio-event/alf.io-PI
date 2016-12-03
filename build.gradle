@@ -14,7 +14,6 @@
  * You should have received a copy of the GNU General Public License
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 buildscript {
 	ext {
 		kotlinVersion = '1.0.5-2'
@@ -22,11 +21,20 @@ buildscript {
 	}
 	repositories {
 		mavenCentral()
+        maven { url 'http://repo.spring.io/plugins-release' }
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
 		classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
 	}
+}
+
+configure(allprojects) {
+    apply plugin: 'propdeps'
+    apply plugin: 'propdeps-maven'
+    apply plugin: 'propdeps-idea'
+    apply plugin: 'propdeps-eclipse'
 }
 
 apply plugin: 'kotlin'
@@ -58,6 +66,14 @@ dependencies {
 	compile('com.zaxxer:HikariCP:2.5.1')
 	compile('ch.digitalfondue.npjt-extra:npjt-extra:1.1.1')
 	compile("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
+    compile("org.apache.pdfbox:pdfbox:2.0.3")
+    compile("com.google.zxing:core:3.3.0")
+    compile("com.google.zxing:javase:3.3.0")
+    compile("com.squareup.okhttp3:okhttp:3.4.2")
+    compile("com.google.code.gson:gson:2.8.0")
 	runtime('org.hsqldb:hsqldb')
 	testCompile('org.springframework.boot:spring-boot-starter-test')
+    optional("org.springframework.boot:spring-boot-configuration-processor")
 }
+
+compileJava.dependsOn(processResources)

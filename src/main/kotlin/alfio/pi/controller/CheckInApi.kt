@@ -17,18 +17,23 @@
 
 package alfio.pi.controller
 
+import alfio.pi.manager.CheckInDataManager
+import alfio.pi.manager.checkIn
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.CheckInResult
 import alfio.pi.model.EmptyTicketResult
 import org.springframework.web.bind.annotation.*
+import java.security.Principal
 
 @RestController
 @RequestMapping("/admin/api/check-in")
-open class CheckInApi {
+open class CheckInApi(val checkInDataManager: CheckInDataManager) {
 
     @RequestMapping(value = "/{eventId}/ticket/{ticketIdentifier}", method = arrayOf(RequestMethod.POST))
-    open fun performCheckIn(@PathVariable("eventId") eventId: Int, @PathVariable("ticketIdentifier") ticketIdentifier: String, @RequestBody ticketCode: TicketCode): CheckInResponse {
-        return EmptyTicketResult(CheckInResult())
+    open fun performCheckIn(@PathVariable("eventId") eventId: Int,
+                            @PathVariable("ticketIdentifier") ticketIdentifier: String,
+                            @RequestBody ticketCode: TicketCode): CheckInResponse {
+        return checkIn(eventId, ticketIdentifier, ticketCode.code!!, "test").invoke(checkInDataManager)
     }
 
     class TicketCode {

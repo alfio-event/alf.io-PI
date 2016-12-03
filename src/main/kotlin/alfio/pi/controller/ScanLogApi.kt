@@ -19,7 +19,7 @@ package alfio.pi.controller
 
 import alfio.pi.manager.findAllEntries
 import alfio.pi.manager.findAllEntriesForEvent
-import alfio.pi.model.PersistedScanLog
+import alfio.pi.model.ScanLog
 import alfio.pi.repository.ScanLogRepository
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -30,9 +30,9 @@ import org.springframework.web.bind.annotation.RestController
 open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
 
     @RequestMapping("/")
-    open fun loadAll() : List<PersistedScanLog> = findAllEntries().invoke(scanLogRepository)
+    open fun loadAll() : List<ScanLog> = findAllEntries().invoke(scanLogRepository)
 
     @RequestMapping("/event/{eventId}")
-    open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<PersistedScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
+    open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
 }
 

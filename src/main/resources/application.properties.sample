@@ -15,3 +15,12 @@
 # along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+## master server
+master.url=https://url-of-master
+master.username=pi-agent
+master.password=password
+
+##db config (HSQL)
+jdbc.url=jdbc:hsqldb:mem:db/alfio
+jdbc.username=sa
+jdbc.password=

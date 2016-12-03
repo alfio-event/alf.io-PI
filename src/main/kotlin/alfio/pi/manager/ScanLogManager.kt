@@ -18,8 +18,6 @@
 package alfio.pi.manager
 
 import alfio.pi.model.CheckInEvent
-import alfio.pi.model.NotYetPersistedScanLog
-import alfio.pi.model.PersistedScanLog
 import alfio.pi.model.ScanLog
 import alfio.pi.repository.ScanLogRepository
 import org.slf4j.Logger
@@ -29,21 +27,21 @@ import org.springframework.stereotype.Component
 
 private val logger: Logger = LoggerFactory.getLogger("scanLogManager")
 
-fun findAllEntriesForEvent(eventId: Int) : (ScanLogRepository) -> List<PersistedScanLog> = {
+fun findAllEntriesForEvent(eventId: Int) : (ScanLogRepository) -> List<ScanLog> = {
     try {
         it.loadAllForEvent(eventId)
     } catch (e: Exception) {
         logger.error("unexpected error while loading entries for event $eventId", e)
-        emptyList<PersistedScanLog>()
+        emptyList<ScanLog>()
     }
 }
 
-fun findAllEntries() : (ScanLogRepository) -> List<PersistedScanLog> = {
+fun findAllEntries() : (ScanLogRepository) -> List<ScanLog> = {
     try {
         it.loadAll()
     } catch (e: Exception) {
         logger.error("unexpected error while loading all entries", e)
-        emptyList<PersistedScanLog>()
+        emptyList<ScanLog>()
     }
 }
 
@@ -52,9 +50,9 @@ open class CheckInListener(val scanLogRepository: ScanLogRepository) : Applicati
     override fun onApplicationEvent(event: CheckInEvent?) {
         if(event != null) {
             val scanLog = event.scanLog
-            if(scanLog is NotYetPersistedScanLog) {
-                val result = scanLogRepository.insert(scanLog.eventId, scanLog.ticketUuid, scanLog.user, scanLog.result)
-                logger.debug("inserted $result log for ticket ${scanLog.ticketUuid}. Result: ${scanLog.result}")
+            if(scanLog.id == -1) {
+                val result = scanLogRepository.insert(scanLog.eventId, scanLog.queueId, scanLog.ticketUuid, scanLog.user, scanLog.localResult, scanLog.remoteResult, scanLog.badgePrinted)
+                logger.debug("inserted $result log for ticket ${scanLog.ticketUuid}. Local result: ${scanLog.localResult}, remote result: ${scanLog.localResult}, badge printed: ${scanLog.badgePrinted}")
             }
         }
     }

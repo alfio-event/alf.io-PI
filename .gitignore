@@ -1,5 +1,5 @@
 .gradle
-/build/
+build/
 !gradle/wrapper/gradle-wrapper.jar
 
 ### STS ###
@@ -13,16 +13,16 @@
 ### IntelliJ IDEA ###
 .idea
 *.iws
-*.iml
 *.ipr
 
 ### NetBeans ###
 nbproject/private/
-build/
 nbbuild/
 dist/
 nbdist/
 .nb-gradle/
 
-### Ignore database directory ###
-db
+### Ignore alf.io-specific resources ###
+db/
+application.properties
+classes

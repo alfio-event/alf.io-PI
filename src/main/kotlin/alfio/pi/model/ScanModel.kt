@@ -18,42 +18,43 @@
 package alfio.pi.model
 
 import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
+import org.hibernate.validator.constraints.Email
 import org.springframework.context.ApplicationEvent
 import java.io.Serializable
 import java.math.BigDecimal
 
-enum class ScanResult {
-    WAITING, SYNC_IN_PROCESS, OK
-}
+data class Event(@Column("id") val id: Int = -1, @Column("name") val name: String)
+data class Printer(@Column("id") val id: Int = -1, @Column("name") val name: String, @Column("description") val description: String?)
+data class CheckInQueue(@Column("id") val id: Int = -1, @Column("event_id") val eventId: Int, @Column("name") val name: String,
+                        @Column("description") val description: String?, @Column("printer_id_fk") val printerId: Int)
 
-interface ScanLog
-
-data class PersistedScanLog(@Column("id") val id: Int,
+data class ScanLog(@Column("id") val id: Int = -1,
                    @Column("event_id") val eventId: Int,
+                   @Column("queue_id_fk") val queueId: Int,
                    @Column("ticket_uuid") val ticketUuid: String,
                    @Column("user") val user: String,
-                   @Column("result") val result: ScanResult)
-
-data class NotYetPersistedScanLog(val eventId: Int, val ticketUuid: String, val user: String, val result: ScanResult) : ScanLog
+                   @Column("local_result") val localResult: CheckInStatus,
+                   @Column("remote_result") val remoteResult: CheckInStatus,
+                   @Column("badge_printed") val badgePrinted: Boolean)
 
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 
-class Ticket : Serializable {
-    var id: Long? = null
-    var uuid: String? = null
-    var status: String? = null
-    var ticketsReservationId: String? = null
-    var fullName: String? = null
-    val email: String? = null
+open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?) : Serializable {
+    val fullName: String
+        get() = "$firstName $lastName"
 }
 
-interface CheckInResponse
+class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "")
 
-data class TicketAndCheckInResult(val ticket: Ticket, val result: CheckInResult) : CheckInResponse
+abstract class CheckInResponse(val result: CheckInResult)
 
-data class EmptyTicketResult(val result: CheckInResult) : CheckInResponse
+class TicketAndCheckInResult(val ticket: Ticket, result: CheckInResult) : CheckInResponse(result)
 
-data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = "");
+class EmptyTicketResult(result: CheckInResult = CheckInResult()) : CheckInResponse(result)
+
+class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN), val originalScanLog: ScanLog) : CheckInResponse(result)
+
+data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = "")
 
 enum class CheckInStatus(val successful: Boolean = false) {
     RETRY(),
@@ -67,3 +68,5 @@ enum class CheckInStatus(val successful: Boolean = false) {
     OK_READY_TO_BE_CHECKED_IN(true),
     SUCCESS(true);
 }
+
+data class AttendeeData(val firstName: String, val lastName: String, val emailAddress: String, val company: String?)
