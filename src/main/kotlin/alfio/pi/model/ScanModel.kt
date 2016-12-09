@@ -18,17 +18,17 @@
 package alfio.pi.model
 
 import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
-import org.hibernate.validator.constraints.Email
 import org.springframework.context.ApplicationEvent
 import java.io.Serializable
 import java.math.BigDecimal
 
-data class Event(@Column("id") val id: Int = -1, @Column("name") val name: String)
-data class Printer(@Column("id") val id: Int = -1, @Column("name") val name: String, @Column("description") val description: String?)
-data class CheckInQueue(@Column("id") val id: Int = -1, @Column("event_id") val eventId: Int, @Column("name") val name: String,
+enum class Role {ADMIN, OPERATOR, SUPERVISOR}
+data class Event(@Column("id") val id: Int, @Column("name") val name: String)
+data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?)
+data class CheckInQueue(@Column("id") val id: Int, @Column("event_id") val eventId: Int, @Column("name") val name: String,
                         @Column("description") val description: String?, @Column("printer_id_fk") val printerId: Int)
 
-data class ScanLog(@Column("id") val id: Int = -1,
+data class ScanLog(@Column("id") val id: Int,
                    @Column("event_id") val eventId: Int,
                    @Column("queue_id_fk") val queueId: Int,
                    @Column("ticket_uuid") val ticketUuid: String,
@@ -37,16 +37,22 @@ data class ScanLog(@Column("id") val id: Int = -1,
                    @Column("remote_result") val remoteResult: CheckInStatus,
                    @Column("badge_printed") val badgePrinted: Boolean)
 
+data class User(@Column("id") val id: Int, @Column("username") val username: String)
+data class Authority(@Column("username") val username: String, @Column("role") val role: Role)
+data class UserQueue(@Column("user_id_fk") val userId: Int, @Column("event_id_fk") val eventId: Int, @Column("queue_id_fk") val queueId: Int)
+
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 
-open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?) : Serializable {
+open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?, val company: String?) : Serializable {
     val fullName: String
         get() = "$firstName $lastName"
 }
 
-class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "")
+class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", "")
 
-abstract class CheckInResponse(val result: CheckInResult)
+abstract class CheckInResponse(val result: CheckInResult) {
+    fun isSuccessful(): Boolean = result.status.successful
+}
 
 class TicketAndCheckInResult(val ticket: Ticket, result: CheckInResult) : CheckInResponse(result)
 
@@ -69,4 +75,12 @@ enum class CheckInStatus(val successful: Boolean = false) {
     SUCCESS(true);
 }
 
-data class AttendeeData(val firstName: String, val lastName: String, val emailAddress: String, val company: String?)
+data class TicketData(val firstName: String, val lastName: String, val email: String, private val status: String, val company: String?) {
+    val checkInStatus: CheckInStatus
+        get() = when(status) {
+            "ACQUIRED" -> CheckInStatus.SUCCESS
+            "CHECKED_IN" -> CheckInStatus.ALREADY_CHECK_IN
+            "TO_BE_PAID" -> CheckInStatus.MUST_PAY
+            else -> CheckInStatus.INVALID_TICKET_STATE
+        }
+}

@@ -33,7 +33,7 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager) {
     open fun performCheckIn(@PathVariable("eventId") eventId: Int,
                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
                             @RequestBody ticketCode: TicketCode): CheckInResponse {
-        return checkIn(eventId, ticketIdentifier, ticketCode.code!!, "test").invoke(checkInDataManager)
+        return checkIn(eventId, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), "admin").invoke(checkInDataManager)
     }
 
     class TicketCode {

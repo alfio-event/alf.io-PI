@@ -54,6 +54,9 @@ repositories {
 
 configurations {
     compile.exclude module: "spring-boot-starter-tomcat"
+    compile.exclude module: "jackson-core"
+    compile.exclude module: "jackson-databind"
+    compile.exclude module: "hibernate-validator"
 }
 
 dependencies {
