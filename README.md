@@ -38,13 +38,23 @@ To build launch:
 * on OSX or Linux: `./gradlew build`
 * on Windows: `gradlew.bat build`
 
-To start server launch:
+To start backend server launch:
 
-* on OSX or Linux: `./gradlew -Pprofile=dev :bootRun`
-* on Windows: `gradlew.bat -Pprofile=dev :bootRun`
+* on OSX or Linux: `./gradlew -Dspring.profiles.active=dev :bootRun`
+* on Windows: `gradlew.bat -Dspring.profiles.active=dev :bootRun`
 
 Then point your browser to http://localhost:8080/ and login with credentials:
 
 * user: admin
 * password: abcd
+
+Start frontend application:
+
+```bash
+cd frontend
+npm install # only once
+npm start
+```
+
+Then point your browser to http://localhost:4200/
 
