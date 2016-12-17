@@ -22,6 +22,10 @@ import alfio.pi.util.PasswordGenerator
 import ch.digitalfondue.npjt.QueryFactory
 import ch.digitalfondue.npjt.QueryRepositoryScanner
 import ch.digitalfondue.npjt.mapper.ZonedDateTimeMapper
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonPrimitive
+import com.google.gson.JsonSerializer
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationVersion
@@ -48,7 +52,13 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.util.ClassUtils
 import org.springframework.util.MethodInvoker
+import java.net.InetAddress
 import javax.sql.DataSource
+import org.springframework.security.web.csrf.CsrfTokenRepository
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import java.net.NetworkInterface
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 
 @SpringBootApplication
@@ -109,6 +119,31 @@ open class Application {
                                            @Value("\${master.password}") password: String): ConnectionDescriptor = ConnectionDescriptor(url, username, password)
 
     @Bean
+    open fun localServerURL(env: Environment): String {
+        val address = NetworkInterface.getNetworkInterfaces().toList()
+            .flatMap { it.interfaceAddresses }
+            .map {it.address}
+            .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }.hostAddress
+        val scheme = if(env.acceptsProfiles("dev")) {
+            "http"
+        } else {
+            "https"
+        }
+        return "$scheme://$address"
+    }
+
+    @Bean
+    open fun gson(): Gson {
+        val builder = GsonBuilder()
+        builder.registerTypeAdapter(ZonedDateTime::class.java, getZonedDateTimeSerializer())
+        return builder.create()
+    }
+
+    fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
+        return JsonSerializer { src, type, jsonSerializationContext -> JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)) }
+    }
+
+    @Bean
     open fun initializer() = ApplicationListener<ContextRefreshedEvent> {
         val applicationContext = it.applicationContext
         val user = applicationContext.getBean(UserRepository::class.java).findByUsername("admin")
@@ -125,12 +160,11 @@ open class Application {
             logger.info("#                     password: $password                         ")
             logger.info("*******************************************************************")
 
-            //FIXME temporary, to be removed once we have a GUI
-            val eventId = 84
-            applicationContext.getBean(EventRepository::class.java).insert(eventId, "test", masterConnectionConfiguration.url)
-            val printer = applicationContext.getBean(PrinterRepository::class.java).insert("DYMO_LabelWriter_450_Turbo", "test printer")
-            val queue = applicationContext.getBean(CheckInQueueRepository::class.java).insert(eventId, "queue1", null, printer.key)
-            applicationContext.getBean(UserQueueRepository::class.java).insert(newUser.key, eventId, queue.key)
+//            val eventId = 84
+//            applicationContext.getBean(EventRepository::class.java).insert(eventId, "test", masterConnectionConfiguration.url)
+//            val printer = applicationContext.getBean(PrinterRepository::class.java).insert("DYMO_LabelWriter_450_Turbo", "test printer")
+//            val queue = applicationContext.getBean(CheckInQueueRepository::class.java).insert(eventId, "queue1", null, printer.key)
+//            applicationContext.getBean(UserQueueRepository::class.java).insert(newUser.key, eventId, queue.key)
         }
     }
 
@@ -156,7 +190,7 @@ open class BasicAuthWebSecurity : WebSecurityConfig() {
         http.requestMatcher { it.requestURI.startsWith("/admin/api/") }
             .csrf().disable()
             .authorizeRequests()
-            .antMatchers("/admin/**").hasAnyRole(Role.SUPERVISOR.name, Role.OPERATOR.name, Role.ADMIN.name)
+            .antMatchers("/admin/**").hasAnyRole(Role.OPERATOR.name, Role.ADMIN.name)
             .and()
             .httpBasic()
     }
@@ -166,12 +200,19 @@ open class BasicAuthWebSecurity : WebSecurityConfig() {
 @Order(2)
 open class FormLoginWebSecurity: WebSecurityConfig() {
     override fun configure(http: HttpSecurity) {
-        http.csrf()
+        http.csrf().csrfTokenRepository(csrfTokenRepository())
             .and()
             .authorizeRequests()
-            .anyRequest().hasAnyRole(Role.ADMIN.name, Role.SUPERVISOR.name)
+            .anyRequest().hasAnyRole(Role.ADMIN.name)
             .and()
             .formLogin()
+    }
+
+    @Bean
+    open fun csrfTokenRepository(): CsrfTokenRepository {
+        val repo = CookieCsrfTokenRepository.withHttpOnlyFalse()
+        repo.setParameterName("_csrf")
+        return repo
     }
 }
 

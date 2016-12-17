@@ -17,13 +17,10 @@
 
 package alfio.pi.controller
 
-import alfio.pi.manager.CheckInDataManager
-import alfio.pi.manager.checkIn
+import alfio.pi.manager.*
 import alfio.pi.model.CheckInResponse
-import alfio.pi.model.CheckInResult
-import alfio.pi.model.EmptyTicketResult
+import alfio.pi.repository.EventRepository
 import org.springframework.web.bind.annotation.*
-import java.security.Principal
 
 @RestController
 @RequestMapping("/admin/api/check-in")
@@ -38,5 +35,15 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager) {
 
     class TicketCode {
         var code: String? = null
+    }
+}
+
+@RestController
+@RequestMapping("/admin/api")
+open class AppEventApi(val eventRepository: EventRepository) {
+
+    @RequestMapping(value = "/events", method = arrayOf(RequestMethod.GET))
+    open fun loadEvents() = {
+        findLocalEvents().invoke(eventRepository)
     }
 }

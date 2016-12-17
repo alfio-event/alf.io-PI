@@ -19,14 +19,21 @@ package alfio.pi.controller
 
 import alfio.pi.manager.findAllEntries
 import alfio.pi.manager.findAllEntriesForEvent
+import alfio.pi.manager.findLocalEvents
+import alfio.pi.manager.toggleActivation
+import alfio.pi.model.Event
 import alfio.pi.model.ScanLog
+import alfio.pi.repository.EventRepository
 import alfio.pi.repository.ScanLogRepository
+import org.springframework.http.HttpMethod
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/scan-log")
+@RequestMapping("/api/scan-log")
 open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
 
     @RequestMapping("/")
@@ -36,3 +43,16 @@ open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
 }
 
+
+
+@RestController
+@RequestMapping("/api/events")
+open class EventApi (val transactionManager: PlatformTransactionManager, val eventRepository: EventRepository) {
+
+    @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
+    open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)
+
+    @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
+    open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
+
+}

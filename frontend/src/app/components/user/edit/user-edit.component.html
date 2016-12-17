@@ -1,0 +1,44 @@
+<!--
+  ~ This file is part of alf.io.
+  ~
+  ~ alf.io is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ alf.io is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<form novalidate (ngSubmit)="onSubmit()">
+  <div class="row" *ngIf="!displayQRCode">
+    <div [class.col-md-9]="displayQRCode" class="col-xs-12">
+      <div class="form-group row">
+        <label class="col-xs-2 col-form-label">Username</label>
+        <div class="col-xs-10">
+          <input class="form-control" type="text" [formControl]="username">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="displayQRCode">
+    <button type="button" class="close float-xs-right" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+    <h3>User has been created/updated</h3>
+    <div class="text-xs-center align-middle">
+      <img class="img-fluid" [src]="userQRCodeUrl">
+      <div>
+        <p><strong>username:</strong> {{user.username}}</p>
+        <p><strong>password:</strong> {{getUserWithPassword().password}}</p>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="btn btn-warning" *ngIf="!displayQRCode" (click)="create()">Create</button>
+  <button type="button" class="btn btn-default" *ngIf="displayQRCode || displayReset" (click)="resetPassword()">Reset Password</button>
+</form>

@@ -23,6 +23,6 @@ nbdist/
 .nb-gradle/
 
 ### Ignore alf.io-specific resources ###
-db/
+!db/
 application.properties
 classes

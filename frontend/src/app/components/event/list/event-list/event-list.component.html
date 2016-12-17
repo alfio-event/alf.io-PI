@@ -1,0 +1,12 @@
+<div class="card">
+  <h3 class="card-header">Events</h3>
+  <div class="card-block">
+    <p class="card-text">Here you can create new users and edit existing ones</p>
+  </div>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item" *ngFor="let event of events"><a [routerLink]="['/user/edit/', event.id]">{{event.name}}</a> - {{event.location}} {{event.begin | date}}</li>
+  </ul>
+  <div class="card-block">
+    <router-outlet></router-outlet>
+  </div>
+</div>

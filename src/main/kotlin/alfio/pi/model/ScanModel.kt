@@ -21,9 +21,19 @@ import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
 import org.springframework.context.ApplicationEvent
 import java.io.Serializable
 import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
-enum class Role {ADMIN, OPERATOR, SUPERVISOR}
-data class Event(@Column("id") val id: Int, @Column("name") val name: String)
+enum class Role {ADMIN, OPERATOR}
+data class Event(@Column("id") val id: Int,
+                 @Column("key") val key: String,
+                 @Column("name") val name: String,
+                 @Column("image_url") val imageUrl: String?,
+                 @Column("begin_ts") val begin: ZonedDateTime,
+                 @Column("end_ts") val end: ZonedDateTime,
+                 @Column("location") val location: String?,
+                 @Column("api_version") val apiVersion: Int,
+                 @Column("active") val active: Boolean)
 data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?)
 data class CheckInQueue(@Column("id") val id: Int, @Column("event_id") val eventId: Int, @Column("name") val name: String,
                         @Column("description") val description: String?, @Column("printer_id_fk") val printerId: Int)
@@ -38,6 +48,7 @@ data class ScanLog(@Column("id") val id: Int,
                    @Column("badge_printed") val badgePrinted: Boolean)
 
 data class User(@Column("id") val id: Int, @Column("username") val username: String)
+data class UserWithPassword(val id: Int, val username: String, val password: String)
 data class Authority(@Column("username") val username: String, @Column("role") val role: Role)
 data class UserQueue(@Column("user_id_fk") val userId: Int, @Column("event_id_fk") val eventId: Int, @Column("queue_id_fk") val queueId: Int)
 
@@ -83,4 +94,16 @@ data class TicketData(val firstName: String, val lastName: String, val email: St
             "TO_BE_PAID" -> CheckInStatus.MUST_PAY
             else -> CheckInStatus.INVALID_TICKET_STATE
         }
+}
+
+class RemoteEvent {
+    var key: String? = null
+    var external: Boolean = false
+    var name: String? = null
+    var imageUrl: String? = null
+    var begin: String? = null
+    var end: String? = null
+    var oneDay: Boolean = false
+    var location: String? = null
+    var apiVersion: Int = 0
 }

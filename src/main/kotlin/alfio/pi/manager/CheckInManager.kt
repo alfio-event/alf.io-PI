@@ -25,12 +25,14 @@ import alfio.pi.repository.*
 import alfio.pi.wrapper.CannotBeginTransaction
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.client.j2se.MatrixToImageWriter
+import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import okhttp3.*
 import org.apache.pdfbox.pdmodel.PDDocument
@@ -54,6 +56,7 @@ import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
@@ -73,10 +76,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val userQueueRepository: UserQueueRepository,
                               val userRepository: UserRepository,
                               val transactionManager: PlatformTransactionManager,
-                              val printerRepository: PrinterRepository) {
+                              val printerRepository: PrinterRepository,
+                              val gson: Gson) {
     private val ticketDataNotFound = "ticket-not-found"
-    private val gson = GsonBuilder().create()
-    private val client = OkHttpClient()
 
     private fun getLocalTicketData(eventId: Int, uuid: String, hmac: String) : CheckInResponse {
         val eventData = eventAttendeesCache.computeIfAbsent(eventId, {loadCachedAttendees(it)})
@@ -162,7 +164,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
                 .url(url)
                 .build()
-            val resp = client.newCall(request).execute()
+            val resp = httpClient.newCall(request).execute()
             if(resp.isSuccessful) {
                 resp.body().use(fun(it: ResponseBody) : Map<String, String> {
                     return gson.fromJson(it.string(), object : TypeToken<Map<String, String>>() {}.type)
@@ -184,7 +186,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             .post(requestBody)
             .url("${master.url}/admin/api/check-in/$eventId/ticket/$uuid")
             .build()
-        val resp = client.newCall(request).execute()
+        val resp = httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS).newCall(request).execute()
         if(resp.isSuccessful) {
             resp.body().use { gson.fromJson(it.string(), TicketAndCheckInResult::class.java) }
         } else {
@@ -293,8 +295,18 @@ private val convertMMToPoint: (Float) -> Float = {
 }
 
 private fun generateQRCode(value: String): BufferedImage {
+    val matrix = generateBitMatrix(value)
+    return MatrixToImageWriter.toBufferedImage(matrix)
+}
+
+private fun generateBitMatrix(value: String): BitMatrix {
     val hintMap = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
     val matrix = MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, 200, 200, hintMap)
-    return MatrixToImageWriter.toBufferedImage(matrix)
+    return matrix
+}
+
+fun generateQRCodeImage(value: String): ByteArray {
+    val output = ByteArrayOutputStream()
+    return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value), "png", it); it.toByteArray() }
 }

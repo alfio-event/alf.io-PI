@@ -33,7 +33,19 @@ fun <T> doInTransaction(): (PlatformTransactionManager, () -> T, (Exception) -> 
     if(transactionStatus === failedTransactionStatus) {
         exceptionHandler(CannotBeginTransaction())
     } else {
-        tryOrDefault<T>().invoke({operation.invoke()}, exceptionHandler)
+        tryOrDefault<T>().invoke({
+            val result = operation.invoke()
+            transactionManager.commit(transactionStatus)
+            result
+        }, { e ->
+            tryOrDefault<T>().invoke({
+                transactionManager.rollback(transactionStatus)
+                exceptionHandler.invoke(e)
+            }, {
+                val exc = Exception("Cannot rollback transaction, previous Exception: $e", it)
+                exceptionHandler.invoke(exc)
+            })
+        })
     }
 }
 
