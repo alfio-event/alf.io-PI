@@ -79,4 +79,7 @@ dependencies {
     optional("org.springframework.boot:spring-boot-configuration-processor")
 }
 
+bootRun {
+    systemProperties System.properties
+}
 compileJava.dependsOn(processResources)
