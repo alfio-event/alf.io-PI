@@ -33,27 +33,14 @@ interface ScanLogRepository {
     @Query("select * from scan_log")
     fun loadAll():List<ScanLog>
 
-    @Query("select * from scan_log where event_id = :eventId")
+    @Query("select * from scan_log where event_id_fk = :eventId")
     fun loadAllForEvent(@Bind("eventId") eventId: Int):List<ScanLog>
 
-    @Query("insert into scan_log (event_id, queue_id_fk, ticket_uuid, user, local_result, remote_result, badge_printed) values(:eventId, :queueId, :ticketUuid, :user, :localResult, :remoteResult, :badgePrinted)")
-    fun insert(@Bind("eventId") eventId: Int, @Bind("queueId") queueId: Int, @Bind("ticketUuid") ticketUuid: String, @Bind("user") user: String, @Bind("localResult") localResult: CheckInStatus, @Bind("remoteResult") remoteResult: CheckInStatus, @Bind("badgePrinted") badgePrinted: Boolean): Int
+    @Query("insert into scan_log (event_id_fk, ticket_uuid, user_id_fk, local_result, remote_result, badge_printed) values(:eventId, :queueId, :ticketUuid, :userId, :localResult, :remoteResult, :badgePrinted)")
+    fun insert(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String, @Bind("userId") userId: Int, @Bind("localResult") localResult: CheckInStatus, @Bind("remoteResult") remoteResult: CheckInStatus, @Bind("badgePrinted") badgePrinted: Boolean): Int
 
-    @Query("select * from scan_log where event_id = :eventId and ticket_uuid = :ticketUuid")
+    @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid")
     fun loadSuccessfulScanForTicket(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String) : Optional<ScanLog>
-}
-
-@QueryRepository
-interface CheckInQueueRepository {
-    @Query("select * from check_in_queue")
-    fun loadAll(): List<CheckInQueue>
-
-    @Query("select * from check_in_queue where id = :id")
-    fun findById(@Bind("id") id: Int) : CheckInQueue
-
-    @Query("insert into check_in_queue(event_id, name, description, printer_id_fk) values(:eventId, :name, :description, :printerId)")
-    fun insert(@Bind("eventId") eventId: Int, @Bind("name") name: String, @Bind("description") description: String?, @Bind("printerId") printerId: Int?): AffectedRowCountAndKey<Int>
-
 }
 
 @QueryRepository
@@ -61,21 +48,30 @@ interface PrinterRepository {
     @Query("select * from printer")
     fun loadAll(): List<Printer>
 
-    @Query("insert into printer(name, description) values(:name, :description)")
-    fun insert(@Bind("name") name: String, @Bind("description") description: String?): AffectedRowCountAndKey<Int>
+    @Query("insert into printer(name, description, active) values(:name, :description, :active)")
+    fun insert(@Bind("name") name: String, @Bind("description") description: String?, @Bind("active") active: Boolean): AffectedRowCountAndKey<Int>
 
-    @Query("select printer.id as id, printer.name as name, printer.description as description from printer, check_in_queue where check_in_queue.id = :queueId and check_in_queue.printer_id_fk is not null and check_in_queue.printer_id_fk = printer.id")
-    fun findByQueueId(@Bind("queueId") queueId: Int): Optional<Printer>
+    @Query("select printer.id as id, printer.name as name, printer.description as description from printer, user_printer where user_printer.user_id_fk = :userId and user_printer.event_id_fk = :eventId and user_printer.printer_id_fk = printer.id")
+    fun findByUserIdAndEvent(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int): Optional<Printer>
+
+    @Query("select * from printer where id = :id")
+    fun findById(@Bind("id") printerId: Int): Printer
+
+    @Query("update printer set active = :state where id = :id")
+    fun toggleActivation(@Bind("id") id: Int, @Bind("state") state: Boolean): Int
 }
 
 @QueryRepository
-interface UserQueueRepository {
+interface UserPrinterRepository {
 
-    @Query("insert into user_queue(user_id_fk, event_id_fk, queue_id_fk) values(:userId, :eventId, :queueId)")
-    fun insert(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int, @Bind("queueId") queueId: Int): Int
+    @Query("insert into user_printer(user_id_fk, event_id_fk, printer_id_fk) values(:userId, :eventId, :printerId)")
+    fun insert(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int, @Bind("printerId") printerId: Int): Int
 
-    @Query("select * from user_queue where user_id_fk = :userId and event_id_fk = :eventId")
-    fun getUserQueue(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int): UserQueue
+    @Query("select * from user_printer where user_id_fk = :userId and event_id_fk = :eventId")
+    fun getUserPrinter(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int): UserPrinter
+
+    @Query("select u.username as username, u.id as user_id, p.id as printer_id, p.name as printer_name, p.description as printer_description, p.active as printer_active from user u, printer p, user_printer up where up.event_id_fk = :eventId and up.user_id_fk = u.id and up.printer_id_fk = p.id")
+    fun loadAllForEvent(@Bind("eventId") eventId: Int): List<UserAndPrinter>
 
 }
 

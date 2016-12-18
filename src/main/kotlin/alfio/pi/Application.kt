@@ -148,10 +148,9 @@ open class Application {
         val applicationContext = it.applicationContext
         val user = applicationContext.getBean(UserRepository::class.java).findByUsername("admin")
         if(!user.isPresent) {
-            val masterConnectionConfiguration = applicationContext.getBean("masterConnectionConfiguration", ConnectionDescriptor::class.java)
             val password = applicationContext.getBean(PasswordGenerator::class.java).generateRandomPassword()
             val encryptedPassword = applicationContext.getBean(PasswordEncoder::class.java).encode(password)
-            val newUser = applicationContext.getBean(UserRepository::class.java).insert("admin", encryptedPassword)
+            applicationContext.getBean(UserRepository::class.java).insert("admin", encryptedPassword)
             applicationContext.getBean(AuthorityRepository::class.java).insert("admin", Role.ADMIN)
             logger.info("*******************************************************************")
             logger.info("# You are running alf.io for the first time                       ")
@@ -159,12 +158,11 @@ open class Application {
             logger.info("#                     username: admin                             ")
             logger.info("#                     password: $password                         ")
             logger.info("*******************************************************************")
-
-//            val eventId = 84
-//            applicationContext.getBean(EventRepository::class.java).insert(eventId, "test", masterConnectionConfiguration.url)
-//            val printer = applicationContext.getBean(PrinterRepository::class.java).insert("DYMO_LabelWriter_450_Turbo", "test printer")
-//            val queue = applicationContext.getBean(CheckInQueueRepository::class.java).insert(eventId, "queue1", null, printer.key)
-//            applicationContext.getBean(UserQueueRepository::class.java).insert(newUser.key, eventId, queue.key)
+        }
+        val printerRepository = applicationContext.getBean(PrinterRepository::class.java)
+        val existingPrinters = printerRepository.loadAll()
+        getSystemPrinters().filter { sp -> existingPrinters.none { e -> e.name == sp.name }}.forEach {
+            printerRepository.insert(it.name, "", true)
         }
     }
 

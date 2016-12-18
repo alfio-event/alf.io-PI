@@ -18,14 +18,17 @@
 package alfio.pi.manager
 
 import alfio.pi.model.Event
+import alfio.pi.model.Printer
 import alfio.pi.model.ScanLog
 import alfio.pi.repository.EventRepository
+import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.PlatformTransactionManager
+import java.util.*
 
 private val logger: Logger = LoggerFactory.getLogger("scanLogManager")
 
@@ -50,11 +53,34 @@ fun findLocalEvents(): (EventRepository) -> List<Event> = {
     })
 }
 
-fun toggleActivation(id: Int, state: Boolean): (PlatformTransactionManager, EventRepository) -> Boolean = { transactionManager, eventRepository ->
+fun findLocalEvent(eventId: Int): (EventRepository) -> Optional<Event> = {
+    tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventId)}, {
+        logger.error("error while loading event $eventId", it)
+        Optional.empty()
+    })
+}
+
+fun toggleEventActivation(id: Int, state: Boolean): (PlatformTransactionManager, EventRepository) -> Boolean = { transactionManager, eventRepository ->
     doInTransaction<Boolean>().invoke(transactionManager, {
         eventRepository.toggleActivation(id, state) == 1
     }, {
         logger.error("error while trying to update active state", it)
         false
+    })
+}
+
+fun togglePrinterActivation(id: Int, state: Boolean): (PlatformTransactionManager, PrinterRepository) -> Boolean = { transactionManager, printerRepository ->
+    doInTransaction<Boolean>().invoke(transactionManager, {
+        printerRepository.toggleActivation(id, state) == 1
+    }, {
+        logger.error("error while trying to update active state to $state for printer $id", it)
+        false
+    })
+}
+
+fun findAllRegisteredPrinters(): (PrinterRepository) -> List<Printer> = {
+    tryOrDefault<List<Printer>>().invoke({it.loadAll()}, {
+        logger.error("error while loading printers", it)
+        emptyList()
     })
 }

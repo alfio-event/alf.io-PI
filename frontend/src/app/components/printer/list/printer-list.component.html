@@ -1,0 +1,12 @@
+<div class="card">
+  <h3 class="card-header">Printers</h3>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item" *ngFor="let printer of printers">
+      <label class="custom-control custom-checkbox">
+        <input type="checkbox" class="custom-control-input" [checked]="printer.active" (click)="toggleActivation(printer)">
+        <span class="custom-control-indicator"></span>
+        <span class="custom-control-description">{{printer.name}}</span>
+      </label>
+    </li>
+  </ul>
+</div>

@@ -7,9 +7,13 @@ import { AppComponent } from './app.component';
 import {UserEditComponent} from "./components/user/edit/user-edit.component";
 import {UserViewComponent} from "./components/user/view/user-view.component";
 import {UserService} from "./components/user/user.service";
-import { UserListComponent } from './components/user/list/user-list/user-list.component';
-import { EventListComponent } from './components/event/list/event-list/event-list.component';
+import { UserListComponent } from './components/user/list/user-list.component';
+import { EventListComponent } from './components/event/list/event-list.component';
 import {EventService} from "./components/event/event.service";
+import { EventConfigurationComponent } from './components/event/configuration/event-configuration.component';
+import { PrinterListComponent } from './components/printer/list/printer-list.component';
+import {PrinterService} from "./components/printer/printer.service";
+import { CloseDetailComponent } from './components/close-detail/close-detail.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +21,10 @@ import {EventService} from "./components/event/event.service";
     UserEditComponent,
     UserViewComponent,
     UserListComponent,
-    EventListComponent
+    EventListComponent,
+    EventConfigurationComponent,
+    PrinterListComponent,
+    CloseDetailComponent
   ],
   imports: [
     BrowserModule,
@@ -25,19 +32,13 @@ import {EventService} from "./components/event/event.service";
     ReactiveFormsModule,
     HttpModule,
     RouterModule.forRoot([
-      {
-        path: 'user/new',
-        component: UserEditComponent
-      }, {
-        path: 'user/edit/:userId',
-        component: UserEditComponent
-      }, {
-        path: 'user/:userId',
-        component: UserViewComponent
-      }
+      { path: 'user/new', component: UserEditComponent },
+      { path: 'user/edit/:userId', component: UserEditComponent },
+      { path: 'user/:userId', component: UserViewComponent },
+      { path: 'event/config/:eventId', component: EventConfigurationComponent}
     ])
   ],
-  providers: [UserService, { provide: XSRFStrategy, useValue: new CookieXSRFStrategy('XSRF-TOKEN', 'X-XSRF-TOKEN') }, EventService],
+  providers: [UserService, { provide: XSRFStrategy, useValue: new CookieXSRFStrategy('XSRF-TOKEN', 'X-XSRF-TOKEN') }, EventService, PrinterService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

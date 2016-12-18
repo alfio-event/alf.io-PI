@@ -27,10 +27,7 @@
     </div>
   </div>
   <div *ngIf="displayQRCode">
-    <button type="button" class="close float-xs-right" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-    <h3>User has been created/updated</h3>
+    <h3>User has been created/updated <close-detail></close-detail></h3>
     <div class="text-xs-center align-middle">
       <img class="img-fluid" [src]="userQRCodeUrl">
       <div>

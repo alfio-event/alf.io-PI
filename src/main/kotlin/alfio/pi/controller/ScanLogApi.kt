@@ -17,15 +17,16 @@
 
 package alfio.pi.controller
 
-import alfio.pi.manager.findAllEntries
-import alfio.pi.manager.findAllEntriesForEvent
-import alfio.pi.manager.findLocalEvents
-import alfio.pi.manager.toggleActivation
+import alfio.pi.manager.*
 import alfio.pi.model.Event
+import alfio.pi.model.Printer
 import alfio.pi.model.ScanLog
 import alfio.pi.repository.EventRepository
+import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -52,7 +53,22 @@ open class EventApi (val transactionManager: PlatformTransactionManager, val eve
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)
 
-    @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
-    open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
+    @RequestMapping(value = "/{eventId}", method = arrayOf(RequestMethod.GET))
+    open fun getSingleEvent(@PathVariable("eventId") eventId: Int) : ResponseEntity<Event> = findLocalEvent(eventId).invoke(eventRepository)
+        .map{ ResponseEntity.ok(it) }
+        .orElseGet { ResponseEntity(HttpStatus.NOT_FOUND) }
 
+    @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
+    open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleEventActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
+
+}
+
+@RestController
+@RequestMapping("/api/printers")
+open class PrinterApi (val transactionManager: PlatformTransactionManager, val printerRepository: PrinterRepository) {
+    @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
+    open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
+
+    @RequestMapping(value = "/{printerId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
+    open fun toggleActiveState(@PathVariable("printerId") printerId: Int, method: HttpMethod): Boolean = togglePrinterActivation(printerId, method == HttpMethod.PUT).invoke(transactionManager, printerRepository)
 }

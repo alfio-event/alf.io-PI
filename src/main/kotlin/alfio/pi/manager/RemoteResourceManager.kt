@@ -133,7 +133,7 @@ open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
                 "location" to r.location,
                 "apiVersion" to r.apiVersion,
                 "oneDay" to r.oneDay,
-                "active" to false))
+                "active" to true))
         }.toTypedArray()
         if(!toBeCreated.isEmpty()) {
             jdbc.batchUpdate(eventRepository.bulkInsert(), toBeCreated)

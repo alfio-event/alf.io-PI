@@ -7,10 +7,7 @@
     <li class="list-group-item" *ngFor="let user of users"><a [routerLink]="['/user/edit/', user.id]">{{user.username}}</a></li>
   </ul>
   <div class="card-block text-xs-right">
-    <a class="btn btn-warning" [routerLink]="['/user/new']">New User</a>
-  </div>
-  <div class="card-block">
-    <router-outlet></router-outlet>
+    <a class="btn btn-warning btn-sm" [routerLink]="['/user/new']">New User</a>
   </div>
 </div>
 

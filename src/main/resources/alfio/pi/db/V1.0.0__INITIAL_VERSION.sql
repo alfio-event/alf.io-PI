@@ -32,31 +32,9 @@ create table event (
 create table printer (
     id integer identity not null,
     name varchar(1024) not null,
-    description varchar(2048)
-);
-
-create table check_in_queue (
-    id integer identity not null,
-    event_id integer not null,
-    name varchar(255) not null,
     description varchar(2048),
-    printer_id_fk integer
+    active boolean default false not null
 );
-
-alter table check_in_queue add foreign key(printer_id_fk) references printer(id);
-
-create table scan_log (
-    id integer identity not null,
-    event_id integer not null,
-    queue_id_fk integer not null,
-    ticket_uuid varchar(255) not null,
-    user varchar(255) not null,
-    local_result varchar(255) not null,
-    remote_result varchar(255) not null,
-    badge_printed boolean default false not null
-);
-
-alter table scan_log add foreign key(queue_id_fk) references check_in_queue(id);
 
 create table user (
     id integer identity not null,
@@ -64,20 +42,33 @@ create table user (
     password varchar(2048) not null
 );
 
+create table scan_log (
+    id integer identity not null,
+    event_id_fk integer not null,
+    ticket_uuid varchar(255) not null,
+    user_id_fk integer not null,
+    local_result varchar(255) not null,
+    remote_result varchar(255) not null,
+    badge_printed boolean default false not null
+);
+
+alter table scan_log add foreign key(user_id_fk) references user(id);
+alter table scan_log add foreign key(event_id_fk) references event(id);
+
 create table authority(
     username varchar(255) not null,
     role varchar(255) not null
 );
 
-create table user_queue (
+create table user_printer (
     user_id_fk integer not null,
     event_id_fk integer not null,
-    queue_id_fk integer not null
+    printer_id_fk integer not null
 );
 
-alter table user_queue add foreign key(user_id_fk) references user(id);
-alter table user_queue add foreign key(event_id_fk) references event(id);
-alter table user_queue add foreign key(queue_id_fk) references check_in_queue(id);
-alter table user_queue add constraint "unique_user_queue_event" unique(user_id_fk, event_id_fk, queue_id_fk);
+alter table user_printer add foreign key(user_id_fk) references user(id);
+alter table user_printer add foreign key(event_id_fk) references event(id);
+alter table user_printer add foreign key(printer_id_fk) references printer(id);
+alter table user_printer add constraint "unique_user_printer_event" unique(user_id_fk, event_id_fk);
 
 

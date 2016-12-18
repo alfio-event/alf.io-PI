@@ -1,0 +1,31 @@
+<!--
+  ~ This file is part of alf.io.
+  ~
+  ~ alf.io is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ alf.io is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+<div class="card">
+  <h3 class="card-header">Events</h3>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item" *ngFor="let event of events">
+      <h5 class="list-group-item-heading">
+        <label class="custom-control custom-checkbox">
+          <input type="checkbox" class="custom-control-input" [checked]="event.active" (click)="toggleActivation(event)">
+          <span class="custom-control-indicator"></span>
+          <span class="custom-control-description"><a [routerLink]="['event/config/', event.id]">{{event.name}}</a></span>
+        </label>
+      </h5>
+      <p class="list-group-item-text">{{event.location}} {{event.begin | date}}</p>
+    </li>
+  </ul>
+</div>

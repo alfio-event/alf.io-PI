@@ -73,7 +73,7 @@ private val eventAttendeesCache: ConcurrentMap<Int, Map<String, String>> = Concu
 @Component
 open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
                               val scanLogRepository: ScanLogRepository,
-                              val userQueueRepository: UserQueueRepository,
+                              val userPrinterRepository: UserPrinterRepository,
                               val userRepository: UserRepository,
                               val transactionManager: PlatformTransactionManager,
                               val printerRepository: PrinterRepository,
@@ -122,13 +122,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                         CheckInStatus.SUCCESS
                     }
                     userRepository.findByUsername(username).map(fun(user: User): CheckInResponse {
-                        val userQueue = userQueueRepository.getUserQueue(user.id, eventId)
+                        val userPrinter = userPrinterRepository.getUserPrinter(user.id, eventId)
                         val labelPrinted = if(localResult.successful) {
-                            printLabel(username, userQueue.queueId, localDataResult.ticket)
+                            printLabel(username, userPrinter.printerId, localDataResult.ticket)
                         } else {
                             false
                         }
-                        scanLogRepository.insert(eventId, userQueue.queueId, uuid, username, localResult, remoteResult.result.status, labelPrinted)
+                        scanLogRepository.insert(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted)
                         return TicketAndCheckInResult(localDataResult.ticket, CheckInResult(localResult))
                     }).orElseGet({EmptyTicketResult()})
                 } else {
@@ -137,24 +137,24 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             }
     }
 
-    private fun printLabel(username: String, queueId: Int, ticket: Ticket): Boolean {
-        return printerRepository.findByQueueId(queueId).map { printer ->
-            tryOrDefault<Boolean>().invoke({
-                val pdf = generatePDF(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid)
-                val printService = findPrinterByName(printer.name)
-                val printJob = printService?.createPrintJob()
-                if(printJob == null) {
-                    logger.warn("cannot find printer with name ${printer.name}")
-                    false
-                } else {
-                    printJob.print(SimpleDoc(pdf, DocFlavor.BYTE_ARRAY.PDF, null), null)
-                    true
-                }
-            }, {
-                logger.error("cannot print label for ticket ${ticket.uuid}, username $username", it)
+    private fun printLabel(username: String, printerId: Int, ticket: Ticket): Boolean {
+        return tryOrDefault<Boolean>().invoke({
+            val printer = printerRepository.findById(printerId)
+            val pdf = generatePDF(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid)
+            val printService = findPrinterByName(printer.name)
+            val printJob = printService?.createPrintJob()
+            if(printJob == null) {
+                logger.warn("cannot find printer with name ${printer.name}")
                 false
-            })
-        }.orElse(false)
+            } else {
+                printJob.print(SimpleDoc(pdf, DocFlavor.BYTE_ARRAY.PDF, null), null)
+                true
+            }
+        }, {
+            logger.error("cannot print label for ticket ${ticket.uuid}, username $username", it)
+            false
+        })
+
     }
 
     internal fun loadCachedAttendees(eventId: Int) : Map<String, String> {

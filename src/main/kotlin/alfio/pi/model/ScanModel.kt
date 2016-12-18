@@ -34,15 +34,12 @@ data class Event(@Column("id") val id: Int,
                  @Column("location") val location: String?,
                  @Column("api_version") val apiVersion: Int,
                  @Column("active") val active: Boolean)
-data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?)
-data class CheckInQueue(@Column("id") val id: Int, @Column("event_id") val eventId: Int, @Column("name") val name: String,
-                        @Column("description") val description: String?, @Column("printer_id_fk") val printerId: Int)
+data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean)
 
 data class ScanLog(@Column("id") val id: Int,
-                   @Column("event_id") val eventId: Int,
-                   @Column("queue_id_fk") val queueId: Int,
+                   @Column("event_id_fk") val eventId: Int,
                    @Column("ticket_uuid") val ticketUuid: String,
-                   @Column("user") val user: String,
+                   @Column("user_id_fk") val userId: Int,
                    @Column("local_result") val localResult: CheckInStatus,
                    @Column("remote_result") val remoteResult: CheckInStatus,
                    @Column("badge_printed") val badgePrinted: Boolean)
@@ -50,7 +47,16 @@ data class ScanLog(@Column("id") val id: Int,
 data class User(@Column("id") val id: Int, @Column("username") val username: String)
 data class UserWithPassword(val id: Int, val username: String, val password: String)
 data class Authority(@Column("username") val username: String, @Column("role") val role: Role)
-data class UserQueue(@Column("user_id_fk") val userId: Int, @Column("event_id_fk") val eventId: Int, @Column("queue_id_fk") val queueId: Int)
+data class UserPrinter(@Column("user_id_fk") val userId: Int, @Column("event_id_fk") val eventId: Int, @Column("printer_id_fk") val printerId: Int)
+data class UserAndPrinter(@Column("username") private val username: String,
+                          @Column("user_id") private val userId: Int,
+                          @Column("printer_id") private val printerId: Int,
+                          @Column("printer_name") private val printerName: String,
+                          @Column("printer_description") private val printerDescription: String?,
+                          @Column("printer_active") private val printerActive: Boolean) {
+    val user = User(userId, username)
+    val printer = Printer(printerId, printerName, printerDescription, printerActive)
+}
 
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 
