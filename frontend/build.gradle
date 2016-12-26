@@ -1,2 +1,40 @@
-version 'unspecified'
+plugins {
+  id "com.moowork.node" version "1.0.1"
+}
 
+apply plugin:'java'
+
+node {
+  version = '6.9.1'
+  npmVersion = '3.10.8'
+  download = true
+  workDir = file("${project.projectDir}/node")
+  nodeModulesDir = file("${project.projectDir}/")
+}
+
+task npmClean(type: Delete) {
+  final def webDir = "${rootDir}/frontend"
+  delete "${webDir}/node"
+  delete "${webDir}/node_modules"
+  delete "${webDir}/dist"
+  delete "${webDir}/coverage"
+}
+
+// clean task for npm
+clean.dependsOn(npmClean)
+
+// build task for npm
+processResources.dependsOn(npm_install)
+processResources.dependsOn(npm_run_build)
+
+jar {
+  baseName = 'alfio-pi-frontend'
+  version = "${project.version}"
+  into("META-INF/resources/webjars/${baseName}/${project.version}") {
+      from 'dist'
+  }
+}
+
+// run all task
+task runAll {}
+runAll.dependsOn(npm_run_start)

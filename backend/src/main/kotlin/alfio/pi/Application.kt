@@ -41,6 +41,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.core.annotation.Order
 import org.springframework.core.env.Environment
@@ -57,6 +58,8 @@ import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.util.ClassUtils
 import org.springframework.util.MethodInvoker
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import java.net.NetworkInterface
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -235,10 +238,21 @@ open class FormLoginWebSecurity: WebSecurityConfig() {
     }
 }
 
+@Configuration
+@Profile("!dev")
+open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String): WebMvcConfigurerAdapter() {
+    override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion/"
+        registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico", "/assets/*.css")
+            .addResourceLocations(baseDir).setCachePeriod(15 * 60)
+    }
+}
+
 
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
 
 fun main(args: Array<String>) {
+    println("current directory: ${System.getProperty("user.dir")}")
     SpringApplication.run(Application::class.java, *args)
 }
 
