@@ -19,18 +19,24 @@ package alfio.pi.controller
 
 import alfio.pi.manager.*
 import alfio.pi.model.CheckInResponse
+import alfio.pi.model.Event
 import alfio.pi.repository.EventRepository
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
+import java.security.Principal
 
 @RestController
 @RequestMapping("/admin/api/check-in")
 open class CheckInApi(val checkInDataManager: CheckInDataManager) {
 
-    @RequestMapping(value = "/{eventId}/ticket/{ticketIdentifier}", method = arrayOf(RequestMethod.POST))
-    open fun performCheckIn(@PathVariable("eventId") eventId: Int,
+    @RequestMapping(value = "/event/{eventName}/ticket/{ticketIdentifier}", method = arrayOf(RequestMethod.POST))
+    open fun performCheckIn(@PathVariable("eventName") eventName: String,
                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
-                            @RequestBody ticketCode: TicketCode): CheckInResponse {
-        return checkIn(eventId, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), "admin").invoke(checkInDataManager)
+                            @RequestBody ticketCode: TicketCode,
+                            principal: Principal): CheckInResponse {
+        return checkIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), principal.name).invoke(checkInDataManager)
     }
 
     class TicketCode {
@@ -39,11 +45,25 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager) {
 }
 
 @RestController
-@RequestMapping("/admin/api")
 open class AppEventApi(val eventRepository: EventRepository) {
 
-    @RequestMapping(value = "/events", method = arrayOf(RequestMethod.GET))
-    open fun loadEvents() = {
-        findLocalEvents().invoke(eventRepository)
+    @RequestMapping(value = "/api/events/{eventName}", method = arrayOf(RequestMethod.GET))
+    open fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> = findLocalEvent(eventName).invoke(eventRepository).map {
+        ResponseEntity.ok(it)
+    }.orElseGet {
+        ResponseEntity(HttpStatus.NOT_FOUND)
     }
+
+    @RequestMapping(value = "/admin/api/events", method = arrayOf(RequestMethod.GET))
+    open fun loadEvents() = findLocalEvents().invoke(eventRepository)
+
+    @RequestMapping(value = "/admin/api/user-type", method = arrayOf(RequestMethod.GET))
+    open fun loadUserType() = "STAFF"//Sponsors should call the central server
+}
+
+@Controller
+@RequestMapping("/file")
+open class ResourceController() {
+    @RequestMapping("/*")
+    open fun loadImage() = "redirect:/images/logo-alfio-pi.png"
 }

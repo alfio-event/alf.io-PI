@@ -17,7 +17,10 @@
 package alfio.pi
 
 import alfio.pi.model.Role
-import alfio.pi.repository.*
+import alfio.pi.repository.AuthorityRepository
+import alfio.pi.repository.PrinterRepository
+import alfio.pi.repository.UserRepository
+import alfio.pi.repository.getSystemPrinters
 import alfio.pi.util.PasswordGenerator
 import ch.digitalfondue.npjt.QueryFactory
 import ch.digitalfondue.npjt.QueryRepositoryScanner
@@ -49,16 +52,18 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.util.ClassUtils
 import org.springframework.util.MethodInvoker
-import java.net.InetAddress
-import javax.sql.DataSource
-import org.springframework.security.web.csrf.CsrfTokenRepository
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import java.net.NetworkInterface
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
+import java.util.*
+import javax.sql.DataSource
 
 
 @SpringBootApplication
@@ -129,7 +134,8 @@ open class Application {
         } else {
             "https"
         }
-        return "$scheme://$address"
+        val port = env.getProperty("server.port", "8080")
+        return "$scheme://$address:$port"
     }
 
     @Bean
@@ -140,7 +146,21 @@ open class Application {
     }
 
     fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
-        return JsonSerializer { src, type, jsonSerializationContext -> JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)) }
+        val timeFormatter = DateTimeFormatterBuilder()
+            .appendValue(ChronoField.HOUR_OF_DAY, 2)
+            .appendLiteral(':')
+            .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+            .optionalStart()
+            .appendLiteral(':')
+            .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+            .toFormatter(Locale.ROOT)
+        return JsonSerializer { src, type, jsonSerializationContext -> JsonPrimitive(src.format(DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE)
+            .appendLiteral('T')
+            .append(timeFormatter)
+            .appendLiteral('Z')
+            .toFormatter(Locale.ROOT))) }
     }
 
     @Bean
@@ -188,7 +208,7 @@ open class BasicAuthWebSecurity : WebSecurityConfig() {
         http.requestMatcher { it.requestURI.startsWith("/admin/api/") }
             .csrf().disable()
             .authorizeRequests()
-            .antMatchers("/admin/**").hasAnyRole(Role.OPERATOR.name, Role.ADMIN.name)
+            .mvcMatchers("/").hasAnyRole(Role.OPERATOR.name)
             .and()
             .httpBasic()
     }
@@ -201,7 +221,8 @@ open class FormLoginWebSecurity: WebSecurityConfig() {
         http.csrf().csrfTokenRepository(csrfTokenRepository())
             .and()
             .authorizeRequests()
-            .anyRequest().hasAnyRole(Role.ADMIN.name)
+            .antMatchers("/file/**", "/images/**", "/api/events/**").permitAll()
+            .antMatchers("/**").hasAnyRole(Role.ADMIN.name)
             .and()
             .formLogin()
     }

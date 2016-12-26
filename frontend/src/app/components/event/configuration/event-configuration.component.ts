@@ -1,7 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import {EventService} from "../event.service";
+import {EventService, Event} from "../event.service";
 import {ActivatedRoute, Params} from "@angular/router";
 import "rxjs/add/operator/switchMap";
+import {PrinterService, Printer, PrinterWithUsers} from "../../printer/printer.service";
+import {User, UserService} from "../../user/user.service";
+import {Observable} from "rxjs";
+import any = jasmine.any;
 
 @Component({
   selector: 'app-event-configuration',
@@ -10,16 +14,60 @@ import "rxjs/add/operator/switchMap";
 })
 export class EventConfigurationComponent implements OnInit {
 
-  constructor(private eventService: EventService, private route: ActivatedRoute) { }
+  constructor(private eventService: EventService,
+              private route: ActivatedRoute,
+              private printerService: PrinterService,
+              private userService: UserService) { }
 
   event: Event;
+  printers: Array<PrinterWithUsers> = [];
+  private allPrinters: Array<Printer> = [];
+  private allUsers: Array<User> = [];
 
   ngOnInit(): void {
     this.route.params
       .switchMap((params: Params) => {
         let eventId = params['eventId'];
         return this.eventService.getSingleEvent(eventId);
-      }).subscribe(event => this.event = event);
+      }).switchMap((event: Event) => {
+        this.event = event;
+        return Observable.forkJoin(this.printerService.loadPrintersForEvent(event.id), this.printerService.loadAllPrinters(), this.userService.getUsers());
+      }).subscribe((data: Array<any>) => {
+        this.printers = <Array<PrinterWithUsers>>data[0];
+        this.allPrinters = (<Array<Printer>>data[1]).filter(p => p.active);
+        this.allUsers = <Array<User>>data[2];
+      });
+  }
+
+  getNotConfiguredPrinters(): Array<Printer> {
+    return this.allPrinters.filter(p => !this.isPrinterDefined(p));
+  }
+
+  private isPrinterDefined(printer: Printer) {
+    return this.printers.find(pu => pu.printer.id == printer.id);
+  }
+
+  getConfiguredPrinters(): Array<Printer> {
+    return this.allPrinters.filter(p => this.isPrinterDefined(p));
+  }
+
+  addPrinter(printer: Printer): void {
+    this.printers.push(new PrinterWithUsers(printer, []));
+  }
+
+  getNotActiveUsers(): Array<User> {
+    let users = Array<User>();
+    this.printers.forEach(pu => users.concat(pu.users));
+    return this.allUsers.filter(u => users.findIndex(u2 => u2.id == u.id));
+  }
+
+  linkUserToPrinter(user: User, printer: Printer): void {
+    this.eventService.addUserToPrinter(this.event.id, user.id, printer.id)
+      .subscribe(res => {
+        if(res) {
+          this.printers.find(pu => pu.printer.id == printer.id).users.push(user);
+        }
+      });
   }
 
 }

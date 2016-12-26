@@ -36,7 +36,7 @@ interface ScanLogRepository {
     @Query("select * from scan_log where event_id_fk = :eventId")
     fun loadAllForEvent(@Bind("eventId") eventId: Int):List<ScanLog>
 
-    @Query("insert into scan_log (event_id_fk, ticket_uuid, user_id_fk, local_result, remote_result, badge_printed) values(:eventId, :queueId, :ticketUuid, :userId, :localResult, :remoteResult, :badgePrinted)")
+    @Query("insert into scan_log (event_id_fk, ticket_uuid, user_id_fk, local_result, remote_result, badge_printed) values(:eventId, :ticketUuid, :userId, :localResult, :remoteResult, :badgePrinted)")
     fun insert(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String, @Bind("userId") userId: Int, @Bind("localResult") localResult: CheckInStatus, @Bind("remoteResult") remoteResult: CheckInStatus, @Bind("badgePrinted") badgePrinted: Boolean): Int
 
     @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid")
@@ -67,8 +67,14 @@ interface UserPrinterRepository {
     @Query("insert into user_printer(user_id_fk, event_id_fk, printer_id_fk) values(:userId, :eventId, :printerId)")
     fun insert(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int, @Bind("printerId") printerId: Int): Int
 
+    @Query("delete from user_printer where user_id_fk = :userId and event_id_fk = :eventId and printer_id_fk = :printerId")
+    fun delete(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int, @Bind("printerId") printerId: Int): Int
+
     @Query("select * from user_printer where user_id_fk = :userId and event_id_fk = :eventId")
     fun getUserPrinter(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int): UserPrinter
+
+    @Query("select * from user_printer a, printer b where a.user_id_fk = :userId and a.event_id_fk = :eventId and a.printer_id_fk = b.id and b.active = true")
+    fun getOptionalUserPrinter(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int): Optional<UserPrinter>
 
     @Query("select u.username as username, u.id as user_id, p.id as printer_id, p.name as printer_name, p.description as printer_description, p.active as printer_active from user u, printer p, user_printer up where up.event_id_fk = :eventId and up.user_id_fk = u.id and up.printer_id_fk = p.id")
     fun loadAllForEvent(@Bind("eventId") eventId: Int): List<UserAndPrinter>

@@ -17,12 +17,11 @@
 
 package alfio.pi.manager
 
-import alfio.pi.model.Event
-import alfio.pi.model.Printer
-import alfio.pi.model.ScanLog
+import alfio.pi.model.*
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
+import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import org.slf4j.Logger
@@ -53,6 +52,12 @@ fun findLocalEvents(): (EventRepository) -> List<Event> = {
     })
 }
 
+fun findLocalEvent(eventName: String): (EventRepository) -> Optional<Event> = {
+    tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventName)}, {
+        logger.error("error while loading event $eventName", it)
+        Optional.empty()
+    })
+}
 fun findLocalEvent(eventId: Int): (EventRepository) -> Optional<Event> = {
     tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventId)}, {
         logger.error("error while loading event $eventId", it)
@@ -69,6 +74,29 @@ fun toggleEventActivation(id: Int, state: Boolean): (PlatformTransactionManager,
     })
 }
 
+fun removeUserPrinterLink(eventId: Int, userId: Int, printerId: Int): (PlatformTransactionManager, UserPrinterRepository) -> Boolean = { transactionManager, userPrinterRepository ->
+    doInTransaction<Boolean>().invoke(transactionManager, {
+        userPrinterRepository.delete(userId, eventId, printerId) == 1
+    }, {
+        logger.warn("cannot link userId $userId to printer $printerId, event $eventId", it)
+        false
+    })
+}
+
+
+fun linkUserToPrinter(eventId: Int, userId: Int, printerId: Int): (PlatformTransactionManager, UserPrinterRepository) -> Boolean = { transactionManager, userPrinterRepository ->
+    doInTransaction<Boolean>().invoke(transactionManager, {
+        if(!userPrinterRepository.getOptionalUserPrinter(userId, eventId).isPresent) {
+            userPrinterRepository.insert(userId, eventId, printerId) > 0
+        } else {
+            false
+        }
+    }, {
+        logger.warn("cannot link userId $userId to printer $printerId, event $eventId", it)
+        false
+    })
+}
+
 fun togglePrinterActivation(id: Int, state: Boolean): (PlatformTransactionManager, PrinterRepository) -> Boolean = { transactionManager, printerRepository ->
     doInTransaction<Boolean>().invoke(transactionManager, {
         printerRepository.toggleActivation(id, state) == 1
@@ -81,6 +109,19 @@ fun togglePrinterActivation(id: Int, state: Boolean): (PlatformTransactionManage
 fun findAllRegisteredPrinters(): (PrinterRepository) -> List<Printer> = {
     tryOrDefault<List<Printer>>().invoke({it.loadAll()}, {
         logger.error("error while loading printers", it)
+        emptyList()
+    })
+}
+
+fun loadPrintConfigurationForEvent(eventId: Int): (UserPrinterRepository) -> List<PrinterWithUsers> = {
+    tryOrDefault<List<PrinterWithUsers>>().invoke({
+        it.loadAllForEvent(eventId)
+            .groupBy({it.printer}, {it.user})
+            .toList()
+            .sortedBy { it.first.id }
+            .map { PrinterWithUsers(it.first, it.second) }
+    }, {
+        logger.error("error while loading print configuration for event $eventId", it)
         emptyList()
     })
 }

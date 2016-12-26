@@ -48,7 +48,7 @@ export class UserEditComponent implements OnInit {
       .subscribe(res => {
         this.user = res;
         this.displayQRCode = true;
-        this.userQRCodeUrl = `/api/users/${res.id}/qr-code?password=${res.password}`;
+        this.userQRCodeUrl = UserEditComponent.getQRCodeURL(res);
       })
   }
 
@@ -57,7 +57,7 @@ export class UserEditComponent implements OnInit {
       .subscribe(res => {
         this.user = res;
         this.displayQRCode = true;
-        this.userQRCodeUrl = `/api/users/${res.id}/qr-code?password=${res.password}`;
+        this.userQRCodeUrl = UserEditComponent.getQRCodeURL(res);
       });
   }
 
@@ -66,8 +66,12 @@ export class UserEditComponent implements OnInit {
       .subscribe(res => {
         this.user = res;
         this.displayQRCode = true;
-        this.userQRCodeUrl = `/api/users/${res.id}/qr-code?password=${res.password}`;
+        this.userQRCodeUrl = UserEditComponent.getQRCodeURL(res);
       });
+  }
+
+  private static getQRCodeURL(res: UserWithPassword): string {
+    return `/api/internal/users/${res.id}/qr-code?password=${res.password}`;
   }
 
   getUserWithPassword(): UserWithPassword {

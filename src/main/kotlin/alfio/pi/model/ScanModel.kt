@@ -21,7 +21,6 @@ import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
 import org.springframework.context.ApplicationEvent
 import java.io.Serializable
 import java.math.BigDecimal
-import java.time.LocalDateTime
 import java.time.ZonedDateTime
 
 enum class Role {ADMIN, OPERATOR}
@@ -34,7 +33,9 @@ data class Event(@Column("id") val id: Int,
                  @Column("location") val location: String?,
                  @Column("api_version") val apiVersion: Int,
                  @Column("active") val active: Boolean)
-data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean)
+data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean) : Comparable<Printer> {
+    override fun compareTo(other: Printer): Int = name.compareTo(other.name)
+}
 
 data class ScanLog(@Column("id") val id: Int,
                    @Column("event_id_fk") val eventId: Int,
@@ -60,22 +61,19 @@ data class UserAndPrinter(@Column("username") private val username: String,
 
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 
-open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?, val company: String?) : Serializable {
-    val fullName: String
-        get() = "$firstName $lastName"
-}
+open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?, val company: String?, val fullName: String = "$firstName $lastName")
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", "")
 
-abstract class CheckInResponse(val result: CheckInResult) {
+abstract class CheckInResponse(val result: CheckInResult, val ticket: Ticket?) {
     fun isSuccessful(): Boolean = result.status.successful
 }
 
-class TicketAndCheckInResult(val ticket: Ticket, result: CheckInResult) : CheckInResponse(result)
+class TicketAndCheckInResult(ticket: Ticket, result: CheckInResult) : CheckInResponse(result, ticket)
 
-class EmptyTicketResult(result: CheckInResult = CheckInResult()) : CheckInResponse(result)
+class EmptyTicketResult(result: CheckInResult = CheckInResult()) : CheckInResponse(result, null)
 
-class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN), val originalScanLog: ScanLog) : CheckInResponse(result)
+class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN), val originalScanLog: ScanLog) : CheckInResponse(result, null)
 
 data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = "")
 
@@ -112,4 +110,8 @@ class RemoteEvent {
     var oneDay: Boolean = false
     var location: String? = null
     var apiVersion: Int = 0
+}
+
+data class PrinterWithUsers(val printer: Printer, val users: List<User>): Comparable<PrinterWithUsers> {
+    override fun compareTo(other: PrinterWithUsers): Int = printer.id.compareTo(other.printer.id)
 }

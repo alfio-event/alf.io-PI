@@ -68,11 +68,12 @@ import javax.print.SimpleDoc
 
 private val logger = LoggerFactory.getLogger("CheckInManager")!!
 
-private val eventAttendeesCache: ConcurrentMap<Int, Map<String, String>> = ConcurrentHashMap()
+private val eventAttendeesCache: ConcurrentMap<String, Map<String, String>> = ConcurrentHashMap()
 
 @Component
 open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
                               val scanLogRepository: ScanLogRepository,
+                              val eventRepository: EventRepository,
                               val userPrinterRepository: UserPrinterRepository,
                               val userRepository: UserRepository,
                               val transactionManager: PlatformTransactionManager,
@@ -80,8 +81,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val gson: Gson) {
     private val ticketDataNotFound = "ticket-not-found"
 
-    private fun getLocalTicketData(eventId: Int, uuid: String, hmac: String) : CheckInResponse {
-        val eventData = eventAttendeesCache.computeIfAbsent(eventId, {loadCachedAttendees(it)})
+    private fun getLocalTicketData(event: Event, uuid: String, hmac: String) : CheckInResponse {
+        val eventData = eventAttendeesCache.computeIfAbsent(event.key, {loadCachedAttendees(it)})
         val key = calcHash256(hmac)
         val result = eventData[key]
         return tryOrDefault<CheckInResponse>().invoke({
@@ -98,67 +99,70 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         })
     }
 
-    internal fun performCheckIn(eventId: Int, uuid: String, hmac: String, username: String) : CheckInResponse = doInTransaction<CheckInResponse>()
-        .invoke(transactionManager, { doPerformCheckIn(eventId, hmac, username, uuid) }, {
+    internal fun performCheckIn(eventName: String, uuid: String, hmac: String, username: String) : CheckInResponse = doInTransaction<CheckInResponse>()
+        .invoke(transactionManager, { doPerformCheckIn(eventName, hmac, username, uuid) }, {
             if(it !is CannotBeginTransaction) {
                 logger.error("error during check-in", it)
             }
             EmptyTicketResult()
         })
 
-    private fun doPerformCheckIn(eventId: Int, hmac: String, username: String, uuid: String): CheckInResponse {
-        return scanLogRepository.loadSuccessfulScanForTicket(eventId, uuid)
-            .map(fun(existing: ScanLog) : CheckInResponse {
-                return DuplicateScanResult(originalScanLog = existing)
-            })
-            .orElseGet {
-                val localDataResult = getLocalTicketData(eventId, uuid, hmac)
-                if (localDataResult.isSuccessful()) {
-                    localDataResult as TicketAndCheckInResult
-                    val remoteResult = remoteCheckIn(eventId, uuid, hmac)
-                    val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE).contains(remoteResult.result.status)) {
-                        remoteResult.result.status
-                    } else {
-                        CheckInStatus.SUCCESS
-                    }
-                    userRepository.findByUsername(username).map(fun(user: User): CheckInResponse {
-                        val userPrinter = userPrinterRepository.getUserPrinter(user.id, eventId)
-                        val labelPrinted = if(localResult.successful) {
-                            printLabel(username, userPrinter.printerId, localDataResult.ticket)
+    private fun doPerformCheckIn(eventName: String, hmac: String, username: String, uuid: String): CheckInResponse {
+        return eventRepository.loadSingle(eventName)
+            .flatMap { event -> userRepository.findByUsername(username).map { user -> event to user } }
+            .map { eventUser ->
+                val event = eventUser.first
+                val eventId = event.id
+                val user = eventUser.second
+                scanLogRepository.loadSuccessfulScanForTicket(eventId, uuid)
+                    .map(fun(existing: ScanLog) : CheckInResponse = DuplicateScanResult(originalScanLog = existing))
+                    .orElseGet {
+                        val localDataResult = getLocalTicketData(event, uuid, hmac)
+                        if (localDataResult.isSuccessful()) {
+                            localDataResult as TicketAndCheckInResult
+                            val remoteResult = remoteCheckIn(event.key, uuid, hmac)
+                            val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE).contains(remoteResult.result.status)) {
+                                remoteResult.result.status
+                            } else {
+                                CheckInStatus.SUCCESS
+                            }
+                            val ticket = localDataResult.ticket!!
+                            val labelPrinted = remoteResult.isSuccessful() && printLabel(user, eventId, ticket)
+                            scanLogRepository.insert(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted)
+                            logger.info("returning status $localResult for ticket $uuid (${ticket.fullName})")
+                            TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
-                            false
+                            localDataResult
                         }
-                        scanLogRepository.insert(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted)
-                        return TicketAndCheckInResult(localDataResult.ticket, CheckInResult(localResult))
-                    }).orElseGet({EmptyTicketResult()})
-                } else {
-                    localDataResult
-                }
-            }
+                    }
+            }.orElseGet{ EmptyTicketResult() }
     }
 
-    private fun printLabel(username: String, printerId: Int, ticket: Ticket): Boolean {
+    private fun printLabel(user: User, eventId: Int, ticket: Ticket): Boolean {
         return tryOrDefault<Boolean>().invoke({
-            val printer = printerRepository.findById(printerId)
-            val pdf = generatePDF(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid)
-            val printService = findPrinterByName(printer.name)
-            val printJob = printService?.createPrintJob()
-            if(printJob == null) {
-                logger.warn("cannot find printer with name ${printer.name}")
-                false
-            } else {
-                printJob.print(SimpleDoc(pdf, DocFlavor.BYTE_ARRAY.PDF, null), null)
-                true
-            }
+            userPrinterRepository.getOptionalUserPrinter(user.id, eventId)
+                .map { printerRepository.findById(it.printerId) }
+                .map { printer ->
+                    val pdf = generatePDF(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid)
+                    val printJob = findPrinterByName(printer.name)?.createPrintJob()
+                    if(printJob == null) {
+                        logger.warn("cannot find printer with name ${printer.name}")
+                        false
+                    } else {
+                        printJob.print(SimpleDoc(pdf, DocFlavor.BYTE_ARRAY.PDF, null), null)
+                        true
+                    }
+                }.orElse(false)
+
         }, {
-            logger.error("cannot print label for ticket ${ticket.uuid}, username $username", it)
+            logger.error("cannot print label for ticket ${ticket.uuid}, username ${user.username}", it)
             false
         })
 
     }
 
-    internal fun loadCachedAttendees(eventId: Int) : Map<String, String> {
-        val url = "${master.url}/admin/api/check-in/$eventId/offline"
+    internal fun loadCachedAttendees(eventName: String) : Map<String, String> {
+        val url = "${master.url}/admin/api/check-in/$eventName/offline"
         return tryOrDefault<Map<String, String>>().invoke({
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
@@ -179,12 +183,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         })
     }
 
-    private fun remoteCheckIn(eventId: Int, uuid: String, hmac: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
+    private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
         val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
         val request = Request.Builder()
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
             .post(requestBody)
-            .url("${master.url}/admin/api/check-in/$eventId/ticket/$uuid")
+            .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid")
             .build()
         val resp = httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS).newCall(request).execute()
         if(resp.isSuccessful) {
@@ -198,7 +202,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     })
 }
 
-fun checkIn(eventId: Int, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> CheckInResponse = { manager -> manager.performCheckIn(eventId, uuid, hmac, username)}
+fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> CheckInResponse = { manager ->
+    manager.performCheckIn(eventName, uuid, hmac, username)
+}
 
 private fun decrypt(key: String, payload: String): String {
     try {

@@ -1,4 +1,27 @@
 <div class="card" *ngIf="event">
   <h4 class="card-header">{{event.name}} - configuration <close-detail></close-detail></h4>
-
+  <div class="card-block">
+    <h5 class="card-subtitle">Printers</h5>
+    <p class="card-text">Here you can add printer to the event and link users to them</p>
+    <div class="text-xs-right d-inline-block" ngbDropdown="" *ngIf="printers && getNotConfiguredPrinters().length > 0">
+      <button class="btn btn-sm btn-outline-success" id="addPrinter" ngbDropdownToggle>Add Printer</button>
+      <div class="dropdown-menu" aria-labelledby="addPrinter">
+        <button class="dropdown-item" *ngFor="let printer of getNotConfiguredPrinters()" (click)="addPrinter(printer)">{{printer.name}}</button>
+      </div>
+    </div>
+  </div>
+  <ul class="list-group list-group-flush">
+    <li class="list-group-item" *ngFor="let pu of printers" [class.list-group-item-danger]="!pu.printer.active">
+      <div class="list-group-item-heading" ngSwitch="pu.printer.active">
+        {{pu.printer.name}}
+      </div>
+      <div class="text-xs-right d-inline-block" ngbDropdown="" *ngIf="getNotActiveUsers().length > 0">
+        <button class="btn btn-outline-success btn-sm" id="addUser" ngbDropdownToggle>Add User</button>
+        <div class="dropdown-menu" aria-labelledby="addUser">
+          <button class="dropdown-item" *ngFor="let user of getNotActiveUsers()" (click)="linkUserToPrinter(user, pu.printer)">{{user.username}}</button>
+        </div>
+      </div>
+      <span class="tag tag-pill tag-default" *ngFor="let user of pu.users">{{user.username}}</span>
+    </li>
+  </ul>
 </div>

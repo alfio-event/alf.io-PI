@@ -67,6 +67,9 @@ interface EventRepository {
     @Query("select * from event where id = :eventId")
     fun loadSingle(@Bind("eventId") eventId: Int): Optional<Event>
 
+    @Query("select * from event where key = :key")
+    fun loadSingle(@Bind("key") eventName: String): Optional<Event>
+
     @Query(INSERT_QUERY)
     fun insert(@Bind("key") key: String,
                @Bind("name") name: String,

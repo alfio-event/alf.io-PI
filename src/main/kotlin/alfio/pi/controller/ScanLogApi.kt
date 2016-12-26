@@ -18,23 +18,20 @@
 package alfio.pi.controller
 
 import alfio.pi.manager.*
-import alfio.pi.model.Event
-import alfio.pi.model.Printer
-import alfio.pi.model.ScanLog
+import alfio.pi.model.*
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
+import alfio.pi.repository.UserPrinterRepository
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.PlatformTransactionManager
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
+import java.util.*
 
 @RestController
-@RequestMapping("/api/scan-log")
+@RequestMapping("/api/internal/scan-log")
 open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
 
     @RequestMapping("/")
@@ -47,8 +44,10 @@ open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
 
 
 @RestController
-@RequestMapping("/api/events")
-open class EventApi (val transactionManager: PlatformTransactionManager, val eventRepository: EventRepository) {
+@RequestMapping("/api/internal/events")
+open class EventApi (val transactionManager: PlatformTransactionManager,
+                     val eventRepository: EventRepository,
+                     val userPrinterRepository: UserPrinterRepository) {
 
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)
@@ -61,14 +60,54 @@ open class EventApi (val transactionManager: PlatformTransactionManager, val eve
     @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
     open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleEventActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
 
+    @RequestMapping(value = "/{eventId}/user-printer/", method = arrayOf(RequestMethod.POST))
+    open fun linkUserToPrinter(@PathVariable("eventId") eventId: Int, @RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
+        val userId = userPrinterForm.userId
+        val printerId = userPrinterForm.printerId
+        return if(userId != null && printerId != null) {
+            val result = alfio.pi.manager.linkUserToPrinter(eventId, userId, printerId).invoke(transactionManager, userPrinterRepository)
+            if(result) {
+                ResponseEntity.ok(true)
+            } else {
+                ResponseEntity(HttpStatus.CONFLICT)
+            }
+        } else {
+            ResponseEntity(HttpStatus.BAD_REQUEST)
+        }
+    }
+
+    @RequestMapping(value = "/{eventId}/user-printer/", method = arrayOf(RequestMethod.DELETE))
+    open fun removeUserPrinterLink(@PathVariable("eventId") eventId: Int, @RequestBody userPrinterForm: UserPrinterForm): ResponseEntity<Boolean> {
+        val userId = userPrinterForm.userId
+        val printerId = userPrinterForm.printerId
+        return if(userId != null && printerId != null) {
+            val result = removeUserPrinterLink(eventId, userId, printerId).invoke(transactionManager, userPrinterRepository)
+            if(result) {
+                ResponseEntity.ok(true)
+            } else {
+                ResponseEntity(HttpStatus.CONFLICT)
+            }
+        } else {
+            ResponseEntity(HttpStatus.BAD_REQUEST)
+        }
+    }
+
+}
+
+class UserPrinterForm {
+    var userId: Int? = null
+    var printerId: Int? = null
 }
 
 @RestController
-@RequestMapping("/api/printers")
-open class PrinterApi (val transactionManager: PlatformTransactionManager, val printerRepository: PrinterRepository) {
+@RequestMapping("/api/internal/printers")
+open class PrinterApi (val transactionManager: PlatformTransactionManager, val printerRepository: PrinterRepository, val userPrinterRepository: UserPrinterRepository) {
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
 
     @RequestMapping(value = "/{printerId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
     open fun toggleActiveState(@PathVariable("printerId") printerId: Int, method: HttpMethod): Boolean = togglePrinterActivation(printerId, method == HttpMethod.PUT).invoke(transactionManager, printerRepository)
+
+    @RequestMapping(value = "/for-event/{eventId}", method = arrayOf(RequestMethod.GET))
+    open fun loadPrintConfiguration(@PathVariable("eventId") eventId: Int) = loadPrintConfigurationForEvent(eventId).invoke(userPrinterRepository)
 }

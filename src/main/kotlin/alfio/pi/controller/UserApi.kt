@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.*
 import javax.servlet.http.HttpServletResponse
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/internal/users")
 open class UserApi(val userRepository: UserRepository,
                    val transactionManager: PlatformTransactionManager,
                    val passwordGenerator: PasswordGenerator,
@@ -106,7 +106,6 @@ open class UserApi(val userRepository: UserRepository,
             logger.error("error while generating QR code", it)
             response.status = HttpServletResponse.SC_NOT_FOUND
         })
-
     }
 
     class UserForm {

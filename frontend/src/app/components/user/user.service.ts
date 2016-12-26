@@ -9,22 +9,22 @@ export class UserService {
   constructor(private http: Http) { }
 
   getUser(userId: number): Observable<User> {
-    return this.http.get(`/api/users/${userId}`)
+    return this.http.get(`/api/internal/users/${userId}`)
       .map(res => res.json())
   }
 
   getUsers(): Observable<Array<User>> {
-    return this.http.get('/api/users')
+    return this.http.get('/api/internal/users')
       .map(res => res.json())
   }
 
   saveUser(username: String): Observable<UserWithPassword> {
-    return this.http.post('/api/users/', {username: username})
+    return this.http.post('/api/internal/users/', {username: username})
       .map(res => res.json())
   }
 
   resetPassword(id: number): Observable<UserWithPassword> {
-    return this.http.post(`/api/users/${id}/resetPassword`, {})
+    return this.http.post(`/api/internal/users/${id}/resetPassword`, {})
       .map(res => res.json())
   }
 

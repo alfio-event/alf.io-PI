@@ -36,7 +36,7 @@ fun updatePassword(user: User): (PasswordGenerator, PasswordEncoder, UserReposit
 
 fun createNewUser(username: String): (PasswordGenerator, PasswordEncoder, UserRepository, AuthorityRepository) -> UserWithPassword = { generator, encoder, userRepository, authorityRepository ->
     val password = generator.generateRandomPassword()
-    val userResult = userRepository.insert(username, password)
+    val userResult = userRepository.insert(username, encoder.encode(password))
     authorityRepository.insert(username, Role.OPERATOR)
     UserWithPassword(userResult.key, username, password)
 }
