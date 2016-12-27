@@ -242,9 +242,11 @@ open class FormLoginWebSecurity: WebSecurityConfig() {
 @Profile("!dev")
 open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String): WebMvcConfigurerAdapter() {
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
-        val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion/"
-        registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico", "/assets/*.css")
-            .addResourceLocations(baseDir).setCachePeriod(15 * 60)
+        val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion"
+        registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico")
+            .addResourceLocations("$baseDir/").setCachePeriod(15 * 60)
+        registry.addResourceHandler("/assets/*.css", "/assets/*.map")
+            .addResourceLocations("$baseDir/assets/").setCachePeriod(15 * 60)
     }
 }
 
@@ -252,7 +254,6 @@ open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
 
 fun main(args: Array<String>) {
-    println("current directory: ${System.getProperty("user.dir")}")
     SpringApplication.run(Application::class.java, *args)
 }
 

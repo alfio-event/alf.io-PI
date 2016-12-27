@@ -102,6 +102,10 @@ dependencies {
 bootRun {
     systemProperties System.properties
 }
+
+springBoot {
+    executable = true
+}
 compileJava.dependsOn(processResources)
 
 
