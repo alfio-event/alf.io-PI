@@ -22,7 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.support.AbstractTransactionStatus
 import org.springframework.transaction.support.DefaultTransactionDefinition
-private val logger = LoggerFactory.getLogger("TransactionalWrapper")
+private val logger = LoggerFactory.getLogger("alfio.TransactionalWrapper")
 
 fun <T> doInTransaction(): (PlatformTransactionManager, () -> T, (Exception) -> T) -> T = { transactionManager, operation, exceptionHandler ->
     val transactionDefinition = DefaultTransactionDefinition()

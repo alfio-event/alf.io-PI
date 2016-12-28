@@ -17,7 +17,6 @@
 
 package alfio.pi.manager
 
-import alfio.pi.Application
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter

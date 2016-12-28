@@ -15,6 +15,7 @@ build/
 .idea
 *.iws
 *.ipr
+classes/
 
 ### NetBeans ###
 nbproject/private/

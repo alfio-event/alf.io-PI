@@ -18,18 +18,17 @@
 package alfio.pi.manager
 
 import alfio.pi.model.*
-import alfio.pi.repository.EventRepository
-import alfio.pi.repository.PrinterRepository
-import alfio.pi.repository.ScanLogRepository
-import alfio.pi.repository.UserPrinterRepository
+import alfio.pi.repository.*
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
 import java.util.*
 
-private val logger: Logger = LoggerFactory.getLogger("scanLogManager")
+private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
 
 fun findAllEntriesForEvent(eventId: Int) : (ScanLogRepository) -> List<ScanLog> = {
     tryOrDefault<List<ScanLog>>().invoke({it.loadAllForEvent(eventId)}, {
@@ -124,4 +123,15 @@ fun loadPrintConfigurationForEvent(eventId: Int): (UserPrinterRepository) -> Lis
         logger.error("error while loading print configuration for event $eventId", it)
         emptyList()
     })
+}
+
+@Component
+open class PrinterManager(val printerRepository: PrinterRepository) {
+    @Scheduled(fixedDelay = 5000L)
+    open fun syncPrinters() {
+        val existingPrinters = printerRepository.loadAll()
+        getSystemPrinters().filter { sp -> existingPrinters.none { e -> e.name == sp.name }}.forEach {
+            printerRepository.insert(it.name, "", true)
+        }
+    }
 }

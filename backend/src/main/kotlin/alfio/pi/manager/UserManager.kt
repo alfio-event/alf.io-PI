@@ -26,8 +26,6 @@ import alfio.pi.util.PasswordGenerator
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 
-private val logger = LoggerFactory.getLogger("UserManager")!!
-
 fun updatePassword(user: User): (PasswordGenerator, PasswordEncoder, UserRepository) -> UserWithPassword = { generator, encoder, userRepository ->
     val newPassword = generator.generateRandomPassword()
     userRepository.updatePassword(user.id, encoder.encode(newPassword))

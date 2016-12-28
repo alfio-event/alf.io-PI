@@ -18,9 +18,7 @@ package alfio.pi
 
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
-import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserRepository
-import alfio.pi.repository.getSystemPrinters
 import alfio.pi.util.PasswordGenerator
 import ch.digitalfondue.npjt.QueryFactory
 import ch.digitalfondue.npjt.QueryRepositoryScanner
@@ -30,8 +28,15 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.zaxxer.hikari.HikariDataSource
-import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.MigrationVersion
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.cert.X509v1CertificateBuilder
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.crypto.util.PrivateKeyFactory
+import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder
+import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder
+import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
@@ -60,7 +65,14 @@ import org.springframework.util.ClassUtils
 import org.springframework.util.MethodInvoker
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
+import java.math.BigInteger
 import java.net.NetworkInterface
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
+import java.security.KeyPairGenerator
+import java.security.KeyStore
+import java.security.SecureRandom
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
@@ -83,20 +95,6 @@ open class Application {
         dataSource.username = config.username
         dataSource.password = config.password
         return dataSource
-    }
-
-    @Bean
-    open fun migrator(env: Environment, dataSource: DataSource): Flyway {
-        val migration = Flyway()
-        migration.dataSource = dataSource
-
-        migration.isValidateOnMigrate = true
-        migration.target = MigrationVersion.LATEST
-        migration.isOutOfOrder = false
-
-        migration.setLocations("alfio/pi/db/")
-        migration.migrate()
-        return migration
     }
 
     @Bean
@@ -128,16 +126,13 @@ open class Application {
 
     @Bean
     open fun localServerURL(env: Environment): String {
-        val address = NetworkInterface.getNetworkInterfaces().toList()
-            .flatMap { it.interfaceAddresses }
-            .map {it.address}
-            .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }.hostAddress
         val scheme = if(env.acceptsProfiles("dev")) {
             "http"
         } else {
             "https"
         }
         val port = env.getProperty("server.port", "8080")
+        val address = env.getProperty("alfio.server.address")
         return "$scheme://$address:$port"
     }
 
@@ -181,11 +176,6 @@ open class Application {
             logger.info("#                     username: admin                             ")
             logger.info("#                     password: $password                         ")
             logger.info("*******************************************************************")
-        }
-        val printerRepository = applicationContext.getBean(PrinterRepository::class.java)
-        val existingPrinters = printerRepository.loadAll()
-        getSystemPrinters().filter { sp -> existingPrinters.none { e -> e.name == sp.name }}.forEach {
-            printerRepository.insert(it.name, "", true)
         }
     }
 
@@ -254,8 +244,37 @@ open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
 
 fun main(args: Array<String>) {
+    val address = guessIPAddress()
+    System.setProperty("alfio.server.address", address)
+    generateSslKeyPair(address)
     SpringApplication.run(Application::class.java, *args)
 }
+
+private fun guessIPAddress() = NetworkInterface.getNetworkInterfaces().toList()
+    .flatMap { it.interfaceAddresses }
+    .map {it.address}
+    .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }.hostAddress
+
+private fun generateSslKeyPair(hostAddress: String) {
+    val keyStorePath = Paths.get("alfio-pi-keystore.jks")
+    if(Files.notExists(keyStorePath)) {
+        val random = SecureRandom()
+        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+        keyPairGenerator.initialize(1024)
+        val keyPair = keyPairGenerator.generateKeyPair()
+        val issuerName = X500Name("CN=$hostAddress, OU=None, O=None L=None, C=None")
+        val serial = BigInteger.valueOf(random.nextLong())
+        val inception = ZonedDateTime.now().minusDays(1)
+        val signatureAlgorithm = DefaultSignatureAlgorithmIdentifierFinder().find("SHA256withRSA")
+        val signer = BcRSAContentSignerBuilder(signatureAlgorithm, DefaultDigestAlgorithmIdentifierFinder().find(signatureAlgorithm)).build(PrivateKeyFactory.createKey(PrivateKeyInfo.getInstance(keyPair.private.encoded)))
+        val certificate = X509v1CertificateBuilder(issuerName, serial, Date.from(inception.toInstant()), Date.from(inception.plusYears(1).toInstant()), issuerName, SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)).build(signer)
+        val keyStore = KeyStore.getInstance("JKS")
+        keyStore.load(null, "alfio-pi-keystore".toCharArray())
+        keyStore.setKeyEntry("alfio-pi", keyPair.private, "alfio-pi-key".toCharArray(), arrayOf(JcaX509CertificateConverter().getCertificate(certificate)))
+        keyStore.store(Files.newOutputStream(keyStorePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE), "alfio-pi-keystore".toCharArray())
+    }
+}
+
 
 private fun openDBConsole() {
     val cls = ClassUtils.forName("org.hsqldb.util.DatabaseManagerSwing", ClassLoader.getSystemClassLoader())

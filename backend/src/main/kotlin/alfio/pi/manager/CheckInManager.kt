@@ -48,8 +48,6 @@ import javax.crypto.spec.SecretKeySpec
 import javax.print.DocFlavor
 import javax.print.SimpleDoc
 
-private val logger = LoggerFactory.getLogger("CheckInManager")!!
-
 private val eventAttendeesCache: ConcurrentMap<String, Map<String, String>> = ConcurrentHashMap()
 
 @Component
@@ -62,6 +60,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val printerRepository: PrinterRepository,
                               val gson: Gson,
                               val labelTemplates: List<LabelTemplate>) {
+    private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
     private val ticketDataNotFound = "ticket-not-found"
 
     private fun getLocalTicketData(event: Event, uuid: String, hmac: String) : CheckInResponse {
@@ -234,6 +233,7 @@ internal fun calcHash256(hmac: String) : String {
 
 @Component
 open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager) {
+    private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
         logger.debug("downloading attendees data")
@@ -248,12 +248,18 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager) {
 
     open fun onDemandSync(events: List<RemoteEvent>) {
         logger.debug("on-demand synchronization")
-        events.map { it.key!! to eventAttendeesCache[it.key] }
+        val (existing, notExisting) = events.map { it.key!! to eventAttendeesCache[it.key] }
             .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first)) }
             .filter { it.third.isNotEmpty() }
-            .forEach {
-                val result = eventAttendeesCache.replace(it.first, it.second, it.third)
-                logger.debug("tried to replace value for ${it.first}, result: $result")
-            }
+            .partition { it.second != null }
+
+        existing.forEach {
+            val result = eventAttendeesCache.replace(it.first, it.second, it.third)
+            logger.debug("tried to replace value for ${it.first}, result: $result")
+        }
+        notExisting.forEach {
+            val result = eventAttendeesCache.putIfAbsent(it.first, it.third)
+            logger.debug("tried to insert ${it.first}, result: $result")
+        }
     }
 }
