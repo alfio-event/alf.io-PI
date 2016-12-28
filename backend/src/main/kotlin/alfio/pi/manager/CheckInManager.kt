@@ -17,7 +17,6 @@
 
 package alfio.pi.manager
 
-import alfio.pi.Application
 import alfio.pi.ConnectionDescriptor
 import alfio.pi.model.*
 import alfio.pi.model.CheckInStatus.*
@@ -26,30 +25,13 @@ import alfio.pi.wrapper.CannotBeginTransaction
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.MultiFormatWriter
-import com.google.zxing.client.j2se.MatrixToImageWriter
-import com.google.zxing.common.BitMatrix
-import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import okhttp3.*
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.pdmodel.PDPage
-import org.apache.pdfbox.pdmodel.PDPageContentStream
-import org.apache.pdfbox.pdmodel.common.PDRectangle
-import org.apache.pdfbox.pdmodel.font.PDType0Font
-import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
-import org.apache.pdfbox.util.Matrix
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
-import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
@@ -78,7 +60,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val userRepository: UserRepository,
                               val transactionManager: PlatformTransactionManager,
                               val printerRepository: PrinterRepository,
-                              val gson: Gson) {
+                              val gson: Gson,
+                              val labelTemplates: List<LabelTemplate>) {
     private val ticketDataNotFound = "ticket-not-found"
 
     private fun getLocalTicketData(event: Event, uuid: String, hmac: String) : CheckInResponse {
@@ -127,7 +110,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                                 CheckInStatus.SUCCESS
                             }
                             val ticket = localDataResult.ticket!!
-                            val labelPrinted = remoteResult.isSuccessful() && printLabel(user, eventId, ticket)
+                            val labelPrinted = remoteResult.isSuccessful() && labelTemplates.isNotEmpty() && printLabel(user, eventId, ticket)
                             scanLogRepository.insert(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted)
                             logger.info("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
@@ -143,7 +126,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             userPrinterRepository.getOptionalUserPrinter(user.id, eventId)
                 .map { printerRepository.findById(it.printerId) }
                 .map { printer ->
-                    val pdf = generatePDF(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid)
+                    val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplates.first())
                     val printJob = findPrinterByName(printer.name)?.createPrintJob()
                     if(printJob == null) {
                         logger.warn("cannot find printer with name ${printer.name}")
@@ -251,68 +234,26 @@ internal fun calcHash256(hmac: String) : String {
 
 @Component
 open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager) {
-    @Scheduled(fixedDelay = 5000L)
+    @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
         logger.debug("downloading attendees data")
         eventAttendeesCache.entries
             .map { it to checkInDataManager.loadCachedAttendees(it.key) }
-            .filter { !it.second.isEmpty() }
+            .filter { it.second.isNotEmpty() }
             .forEach {
                 val result = eventAttendeesCache.replace(it.first.key, it.first.value, it.second)
                 logger.debug("tried to replace value for ${it.first.key}, result: $result")
             }
     }
-}
 
-private fun generatePDF(firstName: String, lastName: String, company: String, ticketUUID: String): ByteArray {
-    val document = PDDocument()
-    val font = PDType0Font.load(document, Application::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
-    val page = PDPage(PDRectangle(convertMMToPoint(41F), convertMMToPoint(89F)))
-    val pageWidth = page.mediaBox.width
-    document.addPage(page)
-    val qr = LosslessFactory.createFromImage(document, generateQRCode(ticketUUID))
-    val contentStream = PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, false)
-    contentStream.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-    contentStream.setFont(font, 24F)
-    contentStream.beginText()
-    contentStream.newLineAtOffset(10F, 70F)
-    contentStream.showText(firstName)
-    contentStream.setFont(font, 16F)
-    contentStream.newLineAtOffset(0F, -20F)
-    contentStream.showText(lastName)
-    contentStream.setFont(font, 10F)
-    contentStream.newLineAtOffset(0F, -20F)
-    contentStream.showText(company)
-    contentStream.endText()
-    contentStream.drawImage(qr, 175F, 30F, 70F, 70F)
-    contentStream.setFont(font, 9F)
-    contentStream.beginText()
-    contentStream.newLineAtOffset(189F, 25F)
-    contentStream.showText(ticketUUID.substringBefore('-').toUpperCase())
-    contentStream.close()
-    val out = ByteArrayOutputStream()
-    document.save(out)
-    document.close()
-    return out.toByteArray()
-}
-
-private val convertMMToPoint: (Float) -> Float = {
-    it * (1 / (10 * 2.54f) * 72)
-}
-
-private fun generateQRCode(value: String): BufferedImage {
-    val matrix = generateBitMatrix(value)
-    return MatrixToImageWriter.toBufferedImage(matrix)
-}
-
-private fun generateBitMatrix(value: String): BitMatrix {
-    val hintMap = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
-    hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
-    val matrix = MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, 200, 200, hintMap)
-    return matrix
-}
-
-fun generateQRCodeImage(value: String): ByteArray {
-    val output = ByteArrayOutputStream()
-    return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value), "png", it); it.toByteArray() }
+    open fun onDemandSync(events: List<RemoteEvent>) {
+        logger.debug("on-demand synchronization")
+        events.map { it.key!! to eventAttendeesCache[it.key] }
+            .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first)) }
+            .filter { it.third.isNotEmpty() }
+            .forEach {
+                val result = eventAttendeesCache.replace(it.first, it.second, it.third)
+                logger.debug("tried to replace value for ${it.first}, result: $result")
+            }
+    }
 }

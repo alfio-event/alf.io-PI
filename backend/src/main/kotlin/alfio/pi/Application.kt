@@ -224,7 +224,7 @@ open class FormLoginWebSecurity: WebSecurityConfig() {
         http.csrf().csrfTokenRepository(csrfTokenRepository())
             .and()
             .authorizeRequests()
-            .antMatchers("/file/**", "/images/**", "/api/events/**").permitAll()
+            .antMatchers("/file/**", "/images/**", "/api/events/**", "/favicon.ico").permitAll()
             .antMatchers("/**").hasAnyRole(Role.ADMIN.name)
             .and()
             .formLogin()

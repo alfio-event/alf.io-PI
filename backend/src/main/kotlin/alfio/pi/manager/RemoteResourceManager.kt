@@ -87,15 +87,18 @@ fun getRemoteEventList(): (RemoteResourceManager) -> List<RemoteEvent> = {
 open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
                              val eventRepository: EventRepository,
                              val transactionManager: PlatformTransactionManager,
-                             val jdbc: NamedParameterJdbcTemplate) {
+                             val jdbc: NamedParameterJdbcTemplate,
+                             val checkInDataSynchronizer: CheckInDataSynchronizer) {
     private val logger = LoggerFactory.getLogger(EventSynchronizer::class.java)
-    @Scheduled(fixedDelay = 30000L)
+    @Scheduled(fixedDelay = 60L * 60000L)
     open fun sync() {
         doInTransaction<Unit>().invoke(transactionManager, {
             val localEvents = eventRepository.loadAll()
-            val (existing, notExisting) = getRemoteEventList().invoke(remoteResourceManager).partition { r -> localEvents.any { l -> r.key == l.key } }
+            val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
+            val (existing, notExisting) = remoteEvents.partition { r -> localEvents.any { l -> r.key == l.key } }
             updateExisting(existing, localEvents).invoke(jdbc, eventRepository)
             insertNew(notExisting).invoke(jdbc, eventRepository)
+            checkInDataSynchronizer.onDemandSync(remoteEvents)
         }, {
             logger.error("cannot load events", it)
         })
