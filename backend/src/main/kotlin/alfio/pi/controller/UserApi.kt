@@ -17,6 +17,7 @@
 
 package alfio.pi.controller
 
+import alfio.pi.manager.SslKeyExporter
 import alfio.pi.manager.createNewUser
 import alfio.pi.manager.generateQRCodeImage
 import alfio.pi.manager.updatePassword
@@ -34,6 +35,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.*
+import java.util.*
 import javax.servlet.http.HttpServletResponse
 
 @RestController
@@ -44,7 +46,8 @@ open class UserApi(val userRepository: UserRepository,
                    val passwordEncoder: PasswordEncoder,
                    val authorityRepository: AuthorityRepository,
                    @Qualifier("localServerURL") val localServerUrl: String,
-                   val gson: Gson) {
+                   val gson: Gson,
+                   val sslKeyExporter: SslKeyExporter) {
     private val logger = LoggerFactory.getLogger(UserApi::class.java)
 
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
@@ -93,13 +96,15 @@ open class UserApi(val userRepository: UserRepository,
 
     @RequestMapping(value = "/{userId}/qr-code", method = arrayOf(RequestMethod.GET))
     open fun generateQRCode(@PathVariable("userId") userId: Int,
-                            @RequestParam("password") password: String,
+                            @RequestParam("password") password: String,//base-64 encoded password
                             response: HttpServletResponse) {
         doInTransaction<Unit>().invoke(transactionManager, {
             val user = userRepository.findById(userId)
             if(user.isPresent) {
                 response.status = HttpServletResponse.SC_OK
-                response.outputStream.write(generateQRCodeImage(gson.toJson(mapOf("baseUrl" to localServerUrl, "username" to user.get().username, "password" to password))))
+                val map = sslKeyExporter.appendTo(mapOf("baseUrl" to localServerUrl, "username" to user.get().username, "password" to String(Base64.getDecoder().decode(password))))
+                response.contentType = "image/png"
+                response.outputStream.write(generateQRCodeImage(gson.toJson(map)))
             }
             response.status = HttpServletResponse.SC_NOT_FOUND
         }, {

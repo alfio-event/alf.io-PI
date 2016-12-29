@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter
  */
 buildscript {
     ext {
-        kotlinVersion = '1.0.5-3'
+        kotlinVersion = '1.0.6'
         springBootVersion = '1.4.2.RELEASE'
     }
     repositories {
@@ -101,7 +101,10 @@ dependencies {
 }
 
 bootRun {
-    systemProperties System.properties
+    final properties = new Properties(System.properties)
+    properties[ 'alfio.version' ] = project.version
+    properties[ 'alfio.build-ts' ] = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
+    systemProperties properties
 }
 
 springBoot {

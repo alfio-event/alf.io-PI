@@ -4,6 +4,7 @@ import {ActivatedRoute, Params} from "@angular/router";
 import "rxjs/add/operator/switchMap";
 import {isNullOrUndefined} from "util";
 import {FormBuilder, Validators, FormControl} from "@angular/forms";
+import {WindowRef} from "../../../window.service";
 
 @Component({
   selector: 'user-edit',
@@ -20,7 +21,8 @@ export class UserEditComponent implements OnInit {
 
   constructor(private route: ActivatedRoute,
               private formBuilder: FormBuilder,
-              private userService: UserService) {}
+              private userService: UserService,
+              private windowRef: WindowRef) {}
 
   ngOnInit(): void {
     this.route.params
@@ -48,7 +50,7 @@ export class UserEditComponent implements OnInit {
       .subscribe(res => {
         this.user = res;
         this.displayQRCode = true;
-        this.userQRCodeUrl = UserEditComponent.getQRCodeURL(res);
+        this.userQRCodeUrl = this.getQRCodeURL(res);
       })
   }
 
@@ -57,7 +59,7 @@ export class UserEditComponent implements OnInit {
       .subscribe(res => {
         this.user = res;
         this.displayQRCode = true;
-        this.userQRCodeUrl = UserEditComponent.getQRCodeURL(res);
+        this.userQRCodeUrl = this.getQRCodeURL(res);
       });
   }
 
@@ -66,12 +68,12 @@ export class UserEditComponent implements OnInit {
       .subscribe(res => {
         this.user = res;
         this.displayQRCode = true;
-        this.userQRCodeUrl = UserEditComponent.getQRCodeURL(res);
+        this.userQRCodeUrl = this.getQRCodeURL(res);
       });
   }
 
-  private static getQRCodeURL(res: UserWithPassword): string {
-    return `/api/internal/users/${res.id}/qr-code?password=${res.password}`;
+  private getQRCodeURL(res: UserWithPassword): string {
+    return `/api/internal/users/${res.id}/qr-code?password=${this.windowRef.nativeWindow.btoa(res.password)}`;
   }
 
   getUserWithPassword(): UserWithPassword {

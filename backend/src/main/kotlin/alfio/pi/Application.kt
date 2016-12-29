@@ -16,6 +16,7 @@
  */
 package alfio.pi
 
+import alfio.pi.Constants.*
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
@@ -178,7 +179,6 @@ open class Application {
             logger.info("*******************************************************************")
         }
     }
-
 }
 
 @EnableWebSecurity
@@ -256,22 +256,27 @@ private fun guessIPAddress() = NetworkInterface.getNetworkInterfaces().toList()
     .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }.hostAddress
 
 private fun generateSslKeyPair(hostAddress: String) {
-    val keyStorePath = Paths.get("alfio-pi-keystore.jks")
+    val keyStorePath = Paths.get(KEYSTORE_FILE.value)
     if(Files.notExists(keyStorePath)) {
+        println("[SSL] - generating KeyPair")
         val random = SecureRandom()
         val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
         keyPairGenerator.initialize(1024)
         val keyPair = keyPairGenerator.generateKeyPair()
-        val issuerName = X500Name("CN=$hostAddress, OU=None, O=None L=None, C=None")
+        val issuerName = X500Name("CN=$hostAddress, OU=Alf.io-PI, O=None L=None, C=None")
         val serial = BigInteger.valueOf(random.nextLong())
         val inception = ZonedDateTime.now().minusDays(1)
         val signatureAlgorithm = DefaultSignatureAlgorithmIdentifierFinder().find("SHA256withRSA")
         val signer = BcRSAContentSignerBuilder(signatureAlgorithm, DefaultDigestAlgorithmIdentifierFinder().find(signatureAlgorithm)).build(PrivateKeyFactory.createKey(PrivateKeyInfo.getInstance(keyPair.private.encoded)))
-        val certificate = X509v1CertificateBuilder(issuerName, serial, Date.from(inception.toInstant()), Date.from(inception.plusYears(1).toInstant()), issuerName, SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)).build(signer)
+        val certificate = JcaX509CertificateConverter().getCertificate(X509v1CertificateBuilder(issuerName, serial, Date.from(inception.toInstant()), Date.from(inception.plusYears(1).toInstant()), issuerName, SubjectPublicKeyInfo.getInstance(keyPair.public.encoded)).build(signer))
         val keyStore = KeyStore.getInstance("JKS")
-        keyStore.load(null, "alfio-pi-keystore".toCharArray())
-        keyStore.setKeyEntry("alfio-pi", keyPair.private, "alfio-pi-key".toCharArray(), arrayOf(JcaX509CertificateConverter().getCertificate(certificate)))
-        keyStore.store(Files.newOutputStream(keyStorePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE), "alfio-pi-keystore".toCharArray())
+        keyStore.load(null, KEYSTORE_PASS.value.toCharArray())
+        keyStore.setKeyEntry(KEY_ALIAS.value, keyPair.private, KEY_PASS.value.toCharArray(), arrayOf(certificate))
+        keyStore.store(Files.newOutputStream(keyStorePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE), KEYSTORE_PASS.value.toCharArray())
+        println("[SSL] - done")
+    } else {
+        println("[SSL] - Skipped KeyPair generation as there is already a file named $keyStorePath")
+        println("[SSL] - if you need a new KeyPair, please delete that file and restart Alf.io-PI.")
     }
 }
 
@@ -284,4 +289,11 @@ private fun openDBConsole() {
     methodInvoker.arguments = arrayOf(arrayOf("--url", "jdbc:hsqldb:mem:alfio", "--noexit"))
     methodInvoker.prepare()
     methodInvoker.invoke()
+}
+
+enum class Constants(val value: String) {
+    KEYSTORE_FILE("alfio-pi-keystore.jks"),
+    KEYSTORE_PASS("alfio-pi-keystore"),
+    KEY_ALIAS("alfio-pi"),
+    KEY_PASS("alfio-pi-key")
 }

@@ -100,18 +100,18 @@ private val convertMMToPoint: (Float) -> Float = {
 }
 
 private fun generateQRCode(value: String): BufferedImage {
-    val matrix = generateBitMatrix(value)
+    val matrix = generateBitMatrix(value, 200, 200)
     return MatrixToImageWriter.toBufferedImage(matrix)
 }
 
-private fun generateBitMatrix(value: String): BitMatrix {
+private fun generateBitMatrix(value: String, width: Int, height: Int): BitMatrix {
     val hintMap = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
-    val matrix = MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, 200, 200, hintMap)
+    val matrix = MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hintMap)
     return matrix
 }
 
 fun generateQRCodeImage(value: String): ByteArray {
     val output = ByteArrayOutputStream()
-    return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value), "png", it); it.toByteArray() }
+    return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value, 350, 350), "png", it); it.toByteArray() }
 }

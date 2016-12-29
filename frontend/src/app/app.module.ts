@@ -16,6 +16,7 @@ import {PrinterService} from "./components/printer/printer.service";
 import {CloseDetailComponent} from "./components/close-detail/close-detail.component";
 import {KeysPipe} from "./keys.pipe";
 import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
+import {WindowRef} from "./window.service";
 
 @NgModule({
   declarations: [
@@ -42,7 +43,7 @@ import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
       { path: 'event/config/:eventId', component: EventConfigurationComponent}
     ])
   ],
-  providers: [UserService, { provide: XSRFStrategy, useValue: new CookieXSRFStrategy('XSRF-TOKEN', 'X-XSRF-TOKEN') }, EventService, PrinterService],
+  providers: [UserService, { provide: XSRFStrategy, useValue: new CookieXSRFStrategy('XSRF-TOKEN', 'X-XSRF-TOKEN') }, EventService, PrinterService, WindowRef],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
