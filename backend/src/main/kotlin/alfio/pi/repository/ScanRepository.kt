@@ -22,6 +22,8 @@ import ch.digitalfondue.npjt.AffectedRowCountAndKey
 import ch.digitalfondue.npjt.Bind
 import ch.digitalfondue.npjt.Query
 import ch.digitalfondue.npjt.QueryRepository
+import de.spqrinfo.cups4j.CupsClient
+import de.spqrinfo.cups4j.CupsPrinter
 import java.util.*
 import javax.print.DocFlavor
 import javax.print.PrintService
@@ -82,10 +84,7 @@ interface UserPrinterRepository {
 }
 
 
-fun getSystemPrinters(): Array<out PrintService> = PrintServiceLookup.lookupPrintServices(DocFlavor.INPUT_STREAM.POSTSCRIPT, null)!!
-fun getActivePrinters() = getSystemPrinters().filter {
-    it.attributes.get(PrinterIsAcceptingJobs::class.java) == PrinterIsAcceptingJobs.ACCEPTING_JOBS
-}
-fun findPrinterByName(name: String) = getActivePrinters().filter {
+fun getSystemPrinters(): List<CupsPrinter> = CupsClient().printers
+fun findPrinterByName(name: String) = getSystemPrinters().filter {
     name == it.name
 }.firstOrNull()

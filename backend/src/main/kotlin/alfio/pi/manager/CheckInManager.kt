@@ -26,6 +26,7 @@ import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import de.spqrinfo.cups4j.PrintJob
 import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
@@ -47,6 +48,9 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import javax.print.DocFlavor
 import javax.print.SimpleDoc
+import javax.print.attribute.HashPrintRequestAttributeSet
+import javax.print.attribute.PrintRequestAttributeSet
+import javax.print.attribute.standard.MediaSizeName
 
 private val eventAttendeesCache: ConcurrentMap<String, Map<String, String>> = ConcurrentHashMap()
 
@@ -125,14 +129,19 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             userPrinterRepository.getOptionalUserPrinter(user.id, eventId)
                 .map { printerRepository.findById(it.printerId) }
                 .map { printer ->
-                    val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplates.first())
-                    val printJob = findPrinterByName(printer.name)?.createPrintJob()
-                    if(printJob == null) {
+                    val labelTemplate = labelTemplates.first()
+                    val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplate)
+                    val systemPrinter = findPrinterByName(printer.name)
+                    if(systemPrinter == null) {
                         logger.warn("cannot find printer with name ${printer.name}")
                         false
                     } else {
-                        printJob.print(SimpleDoc(pdf, DocFlavor.BYTE_ARRAY.PDF, null), null)
-                        true
+                        val printJob = PrintJob.Builder(pdf)
+                            .attributes(mutableMapOf("job-attributes" to "media:keyword:${labelTemplate.getCUPSMediaName()}"))
+                            .copies(1)
+                            .jobName("ticket-${ticket.uuid.substringBefore('-')}")
+                            .build()
+                        systemPrinter.print(printJob).isSuccessfulResult
                     }
                 }.orElse(false)
 

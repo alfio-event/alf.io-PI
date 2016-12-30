@@ -182,7 +182,7 @@ open class Application {
 }
 
 @EnableWebSecurity
-abstract class WebSecurityConfig() : WebSecurityConfigurerAdapter() {
+abstract class WebSecurityConfig : WebSecurityConfigurerAdapter() {
 
     @Autowired
     open fun authenticationManager(auth: AuthenticationManagerBuilder, passwordEncoder: PasswordEncoder, dataSource: DataSource) {
@@ -263,7 +263,7 @@ private fun generateSslKeyPair(hostAddress: String) {
         val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
         keyPairGenerator.initialize(1024)
         val keyPair = keyPairGenerator.generateKeyPair()
-        val issuerName = X500Name("CN=$hostAddress, OU=Alf.io-PI, O=None L=None, C=None")
+        val issuerName = X500Name("CN=$hostAddress, OU=None, O=None L=None, C=None")
         val serial = BigInteger.valueOf(random.nextLong())
         val inception = ZonedDateTime.now().minusDays(1)
         val signatureAlgorithm = DefaultSignatureAlgorithmIdentifierFinder().find("SHA256withRSA")

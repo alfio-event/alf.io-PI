@@ -42,12 +42,15 @@ interface LabelTemplate {
     fun getPageDimensions(): PDRectangle
     fun writeContent(stream: PDPageContentStream, pageWidth: Float, labelContent: LabelContent, fontLoader: (InputStream) -> PDFont)
     fun getDescription(): String
+    fun getCUPSMediaName(): String
 }
 
 class LabelContent(val firstRow: String, val secondRow: String, val thirdRow: String, val qrCode: PDImageXObject, val qrText: String)
 
 @Component
 open class DymoLW450Turbo41x89: LabelTemplate {
+
+    override fun getCUPSMediaName(): String = "w118h252"
 
     override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 41x89 mm"
 
