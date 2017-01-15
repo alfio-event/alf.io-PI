@@ -1,10 +1,10 @@
-import { AlfioPIPage } from './app.po';
+import { AlfioPiPage } from './app.po';
 
 describe('alfio-pi App', function() {
-  let page: AlfioPIPage;
+  let page: AlfioPiPage;
 
   beforeEach(() => {
-    page = new AlfioPIPage();
+    page = new AlfioPiPage();
   });
 
   it('should display message saying app works', () => {

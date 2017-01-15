@@ -36,6 +36,7 @@ import org.springframework.transaction.PlatformTransactionManager
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
+import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
@@ -68,7 +69,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     private val ticketDataNotFound = "ticket-not-found"
 
     private fun getLocalTicketData(event: Event, uuid: String, hmac: String) : CheckInResponse {
-        val eventData = eventAttendeesCache.computeIfAbsent(event.key, {loadCachedAttendees(it)})
+        val eventData = eventAttendeesCache.computeIfAbsent(event.key, {
+            val result = loadCachedAttendees(it)
+            if(result.isNotEmpty()) {
+                eventRepository.updateTimestamp(it, ZonedDateTime.now())
+            }
+            result
+        })
         val key = calcHash256(hmac)
         val result = eventData[key]
         return tryOrDefault<CheckInResponse>().invoke({
@@ -113,7 +120,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                                 CheckInStatus.SUCCESS
                             }
                             val ticket = localDataResult.ticket!!
-                            val labelPrinted = remoteResult.isSuccessful() && labelTemplates.isNotEmpty() && printLabel(user, eventId, ticket)
+                            val labelPrinted = remoteResult.isSuccessful() && labelTemplates.isNotEmpty() && printLabel(user, ticket)
                             scanLogRepository.insert(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted)
                             logger.info("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
@@ -124,9 +131,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             }.orElseGet{ EmptyTicketResult() }
     }
 
-    private fun printLabel(user: User, eventId: Int, ticket: Ticket): Boolean {
+    private fun printLabel(user: User, ticket: Ticket): Boolean {
         return tryOrDefault<Boolean>().invoke({
-            userPrinterRepository.getOptionalUserPrinter(user.id, eventId)
+            userPrinterRepository.getOptionalActivePrinter(user.id)
                 .map { printerRepository.findById(it.printerId) }
                 .map { printer ->
                     val labelTemplate = labelTemplates.first()
@@ -241,17 +248,20 @@ internal fun calcHash256(hmac: String) : String {
 }
 
 @Component
-open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager) {
+open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager, val eventRepository: EventRepository) {
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
-        logger.debug("downloading attendees data")
+        logger.trace("downloading attendees data")
         eventAttendeesCache.entries
             .map { it to checkInDataManager.loadCachedAttendees(it.key) }
             .filter { it.second.isNotEmpty() }
             .forEach {
                 val result = eventAttendeesCache.replace(it.first.key, it.first.value, it.second)
-                logger.debug("tried to replace value for ${it.first.key}, result: $result")
+                if(result) {
+                    eventRepository.updateTimestamp(it.first.key, ZonedDateTime.now())
+                }
+                logger.trace("tried to replace value for ${it.first.key}, result: $result")
             }
     }
 

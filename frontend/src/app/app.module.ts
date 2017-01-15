@@ -17,6 +17,7 @@ import {CloseDetailComponent} from "./components/close-detail/close-detail.compo
 import {KeysPipe} from "./keys.pipe";
 import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
 import {WindowRef} from "./window.service";
+import {DragulaModule} from "ng2-dragula";
 
 @NgModule({
   declarations: [
@@ -35,6 +36,7 @@ import {WindowRef} from "./window.service";
     FormsModule,
     ReactiveFormsModule,
     HttpModule,
+    DragulaModule,
     NgbModule.forRoot(),
     RouterModule.forRoot([
       { path: 'user/new', component: UserEditComponent },
@@ -43,7 +45,7 @@ import {WindowRef} from "./window.service";
       { path: 'event/config/:eventId', component: EventConfigurationComponent}
     ])
   ],
-  providers: [UserService, { provide: XSRFStrategy, useValue: new CookieXSRFStrategy('XSRF-TOKEN', 'X-XSRF-TOKEN') }, EventService, PrinterService, WindowRef],
+  providers: [UserService, EventService, PrinterService, WindowRef],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

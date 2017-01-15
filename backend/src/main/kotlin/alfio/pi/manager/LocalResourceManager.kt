@@ -73,25 +73,25 @@ fun toggleEventActivation(id: Int, state: Boolean): (PlatformTransactionManager,
     })
 }
 
-fun removeUserPrinterLink(eventId: Int, userId: Int, printerId: Int): (PlatformTransactionManager, UserPrinterRepository) -> Boolean = { transactionManager, userPrinterRepository ->
+fun removeUserPrinterLink(userId: Int): (PlatformTransactionManager, UserPrinterRepository) -> Boolean = { transactionManager, userPrinterRepository ->
     doInTransaction<Boolean>().invoke(transactionManager, {
-        userPrinterRepository.delete(userId, eventId, printerId) == 1
+        userPrinterRepository.delete(userId) == 1
     }, {
-        logger.warn("cannot link userId $userId to printer $printerId, event $eventId", it)
+        logger.warn("cannot delete link for userId $userId", it)
         false
     })
 }
 
 
-fun linkUserToPrinter(eventId: Int, userId: Int, printerId: Int): (PlatformTransactionManager, UserPrinterRepository) -> Boolean = { transactionManager, userPrinterRepository ->
+fun linkUserToPrinter(userId: Int, printerId: Int): (PlatformTransactionManager, UserPrinterRepository) -> Boolean = { transactionManager, userPrinterRepository ->
     doInTransaction<Boolean>().invoke(transactionManager, {
-        if(!userPrinterRepository.getOptionalUserPrinter(userId, eventId).isPresent) {
-            userPrinterRepository.insert(userId, eventId, printerId) > 0
+        if(userPrinterRepository.getOptionalUserPrinter(userId).isPresent) {
+            userPrinterRepository.update(userId, printerId) > 0
         } else {
-            false
+            userPrinterRepository.insert(userId, printerId) > 0
         }
     }, {
-        logger.warn("cannot link userId $userId to printer $printerId, event $eventId", it)
+        logger.warn("cannot link userId $userId to printer $printerId", it)
         false
     })
 }
@@ -112,16 +112,17 @@ fun findAllRegisteredPrinters(): (PrinterRepository) -> List<Printer> = {
     })
 }
 
-fun loadPrintConfigurationForEvent(eventId: Int): (UserPrinterRepository) -> List<PrinterWithUsers> = {
-    tryOrDefault<List<PrinterWithUsers>>().invoke({
-        it.loadAllForEvent(eventId)
+fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Collection<PrinterWithUsers> = { userPrinterRepository: UserPrinterRepository, printerRepository: PrinterRepository ->
+    tryOrDefault<Collection<PrinterWithUsers>>().invoke({
+        userPrinterRepository.loadAll()
             .groupBy({it.printer}, {it.user})
             .toList()
-            .sortedBy { it.first.id }
             .map { PrinterWithUsers(it.first, it.second) }
+            .union(printerRepository.loadAll().map { PrinterWithUsers(it, emptyList()) })
+            .sortedBy { it.printer.name }
     }, {
-        logger.error("error while loading print configuration for event $eventId", it)
-        emptyList()
+        logger.error("error while loading print configuration", it)
+        emptySet()
     })
 }
 

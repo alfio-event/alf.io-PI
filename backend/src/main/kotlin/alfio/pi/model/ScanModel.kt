@@ -32,7 +32,8 @@ data class Event(@Column("id") val id: Int,
                  @Column("end_ts") val end: ZonedDateTime,
                  @Column("location") val location: String?,
                  @Column("api_version") val apiVersion: Int,
-                 @Column("active") val active: Boolean)
+                 @Column("active") val active: Boolean,
+                 @Column("last_update") val lastUpdate: ZonedDateTime?)
 data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean) : Comparable<Printer> {
     override fun compareTo(other: Printer): Int = name.compareTo(other.name)
 }
@@ -48,7 +49,7 @@ data class ScanLog(@Column("id") val id: Int,
 data class User(@Column("id") val id: Int, @Column("username") val username: String)
 data class UserWithPassword(val id: Int, val username: String, val password: String)
 data class Authority(@Column("username") val username: String, @Column("role") val role: Role)
-data class UserPrinter(@Column("user_id_fk") val userId: Int, @Column("event_id_fk") val eventId: Int, @Column("printer_id_fk") val printerId: Int)
+data class UserPrinter(@Column("user_id_fk") val userId: Int, @Column("printer_id_fk") val printerId: Int)
 data class UserAndPrinter(@Column("username") private val username: String,
                           @Column("user_id") private val userId: Int,
                           @Column("printer_id") private val printerId: Int,
@@ -114,4 +115,16 @@ class RemoteEvent {
 
 data class PrinterWithUsers(val printer: Printer, val users: List<User>): Comparable<PrinterWithUsers> {
     override fun compareTo(other: PrinterWithUsers): Int = printer.id.compareTo(other.printer.id)
+
+    override fun equals(other: Any?): Boolean {
+        return if(other is PrinterWithUsers) {
+            printer.id == other.printer.id
+        } else {
+            false
+        }
+    }
+
+    override fun hashCode(): Int {
+        return printer.id.hashCode()
+    }
 }

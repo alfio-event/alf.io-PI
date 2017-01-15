@@ -52,7 +52,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w118h252"
 
-    override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 41x89 mm"
+    override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 41x89 mm (S0722560 / 11356)"
 
     override fun getPageDimensions(): PDRectangle = PDRectangle(convertMMToPoint(41F), convertMMToPoint(89F))
 

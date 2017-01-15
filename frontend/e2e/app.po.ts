@@ -1,6 +1,6 @@
 import { browser, element, by } from 'protractor';
 
-export class AlfioPIPage {
+export class AlfioPiPage {
   navigateTo() {
     return browser.get('/');
   }

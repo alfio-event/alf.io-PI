@@ -31,7 +31,7 @@ export class EventConfigurationComponent implements OnInit {
         return this.eventService.getSingleEvent(eventId);
       }).switchMap((event: Event) => {
         this.event = event;
-        return Observable.forkJoin(this.printerService.loadPrintersForEvent(event.id), this.printerService.loadAllPrinters(), this.userService.getUsers());
+        return Observable.forkJoin(this.printerService.loadPrintersAndUsers(), this.printerService.loadAllPrinters(), this.userService.getUsers());
       }).subscribe((data: Array<any>) => {
         this.printers = <Array<PrinterWithUsers>>data[0];
         this.allPrinters = (<Array<Printer>>data[1]).filter(p => p.active);
@@ -62,12 +62,6 @@ export class EventConfigurationComponent implements OnInit {
   }
 
   linkUserToPrinter(user: User, printer: Printer): void {
-    this.eventService.addUserToPrinter(this.event.id, user.id, printer.id)
-      .subscribe(res => {
-        if(res) {
-          this.printers.find(pu => pu.printer.id == printer.id).users.push(user);
-        }
-      });
   }
 
 }

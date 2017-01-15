@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import {Http} from "@angular/http";
+import {Http, URLSearchParams} from "@angular/http";
 import {Observable} from "rxjs";
 import {User} from "../user/user.service";
 
@@ -13,8 +13,8 @@ export class PrinterService {
       .map(res => res.json())
   }
 
-  loadPrintersForEvent(eventId: number): Observable<Array<PrinterWithUsers>> {
-    return this.http.get(`/api/internal/printers/for-event/${eventId}`)
+  loadPrintersAndUsers(): Observable<Array<PrinterWithUsers>> {
+    return this.http.get(`/api/internal/printers/with-users`)
       .map(res => res.json())
   }
 
@@ -22,6 +22,18 @@ export class PrinterService {
     let url = `/api/internal/printers/${printerId}/active`;
     let call = value ? this.http.put(url, true) : this.http.delete(url);
     return call.map(res => res.json());
+  }
+
+  addUserToPrinter(userId: number, printerId: number): Observable<boolean> {
+    return this.http.post(`/api/internal/user-printer/`, {userId: userId, printerId: printerId})
+      .map(res => res.json())
+  }
+
+  removeUserFromPrinters(userId: number): Observable<boolean> {
+    let params = new URLSearchParams();
+    params.append("userId", userId.toString());
+    return this.http.delete(`/api/internal/user-printer/`, {search: params})
+      .map(res => res.json())
   }
 
 }

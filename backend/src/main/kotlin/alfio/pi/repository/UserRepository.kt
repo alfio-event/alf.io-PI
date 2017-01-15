@@ -24,6 +24,7 @@ import alfio.pi.model.User
 import ch.digitalfondue.npjt.*
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.*
 
 @QueryRepository
@@ -80,6 +81,9 @@ interface EventRepository {
                @Bind("apiVersion") apiVersion: Int,
                @Bind("oneDay") oneDay: Boolean,
                @Bind("active") active: Boolean): AffectedRowCountAndKey<Int>
+
+    @Query("update event set last_update = :timestamp where key = :key")
+    fun updateTimestamp(@Bind("key") key: String, @Bind("timestamp") lastUpdate: ZonedDateTime): Int
 
     @Query(UPDATE_QUERY)
     fun update(@Bind("key") key: String,

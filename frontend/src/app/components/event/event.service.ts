@@ -23,11 +23,6 @@ export class EventService {
     return call.map(res => res.json());
   }
 
-  addUserToPrinter(eventId: number, userId: number, printerId: number): Observable<boolean> {
-    return this.http.post(`/api/internal/events/${eventId}/user-printer/`, {userId: userId, printerId: printerId})
-      .map(res => res.json())
-  }
-
 }
 
 export class Event {
@@ -38,5 +33,6 @@ export class Event {
               public begin: string,
               public end: string,
               public location: string,
-              public active: boolean) {}
+              public active: boolean,
+              public lastUpdate: string) {}
 }

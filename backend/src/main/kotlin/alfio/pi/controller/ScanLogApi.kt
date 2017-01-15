@@ -46,8 +46,7 @@ open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
 @RestController
 @RequestMapping("/api/internal/events")
 open class EventApi (val transactionManager: PlatformTransactionManager,
-                     val eventRepository: EventRepository,
-                     val userPrinterRepository: UserPrinterRepository) {
+                     val eventRepository: EventRepository) {
 
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)
@@ -60,12 +59,17 @@ open class EventApi (val transactionManager: PlatformTransactionManager,
     @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
     open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleEventActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
 
-    @RequestMapping(value = "/{eventId}/user-printer/", method = arrayOf(RequestMethod.POST))
-    open fun linkUserToPrinter(@PathVariable("eventId") eventId: Int, @RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
+}
+
+@RestController
+@RequestMapping("/api/internal/user-printer")
+open class UserPrinterApi(val transactionManager: PlatformTransactionManager, val userPrinterRepository: UserPrinterRepository) {
+    @RequestMapping(value = "/", method = arrayOf(RequestMethod.POST))
+    open fun linkUserToPrinter(@RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
         val userId = userPrinterForm.userId
         val printerId = userPrinterForm.printerId
         return if(userId != null && printerId != null) {
-            val result = alfio.pi.manager.linkUserToPrinter(eventId, userId, printerId).invoke(transactionManager, userPrinterRepository)
+            val result = alfio.pi.manager.linkUserToPrinter(userId, printerId).invoke(transactionManager, userPrinterRepository)
             if(result) {
                 ResponseEntity.ok(true)
             } else {
@@ -76,12 +80,11 @@ open class EventApi (val transactionManager: PlatformTransactionManager,
         }
     }
 
-    @RequestMapping(value = "/{eventId}/user-printer/", method = arrayOf(RequestMethod.DELETE))
-    open fun removeUserPrinterLink(@PathVariable("eventId") eventId: Int, @RequestBody userPrinterForm: UserPrinterForm): ResponseEntity<Boolean> {
+    @RequestMapping(value = "/", method = arrayOf(RequestMethod.DELETE))
+    open fun removeUserPrinterLink(userPrinterForm: UserPrinterForm): ResponseEntity<Boolean> {
         val userId = userPrinterForm.userId
-        val printerId = userPrinterForm.printerId
-        return if(userId != null && printerId != null) {
-            val result = removeUserPrinterLink(eventId, userId, printerId).invoke(transactionManager, userPrinterRepository)
+        return if(userId != null) {
+            val result = alfio.pi.manager.removeUserPrinterLink(userId).invoke(transactionManager, userPrinterRepository)
             if(result) {
                 ResponseEntity.ok(true)
             } else {
@@ -91,7 +94,6 @@ open class EventApi (val transactionManager: PlatformTransactionManager,
             ResponseEntity(HttpStatus.BAD_REQUEST)
         }
     }
-
 }
 
 class UserPrinterForm {
@@ -108,6 +110,6 @@ open class PrinterApi (val transactionManager: PlatformTransactionManager, val p
     @RequestMapping(value = "/{printerId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
     open fun toggleActiveState(@PathVariable("printerId") printerId: Int, method: HttpMethod): Boolean = togglePrinterActivation(printerId, method == HttpMethod.PUT).invoke(transactionManager, printerRepository)
 
-    @RequestMapping(value = "/for-event/{eventId}", method = arrayOf(RequestMethod.GET))
-    open fun loadPrintConfiguration(@PathVariable("eventId") eventId: Int) = loadPrintConfigurationForEvent(eventId).invoke(userPrinterRepository)
+    @RequestMapping(value = "/with-users", method = arrayOf(RequestMethod.GET))
+    open fun loadPrintConfiguration() = loadPrinterConfiguration().invoke(userPrinterRepository, printerRepository)
 }

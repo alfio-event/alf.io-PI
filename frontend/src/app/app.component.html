@@ -1,19 +1,13 @@
-
-<div class="container">
+<div class="container d-flex flex-column justify-content-around">
   <h1>Alf.io PI</h1>
-  <div class="row">
-    <div class="col-xs-12 col-md-4">
-      <event-list></event-list>
-    </div>
-    <div class="col-xs-12 col-md-4">
-      <user-list></user-list>
-    </div>
-    <div class="col-xs-12 col-md-4">
-      <printer-list></printer-list>
-    </div>
+  <p>Here you can configure Alf.io PI for scanning tickets at your event and (optionally) printing badges</p>
+  <div class="d-flex mb-3">
+    <event-list class="w-100"></event-list>
   </div>
-  <router-outlet></router-outlet>
-
+  <div class="d-flex justify-content-between">
+      <user-list class="w-25"></user-list>
+      <printer-list class="w-75 ml-5"></printer-list>
+  </div>
 </div>
 
 

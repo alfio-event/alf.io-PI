@@ -18,7 +18,7 @@
 --entities
 create table event (
     id integer identity not null,
-    key varchar(255) not null,
+    key varchar(2048) not null,
     name varchar(2048) not null,
     image_url varchar(2048),
     begin_ts DATETIME not null,
@@ -26,7 +26,8 @@ create table event (
     location VARCHAR(2048),
     one_day boolean default false not null,
     api_version integer not null,
-    active boolean default false not null
+    active boolean default false not null,
+    last_update DATETIME
 );
 
 create table printer (
@@ -62,13 +63,11 @@ create table authority(
 
 create table user_printer (
     user_id_fk integer not null,
-    event_id_fk integer not null,
     printer_id_fk integer not null
 );
 
 alter table user_printer add foreign key(user_id_fk) references user(id);
-alter table user_printer add foreign key(event_id_fk) references event(id);
 alter table user_printer add foreign key(printer_id_fk) references printer(id);
-alter table user_printer add constraint "unique_user_printer_event" unique(user_id_fk, event_id_fk);
+alter table user_printer add constraint "unique_user" unique(user_id_fk);
 
 

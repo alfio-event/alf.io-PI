@@ -14,18 +14,17 @@
   ~ You should have received a copy of the GNU General Public License
   ~ along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
   -->
-<div class="card">
+<div class="card w-100">
   <h3 class="card-header">Events</h3>
   <ul class="list-group list-group-flush">
     <li class="list-group-item" *ngFor="let event of events">
-      <h5 class="list-group-item-heading">
-        <label class="custom-control custom-checkbox">
-          <input type="checkbox" class="custom-control-input" [checked]="event.active" (click)="toggleActivation(event)">
-          <span class="custom-control-indicator"></span>
-          <span class="custom-control-description"><a [routerLink]="['event/config/', event.id]">{{event.name}}</a></span>
-        </label>
-      </h5>
-      <p class="list-group-item-text">{{event.location}} {{event.begin | date}}</p>
+      <div class="d-flex w-100 justify-content-start">
+        <div><i class="fa fa-ticket fa-3x"></i></div>
+        <h4 class="align-self-center ml-2 w-100 d-flex col">{{event.name}} <small class="ml-5">last update: {{event.lastUpdate | date:'medium'}}</small></h4>
+        <div class="d-flex w-25 justify-content-end">
+          <i class="fa fa-2x" [class.text-success]="event.active" [class.text-muted]="!event.active" [class.fa-toggle-on]="event.active" [class.fa-toggle-off]="!event.active" (click)="toggleActivation(event)"></i>
+        </div>
+      </div>
     </li>
   </ul>
 </div>
