@@ -1,10 +1,11 @@
-import {Component, OnInit} from "@angular/core";
+import {Component, OnInit, Input, Output, EventEmitter} from "@angular/core";
 import {UserService, User, NewUser, UserWithPassword} from "../user.service";
-import {ActivatedRoute, Params} from "@angular/router";
 import "rxjs/add/operator/switchMap";
 import {isNullOrUndefined} from "util";
 import {FormBuilder, Validators, FormControl} from "@angular/forms";
 import {WindowRef} from "../../../window.service";
+import {ActivatedRoute, Params} from "@angular/router";
+import {UserNotifierService} from "../user-notifier.service";
 
 @Component({
   selector: 'user-edit',
@@ -22,7 +23,8 @@ export class UserEditComponent implements OnInit {
   constructor(private route: ActivatedRoute,
               private formBuilder: FormBuilder,
               private userService: UserService,
-              private windowRef: WindowRef) {}
+              private windowRef: WindowRef,
+              private userNotifierService: UserNotifierService) {}
 
   ngOnInit(): void {
     this.route.params
@@ -51,6 +53,7 @@ export class UserEditComponent implements OnInit {
         this.user = res;
         this.displayQRCode = true;
         this.userQRCodeUrl = this.getQRCodeURL(res);
+        this.userNotifierService.userCreated(res.username);
       })
   }
 
@@ -60,6 +63,7 @@ export class UserEditComponent implements OnInit {
         this.user = res;
         this.displayQRCode = true;
         this.userQRCodeUrl = this.getQRCodeURL(res);
+        this.userNotifierService.passwordReset(this.user.username);
       });
   }
 
@@ -69,11 +73,14 @@ export class UserEditComponent implements OnInit {
         this.user = res;
         this.displayQRCode = true;
         this.userQRCodeUrl = this.getQRCodeURL(res);
+
       });
   }
 
   private getQRCodeURL(res: UserWithPassword): string {
-    return `/api/internal/users/${res.id}/qr-code?password=${this.windowRef.nativeWindow.btoa(res.password)}`;
+    let $window = this.windowRef.nativeWindow;
+    let password = $window.encodeURIComponent($window.btoa(res.password));
+    return `/api/internal/users/${res.id}/qr-code?password=${password}`;
   }
 
   getUserWithPassword(): UserWithPassword {

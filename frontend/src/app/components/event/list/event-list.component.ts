@@ -23,7 +23,7 @@ export class EventListComponent implements OnInit {
 
   toggleActivation(event: Event): void {
     this.eventService.toggleActivation(event.id, !event.active)
-      .subscribe(result => console.log(`event activation result: ${result}`));
+      .subscribe(result => this.loadEvents());
   }
 
 }

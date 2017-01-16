@@ -1,7 +1,7 @@
 import {BrowserModule} from "@angular/platform-browser";
 import {NgModule} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
-import {HttpModule, CookieXSRFStrategy, XSRFStrategy} from "@angular/http";
+import {HttpModule} from "@angular/http";
 import {RouterModule} from "@angular/router";
 import {AppComponent} from "./app.component";
 import {UserEditComponent} from "./components/user/edit/user-edit.component";
@@ -15,9 +15,9 @@ import {PrinterListComponent} from "./components/printer/list/printer-list.compo
 import {PrinterService} from "./components/printer/printer.service";
 import {CloseDetailComponent} from "./components/close-detail/close-detail.component";
 import {KeysPipe} from "./keys.pipe";
-import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
 import {WindowRef} from "./window.service";
 import {DragulaModule} from "ng2-dragula";
+import {UserNotifierService} from "./components/user/user-notifier.service";
 
 @NgModule({
   declarations: [
@@ -37,7 +37,6 @@ import {DragulaModule} from "ng2-dragula";
     ReactiveFormsModule,
     HttpModule,
     DragulaModule,
-    NgbModule.forRoot(),
     RouterModule.forRoot([
       { path: 'user/new', component: UserEditComponent },
       { path: 'user/edit/:userId', component: UserEditComponent },
@@ -45,7 +44,7 @@ import {DragulaModule} from "ng2-dragula";
       { path: 'event/config/:eventId', component: EventConfigurationComponent}
     ])
   ],
-  providers: [UserService, EventService, PrinterService, WindowRef],
+  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

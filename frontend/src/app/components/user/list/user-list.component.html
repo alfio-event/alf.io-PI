@@ -6,16 +6,17 @@
         <div><i class="handle draggable fa fa-user fa-3x"></i></div>
         <h4 class="align-self-center ml-2 w-100 d-flex col">{{user.username}}</h4>
         <div class="d-flex w-25 justify-content-end">
-          <span class="pointer mr-2 align-self-center"><button class="btn btn-sm btn-outline-warning"><i class="fa fa-edit"></i></button></span>
+          <span class="pointer mr-2 align-self-center"><a class="btn btn-sm btn-outline-warning" [routerLink]="['/user/edit/', user.id]"><i class="fa fa-edit"></i></a></span>
           <span class="pointer align-self-center"><button class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button></span>
         </div>
       </div>
     </li>
     <li class="list-group-item">
       <div class="d-flex w-100 justify-content-end">
-        <button class="btn btn-success btn-sm pointer align-self-stretch" [routerLink]="['/user/new']"><i class="fa fa-plus"></i></button>
+        <a class="btn btn-success btn-sm pointer align-self-stretch" [routerLink]="['/user/new']"><i class="fa fa-plus"></i></a>
       </div>
     </li>
   </ul>
+  <router-outlet></router-outlet>
 </div>
 

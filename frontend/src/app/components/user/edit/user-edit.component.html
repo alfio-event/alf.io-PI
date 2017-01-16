@@ -14,28 +14,25 @@
   ~ You should have received a copy of the GNU General Public License
   ~ along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
   -->
-
-<form novalidate (ngSubmit)="onSubmit()">
-  <div class="row" *ngIf="!displayQRCode">
-    <div [class.col-md-9]="displayQRCode" class="col-xs-12">
-      <div class="form-group row">
-        <label class="col-xs-2 col-form-label">Username</label>
-        <div class="col-xs-10">
-          <input class="form-control" type="text" [formControl]="username">
+<div class="card-block">
+  <form novalidate (ngSubmit)="onSubmit()" *ngIf="!displayQRCode">
+    <h4><span *ngIf="displayReset">Edit</span><span *ngIf="!displayReset">Create</span> user <close-detail></close-detail></h4>
+    <div class="form-group">
+      <label class="sr-only" for="username">Username</label>
+      <input id="username" class="form-control mb-2 mr-sm-2 mb-sm-0" *ngIf="!displayReset" type="text" [formControl]="username" placeholder="username">
+      <p class="form-control-static" *ngIf="displayReset">{{user.username}}</p>
+    </div>
+    <button type="button" class="btn btn-sm btn-warning" *ngIf="!displayReset" (click)="create()">Create</button>
+    <button type="button" class="btn btn-sm btn-default" *ngIf="displayReset" (click)="resetPassword()">Reset Password</button>
+  </form>
+    <div *ngIf="displayQRCode">
+      <h3 class="text-success">Success! <close-detail></close-detail></h3>
+      <div class="text-xs-center align-middle">
+        <img class="img-fluid" [src]="userQRCodeUrl">
+        <div>
+          <p><strong>username:</strong> {{user.username}}</p>
+          <p><strong>password:</strong> {{getUserWithPassword().password}}</p>
         </div>
       </div>
     </div>
-  </div>
-  <div *ngIf="displayQRCode">
-    <h3>User has been created/updated <close-detail></close-detail></h3>
-    <div class="text-xs-center align-middle">
-      <img class="img-fluid" [src]="userQRCodeUrl">
-      <div>
-        <p><strong>username:</strong> {{user.username}}</p>
-        <p><strong>password:</strong> {{getUserWithPassword().password}}</p>
-      </div>
-    </div>
-  </div>
-  <button type="button" class="btn btn-warning" *ngIf="!displayQRCode" (click)="create()">Create</button>
-  <button type="button" class="btn btn-default" *ngIf="displayQRCode || displayReset" (click)="resetPassword()">Reset Password</button>
-</form>
+</div>
