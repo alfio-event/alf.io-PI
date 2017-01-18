@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import {UserService, User} from "../user.service";
 import {DragulaService} from "ng2-dragula";
 import {UserNotifierService} from "../user-notifier.service";
+import {ProgressManager} from "../../../ProgressManager";
 
 @Component({
   selector: 'user-list',
@@ -10,6 +11,7 @@ import {UserNotifierService} from "../user-notifier.service";
 export class UserListComponent implements OnInit {
 
   users: Array<User>;
+  progressManager: ProgressManager;
 
   constructor(private userService: UserService,
               private dragulaService: DragulaService,
@@ -29,6 +31,7 @@ export class UserListComponent implements OnInit {
     });
     userNotifierService.userCreated$.subscribe(username => this.loadUsers());
     userNotifierService.passwordReset$.subscribe(username => this.loadUsers());
+    this.progressManager = new ProgressManager();
   }
 
   ngOnInit(): void {
@@ -36,8 +39,8 @@ export class UserListComponent implements OnInit {
   }
 
   private loadUsers(): void {
-    this.userService.getUsers()
-      .subscribe(res => this.users = res)
+    this.progressManager.monitorCall(() => this.userService.getUsers())
+      .subscribe(res => this.users = res);
   }
 
 }

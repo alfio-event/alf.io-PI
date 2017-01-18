@@ -34,8 +34,8 @@ import java.util.*
 @RequestMapping("/api/internal/scan-log")
 open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
 
-    @RequestMapping("/")
-    open fun loadAll() : List<ScanLog> = findAllEntries().invoke(scanLogRepository)
+    @RequestMapping("")
+    open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
 
     @RequestMapping("/event/{eventId}")
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)

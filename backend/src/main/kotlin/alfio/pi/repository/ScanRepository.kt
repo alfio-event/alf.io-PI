@@ -24,6 +24,7 @@ import ch.digitalfondue.npjt.Query
 import ch.digitalfondue.npjt.QueryRepository
 import de.spqrinfo.cups4j.CupsClient
 import de.spqrinfo.cups4j.CupsPrinter
+import java.time.ZonedDateTime
 import java.util.*
 import javax.print.DocFlavor
 import javax.print.PrintService
@@ -32,14 +33,24 @@ import javax.print.attribute.standard.PrinterIsAcceptingJobs
 
 @QueryRepository
 interface ScanLogRepository {
-    @Query("select * from scan_log")
+    @Query("select * from scan_log order by scan_ts desc")
     fun loadAll():List<ScanLog>
+
+    @Query("select * from scan_log order by scan_ts desc limit :n")
+    fun loadLastN(@Bind("n") n: Int): List<ScanLog>
 
     @Query("select * from scan_log where event_id_fk = :eventId")
     fun loadAllForEvent(@Bind("eventId") eventId: Int):List<ScanLog>
 
-    @Query("insert into scan_log (event_id_fk, ticket_uuid, user_id_fk, local_result, remote_result, badge_printed) values(:eventId, :ticketUuid, :userId, :localResult, :remoteResult, :badgePrinted)")
-    fun insert(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String, @Bind("userId") userId: Int, @Bind("localResult") localResult: CheckInStatus, @Bind("remoteResult") remoteResult: CheckInStatus, @Bind("badgePrinted") badgePrinted: Boolean): Int
+    @Query("insert into scan_log (scan_ts, event_id_fk, ticket_uuid, user_id_fk, local_result, remote_result, badge_printed, ticket_data) values(:scanTs, :eventId, :ticketUuid, :userId, :localResult, :remoteResult, :badgePrinted, :ticketData)")
+    fun insert(@Bind("scanTs") scanTs: ZonedDateTime,
+               @Bind("eventId") eventId: Int,
+               @Bind("ticketUuid") ticketUuid: String,
+               @Bind("userId") userId: Int,
+               @Bind("localResult") localResult: CheckInStatus,
+               @Bind("remoteResult") remoteResult: CheckInStatus,
+               @Bind("badgePrinted") badgePrinted: Boolean,
+               @Bind("ticketData") ticketData: String?): Int
 
     @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid")
     fun loadSuccessfulScanForTicket(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String) : Optional<ScanLog>

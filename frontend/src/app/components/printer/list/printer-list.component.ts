@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import {PrinterService, Printer, PrinterWithUsers} from "../printer.service";
 import {DragulaService} from "ng2-dragula";
+import {ProgressManager} from "../../../ProgressManager";
 
 @Component({
   selector: 'printer-list',
@@ -10,6 +11,7 @@ import {DragulaService} from "ng2-dragula";
 export class PrinterListComponent implements OnInit {
 
   printersWithUsers: Array<PrinterWithUsers> = [];
+  progressManager: ProgressManager = new ProgressManager();
 
   constructor(private printerService: PrinterService,
               private dragulaService: DragulaService) {
@@ -19,7 +21,7 @@ export class PrinterListComponent implements OnInit {
       if(userElement != null && printerElement != null) {
         let userId = +userElement.attributes.getNamedItem('user-id').value;
         let printerId = +printerElement.attributes.getNamedItem('printer-id').value;
-        this.printerService.addUserToPrinter(userId, printerId)
+        this.progressManager.monitorCall(() => this.printerService.addUserToPrinter(userId, printerId))
           .subscribe(res => {
             if(res) {
               this.reloadPrinterWithUsers();
@@ -28,14 +30,14 @@ export class PrinterListComponent implements OnInit {
         userElement.remove();
       } else if(userElement != null && userElement.attributes.getNamedItem('printer-id') != null) {
         let userId = +userElement.attributes.getNamedItem('user-id').value;
-        this.printerService.removeUserFromPrinters(userId)
+        this.progressManager.monitorCall(() => this.printerService.removeUserFromPrinters(userId))
           .subscribe(res => {
             if(res) {
               this.reloadPrinterWithUsers();
             }
           });
       }
-    })
+    });
   }
 
   ngOnInit(): void {
@@ -43,12 +45,12 @@ export class PrinterListComponent implements OnInit {
   }
 
   private reloadPrinterWithUsers(): void {
-    this.printerService.loadPrintersAndUsers()
+    this.progressManager.monitorCall(() => this.printerService.loadPrintersAndUsers())
       .subscribe(printersWithUsers => this.printersWithUsers = printersWithUsers)
   }
 
   toggleActivation(printer: Printer): void {
-    this.printerService.toggleActivation(printer.id, !printer.active)
+    this.progressManager.monitorCall(() => this.printerService.toggleActivation(printer.id, !printer.active))
       .subscribe(result => this.reloadPrinterWithUsers());
   }
 

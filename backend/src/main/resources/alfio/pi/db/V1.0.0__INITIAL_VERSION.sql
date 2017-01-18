@@ -45,11 +45,13 @@ create table user (
 
 create table scan_log (
     id integer identity not null,
+    scan_ts DATETIME not null,
     event_id_fk integer not null,
     ticket_uuid varchar(255) not null,
     user_id_fk integer not null,
     local_result varchar(255) not null,
     remote_result varchar(255) not null,
+    ticket_data CLOB,
     badge_printed boolean default false not null
 );
 

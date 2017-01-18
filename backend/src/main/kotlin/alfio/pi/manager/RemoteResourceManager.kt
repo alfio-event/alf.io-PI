@@ -63,16 +63,17 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val
             } else {
                 httpClient
             }
-            val resp = client.newCall(request).execute()
-            if(resp.isSuccessful) {
-                resp.body().use {
-                    val body = it.string()
-                    val result: T = gson.fromJson(body, type.type)
-                    true to result
+            client.newCall(request)
+                .execute()
+                .use { resp ->
+                    if(resp.isSuccessful) {
+                        val body = resp.body().string()
+                        val result: T = gson.fromJson(body, type.type)
+                        true to result
+                    } else {
+                        false to emptyResult.invoke()
+                    }
                 }
-            } else {
-                false to emptyResult.invoke()
-            }
         }, {
             logger.error("error while fetching remote resource $resource", it)
             false to emptyResult.invoke()

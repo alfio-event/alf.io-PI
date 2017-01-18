@@ -18,6 +18,12 @@ import {KeysPipe} from "./keys.pipe";
 import {WindowRef} from "./window.service";
 import {DragulaModule} from "ng2-dragula";
 import {UserNotifierService} from "./components/user/user-notifier.service";
+import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator.component';
+import { ScanLogEntriesComponent } from './components/scan-log-entries/scan-log-entries.component';
+import {ScanLogService} from "./components/scan-log-entries/scan-log.service";
+import { HomeComponent } from './components/home/home.component';
+import { ScanLogComponent } from './components/scan-log/scan-log.component';
+import {FilterScanLogEntries} from "./filter.pipe";
 
 @NgModule({
   declarations: [
@@ -29,7 +35,12 @@ import {UserNotifierService} from "./components/user/user-notifier.service";
     EventConfigurationComponent,
     PrinterListComponent,
     CloseDetailComponent,
-    KeysPipe
+    KeysPipe,
+    FilterScanLogEntries,
+    LoadingIndicatorComponent,
+    ScanLogEntriesComponent,
+    HomeComponent,
+    ScanLogComponent
   ],
   imports: [
     BrowserModule,
@@ -38,13 +49,13 @@ import {UserNotifierService} from "./components/user/user-notifier.service";
     HttpModule,
     DragulaModule,
     RouterModule.forRoot([
+      { path: '', component: HomeComponent },
       { path: 'user/new', component: UserEditComponent },
       { path: 'user/edit/:userId', component: UserEditComponent },
-      { path: 'user/:userId', component: UserViewComponent },
-      { path: 'event/config/:eventId', component: EventConfigurationComponent}
+      { path: 'scan-log/view', component: ScanLogComponent },
     ])
   ],
-  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService],
+  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

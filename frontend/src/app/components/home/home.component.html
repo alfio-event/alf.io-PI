@@ -1,0 +1,14 @@
+<div class="container d-flex flex-column justify-content-around">
+  <h1>Alf.io PI</h1>
+  <p>Here you can configure Alf.io PI for scanning tickets at your event and (optionally) printing badges</p>
+  <div class="d-flex mb-3">
+    <event-list class="w-100"></event-list>
+  </div>
+  <div class="d-flex justify-content-between">
+    <user-list class="w-50"></user-list>
+    <printer-list class="w-75 ml-2"></printer-list>
+  </div>
+  <div class="d-flex mt-3">
+    <scan-log-entries class="w-100" [maxEntries]="5"></scan-log-entries>
+  </div>
+</div>

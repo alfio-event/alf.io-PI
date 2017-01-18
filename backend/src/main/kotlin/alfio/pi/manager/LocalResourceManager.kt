@@ -37,8 +37,14 @@ fun findAllEntriesForEvent(eventId: Int) : (ScanLogRepository) -> List<ScanLog> 
     })
 }
 
-fun findAllEntries() : (ScanLogRepository) -> List<ScanLog> = {
-    tryOrDefault<List<ScanLog>>().invoke({it.loadAll()}, {
+fun findAllEntries(max: Int) : (ScanLogRepository) -> List<ScanLog> = {
+    tryOrDefault<List<ScanLog>>().invoke({
+        if(max > 0) {
+            it.loadLastN(max)
+        } else {
+            it.loadAll()
+        }
+    }, {
         logger.error("unexpected error while loading all entries", it)
         emptyList()
     })

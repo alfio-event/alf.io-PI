@@ -121,7 +121,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                             }
                             val ticket = localDataResult.ticket!!
                             val labelPrinted = remoteResult.isSuccessful() && labelTemplates.isNotEmpty() && printLabel(user, ticket)
-                            scanLogRepository.insert(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted)
+                            scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(ticket))
                             logger.info("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
@@ -166,20 +166,23 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
                 .url(url)
                 .build()
-            val resp = httpClient.newCall(request).execute()
-            if(resp.isSuccessful) {
-                resp.body().use(fun(it: ResponseBody) : Map<String, String> {
-                    return gson.fromJson(it.string(), object : TypeToken<Map<String, String>>() {}.type)
-                }).withDefault { ticketDataNotFound }
-            } else {
-                logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
-                mapOf()
-            }
+            httpClient.newCall(request)
+                .execute()
+                .use { resp ->
+                    if(resp.isSuccessful) {
+                        parseTicketDataResponse(resp.body().string()).withDefault { ticketDataNotFound }
+                    } else {
+                        logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
+                        mapOf()
+                    }
+                }
         }, {
             logger.warn("Got exception while trying to load the attendees", it)
             mapOf()
         })
     }
+
+    private fun parseTicketDataResponse(body: String): Map<String, String> = gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type)
 
     private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
         val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
@@ -188,12 +191,16 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             .post(requestBody)
             .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid")
             .build()
-        val resp = httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS).newCall(request).execute()
-        if(resp.isSuccessful) {
-            resp.body().use { gson.fromJson(it.string(), TicketAndCheckInResult::class.java) }
-        } else {
-            EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
-        }
+        httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
+            .newCall(request)
+            .execute()
+            .use { resp ->
+                if(resp.isSuccessful) {
+                    gson.fromJson(resp.body().string(), TicketAndCheckInResult::class.java)
+                } else {
+                    EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
+                }
+            }
     }, {
         logger.warn("got Exception while performing remote check-in")
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))

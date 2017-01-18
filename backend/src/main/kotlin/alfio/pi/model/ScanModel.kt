@@ -18,7 +18,9 @@
 package alfio.pi.model
 
 import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
+import com.google.gson.Gson
 import org.springframework.context.ApplicationEvent
+import org.springframework.stereotype.Component
 import java.io.Serializable
 import java.math.BigDecimal
 import java.time.ZonedDateTime
@@ -38,13 +40,33 @@ data class Printer(@Column("id") val id: Int, @Column("name") val name: String, 
     override fun compareTo(other: Printer): Int = name.compareTo(other.name)
 }
 
+@Component
+internal open class GsonContainer(val gson: Gson) {
+    init {
+        GSON = gson
+    }
+    companion object {
+        var GSON: Gson? = null;
+    }
+}
+
 data class ScanLog(@Column("id") val id: Int,
+                   @Column("scan_ts") val timestamp: ZonedDateTime,
                    @Column("event_id_fk") val eventId: Int,
                    @Column("ticket_uuid") val ticketUuid: String,
                    @Column("user_id_fk") val userId: Int,
                    @Column("local_result") val localResult: CheckInStatus,
                    @Column("remote_result") val remoteResult: CheckInStatus,
-                   @Column("badge_printed") val badgePrinted: Boolean)
+                   @Column("badge_printed") val badgePrinted: Boolean,
+                   @Column("ticket_data") private val ticketData: String?) {
+
+    val ticket: Ticket? = if(!ticketData.isNullOrEmpty()) {
+        GsonContainer.GSON?.fromJson(ticketData, Ticket::class.java)
+    } else {
+        null
+    }
+
+}
 
 data class User(@Column("id") val id: Int, @Column("username") val username: String)
 data class UserWithPassword(val id: Int, val username: String, val password: String)

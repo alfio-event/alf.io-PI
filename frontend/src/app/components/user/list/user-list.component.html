@@ -1,5 +1,8 @@
 <div class="card h-100">
-  <h3 class="card-header">Users</h3>
+  <div class="card-header d-flex justify-content-between">
+    <h3>Users</h3>
+    <loading-indicator [observable]="progressManager.observable"></loading-indicator>
+  </div>
   <ul class="list-group list-group-flush" [dragula]="'users-bag'">
     <li class="list-group-item" *ngFor="let user of users" [attr.user-id]="user.id">
       <div class="d-flex w-100 justify-content-start">
