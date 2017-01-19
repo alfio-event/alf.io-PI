@@ -64,7 +64,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val transactionManager: PlatformTransactionManager,
                               val printerRepository: PrinterRepository,
                               val gson: Gson,
-                              val labelTemplates: List<LabelTemplate>) {
+                              val printManager: PrintManager) {
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
     private val ticketDataNotFound = "ticket-not-found"
 
@@ -120,7 +120,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                                 CheckInStatus.SUCCESS
                             }
                             val ticket = localDataResult.ticket!!
-                            val labelPrinted = remoteResult.isSuccessful() && labelTemplates.isNotEmpty() && printLabel(user, ticket)
+                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printManager.printLabel(user, ticket)
                             scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(ticket))
                             logger.info("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
@@ -129,34 +129,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                         }
                     }
             }.orElseGet{ EmptyTicketResult() }
-    }
-
-    private fun printLabel(user: User, ticket: Ticket): Boolean {
-        return tryOrDefault<Boolean>().invoke({
-            userPrinterRepository.getOptionalActivePrinter(user.id)
-                .map { printerRepository.findById(it.printerId) }
-                .map { printer ->
-                    val labelTemplate = labelTemplates.first()
-                    val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplate)
-                    val systemPrinter = findPrinterByName(printer.name)
-                    if(systemPrinter == null) {
-                        logger.warn("cannot find printer with name ${printer.name}")
-                        false
-                    } else {
-                        val printJob = PrintJob.Builder(pdf)
-                            .attributes(mutableMapOf("job-attributes" to "media:keyword:${labelTemplate.getCUPSMediaName()}"))
-                            .copies(1)
-                            .jobName("ticket-${ticket.uuid.substringBefore('-')}")
-                            .build()
-                        systemPrinter.print(printJob).isSuccessfulResult
-                    }
-                }.orElse(false)
-
-        }, {
-            logger.error("cannot print label for ticket ${ticket.uuid}, username ${user.username}", it)
-            false
-        })
-
     }
 
     internal fun loadCachedAttendees(eventName: String) : Map<String, String> {

@@ -90,6 +90,7 @@ class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", "")
 
 abstract class CheckInResponse(val result: CheckInResult, val ticket: Ticket?) {
     fun isSuccessful(): Boolean = result.status.successful
+    fun isSuccessfulOrRetry(): Boolean = result.status.successful || result.status == CheckInStatus.RETRY
 }
 
 class TicketAndCheckInResult(ticket: Ticket, result: CheckInResult) : CheckInResponse(result, ticket)

@@ -32,13 +32,17 @@ import java.util.*
 
 @RestController
 @RequestMapping("/api/internal/scan-log")
-open class ScanLogApi (val scanLogRepository: ScanLogRepository) {
+open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManager: PrintManager, val printerRepository: PrinterRepository) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
 
     @RequestMapping("/event/{eventId}")
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
+
+    @RequestMapping("/{entryId}/reprint")
+    open fun reprint(@PathVariable("entryId") entryId: Int,
+                     @RequestParam("printerId") printerId: Int) = reprintBadge(entryId, printerId).invoke(printManager, printerRepository, scanLogRepository)
 }
 
 
@@ -80,18 +84,13 @@ open class UserPrinterApi(val transactionManager: PlatformTransactionManager, va
         }
     }
 
-    @RequestMapping(value = "/", method = arrayOf(RequestMethod.DELETE))
-    open fun removeUserPrinterLink(userPrinterForm: UserPrinterForm): ResponseEntity<Boolean> {
-        val userId = userPrinterForm.userId
-        return if(userId != null) {
-            val result = alfio.pi.manager.removeUserPrinterLink(userId).invoke(transactionManager, userPrinterRepository)
-            if(result) {
-                ResponseEntity.ok(true)
-            } else {
-                ResponseEntity(HttpStatus.CONFLICT)
-            }
+    @RequestMapping(value = "/{userId}", method = arrayOf(RequestMethod.DELETE))
+    open fun removeUserPrinterLink(@PathVariable("userId") userId: Int): ResponseEntity<Boolean> {
+        val result = alfio.pi.manager.removeUserPrinterLink(userId).invoke(transactionManager, userPrinterRepository)
+        return if(result) {
+            ResponseEntity.ok(true)
         } else {
-            ResponseEntity(HttpStatus.BAD_REQUEST)
+            ResponseEntity(HttpStatus.CONFLICT)
         }
     }
 }

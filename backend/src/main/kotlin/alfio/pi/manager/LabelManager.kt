@@ -17,12 +17,20 @@
 
 package alfio.pi.manager
 
+import alfio.pi.model.Printer
+import alfio.pi.model.Ticket
+import alfio.pi.model.User
+import alfio.pi.repository.PrinterRepository
+import alfio.pi.repository.UserPrinterRepository
+import alfio.pi.repository.findPrinterByName
+import alfio.pi.wrapper.tryOrDefault
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.client.j2se.MatrixToImageWriter
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import de.spqrinfo.cups4j.PrintJob
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -32,6 +40,7 @@ import org.apache.pdfbox.pdmodel.font.PDType0Font
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.util.Matrix
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -117,4 +126,53 @@ private fun generateBitMatrix(value: String, width: Int, height: Int): BitMatrix
 fun generateQRCodeImage(value: String): ByteArray {
     val output = ByteArrayOutputStream()
     return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value, 350, 350), "png", it); it.toByteArray() }
+}
+
+@Component
+open class PrintManager(val userPrinterRepository: UserPrinterRepository,
+                        val labelTemplates: List<LabelTemplate>,
+                        val printerRepository: PrinterRepository) {
+    private val logger = LoggerFactory.getLogger(PrintManager::class.java)
+
+    fun printLabel(user: User, ticket: Ticket): Boolean {
+        return tryOrDefault<Boolean>().invoke({
+            userPrinterRepository.getOptionalActivePrinter(user.id)
+                .map { printerRepository.findById(it.printerId) }
+                .map { printer ->
+                    val labelTemplate = labelTemplates.first()
+                    doPrint(labelTemplate, printer, ticket)
+                }.orElse(false)
+
+        }, {
+            logger.error("cannot print label for ticket ${ticket.uuid}, username ${user.username}", it)
+            false
+        })
+    }
+
+    fun reprintLabel(printer: Printer, ticket: Ticket): Boolean {
+        return tryOrDefault<Boolean>().invoke({
+            doPrint(labelTemplates.first(), printer, ticket)
+        }, {
+            logger.error("cannot reprint label for ticket ${ticket.uuid}, printer ${printer.name}", it)
+            false
+        })
+    }
+
+    private fun doPrint(labelTemplate: LabelTemplate, printer: Printer, ticket: Ticket): Boolean {
+        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplate)
+        val systemPrinter = findPrinterByName(printer.name)
+        return if (systemPrinter == null) {
+            logger.warn("cannot find printer with name ${printer.name}")
+            false
+        } else {
+            val printJob = PrintJob.Builder(pdf)
+                .attributes(mutableMapOf("job-attributes" to "media:keyword:${labelTemplate.getCUPSMediaName()}"))
+                .copies(1)
+                .jobName("ticket-${ticket.uuid.substringBefore('-')}")
+                .build()
+            systemPrinter.print(printJob).isSuccessfulResult
+        }
+    }
+
+
 }

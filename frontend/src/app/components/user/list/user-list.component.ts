@@ -14,21 +14,7 @@ export class UserListComponent implements OnInit {
   progressManager: ProgressManager;
 
   constructor(private userService: UserService,
-              private dragulaService: DragulaService,
               private userNotifierService: UserNotifierService) {
-    dragulaService.setOptions('users-bag', {
-      copy: true,
-      moves: function (el, container, handle) {
-        return handle.className.includes('handle');
-      },
-      accepts: function (el: any, target: Node, source: any, sibling: any) {
-        let accept = false;
-        if(target != null && target.attributes.getNamedItem('drop-allowed') != null) {
-          accept = target.attributes.getNamedItem('drop-allowed').value == "true";
-        }
-        return accept;
-      }
-    });
     userNotifierService.userCreated$.subscribe(username => this.loadUsers());
     userNotifierService.passwordReset$.subscribe(username => this.loadUsers());
     this.progressManager = new ProgressManager();

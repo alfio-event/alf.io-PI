@@ -10,7 +10,7 @@
     <label for="term" class="sr-only">Search</label>
     <input id="term" type="text" class="form-control" [(ngModel)]="term" placeholder="Filter by First Name, Last Name or E-Mail">
   </div>
-  <div class="table-responsive w-100" *ngIf="entries.length > 0">
+  <div class="w-100" *ngIf="entries.length > 0">
     <table class="table table-striped w-100">
       <thead class="thead-default">
         <tr>
@@ -32,7 +32,14 @@
         <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.localSuccess, 'fa-times-circle text-danger': !ee.entry.localSuccess}"></i></td>
         <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.remoteSuccess, 'fa-times-circle text-danger': !ee.entry.remoteSuccess}"></i></td>
         <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.badgePrinted, 'fa-times-circle text-danger': !ee.entry.badgePrinted}"></i></td>
-        <td><i class="fa fa-print"></i></td>
+        <td>
+            <div ngbDropdown *ngIf="ee.entry.localSuccess">
+              <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
+              <div class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                <button class="dropdown-item" *ngFor="let printer of printers" (click)="reprint(ee.entry, printer)">{{printer.name}}</button>
+              </div>
+            </div>
+        </td>
       </tr>
     </table>
   </div>

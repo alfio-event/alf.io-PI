@@ -132,6 +132,21 @@ fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Co
     })
 }
 
+fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterRepository, ScanLogRepository) -> Boolean = { printManager: PrintManager, printerRepository: PrinterRepository, scanLogRepository: ScanLogRepository ->
+    tryOrDefault<Boolean>().invoke({
+        scanLogRepository.findOptionalById(scanLogId)
+            .filter { it.ticket != null }
+            .flatMap { scanLog ->
+                printerRepository.findOptionalById(printerId).map { printer -> printer to scanLog.ticket!! }
+            }.map {
+                printManager.reprintLabel(it.first, it.second)
+            }.orElse(false)
+    }, {
+        logger.error("cannot re-print label. ",it)
+        false
+    })
+}
+
 @Component
 open class PrinterManager(val printerRepository: PrinterRepository) {
     @Scheduled(fixedDelay = 5000L)

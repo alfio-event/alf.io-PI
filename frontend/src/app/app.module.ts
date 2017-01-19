@@ -24,6 +24,7 @@ import {ScanLogService} from "./components/scan-log-entries/scan-log.service";
 import { HomeComponent } from './components/home/home.component';
 import { ScanLogComponent } from './components/scan-log/scan-log.component';
 import {FilterScanLogEntries} from "./filter.pipe";
+import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
 
 @NgModule({
   declarations: [
@@ -43,6 +44,7 @@ import {FilterScanLogEntries} from "./filter.pipe";
     ScanLogComponent
   ],
   imports: [
+    NgbModule.forRoot(),
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,

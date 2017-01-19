@@ -1,9 +1,10 @@
 import {Component, OnInit, Input} from "@angular/core";
-import {ScanLogService, ScanLogEntry, CheckInStatus, Ticket} from "./scan-log.service";
+import {ScanLogService, ScanLogEntry, Ticket, CheckInStatus} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
 import {Observable} from "rxjs";
 import {EventService, Event} from "../event/event.service";
 import "rxjs/add/operator/map";
+import {Printer, PrinterService} from "../printer/printer.service";
 
 @Component({
   selector: 'scan-log-entries',
@@ -19,21 +20,35 @@ export class ScanLogEntriesComponent implements OnInit {
   progressManager = new ProgressManager();
   entries: Array<ScanLogEntryWithEvent> = [];
   term: string;
+  printers: Array<Printer> = [];
 
-  constructor(private scanLogService: ScanLogService, private eventService: EventService) {
+  constructor(private scanLogService: ScanLogService, private eventService: EventService, private printerService: PrinterService) {
   }
 
   ngOnInit() {
+    this.loadData();
+  }
+
+  private loadData() {
     this.progressManager
-      .monitorCall(() => Observable.forkJoin(this.scanLogService.getEntries(this.maxEntries), this.eventService.getAllEvents()))
+      .monitorCall(() => {
+        return Observable.forkJoin(this.scanLogService.getEntries(this.maxEntries),
+          this.eventService.getAllEvents(),
+          this.printerService.loadAllPrinters()
+        );
+      })
       .map(res => {
-        let entries = res[0];
-        let events = res[1];
+        let [entries, events, printers] = res;
+        this.printers = printers.filter(p => p.active);
         return entries.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.id === entry.eventId)))
       })
       .subscribe(entries => {
         this.entries = entries
       });
+  }
+
+  reprint(entry: ScanLogEntry, printer: Printer): void {
+    this.progressManager.monitorCall(() => this.scanLogService.reprint(entry, printer))
   }
 
 }

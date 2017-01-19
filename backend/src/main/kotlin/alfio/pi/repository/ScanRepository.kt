@@ -54,6 +54,9 @@ interface ScanLogRepository {
 
     @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid")
     fun loadSuccessfulScanForTicket(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String) : Optional<ScanLog>
+
+    @Query("select * from scan_log where id = :id")
+    fun findOptionalById(@Bind("id") id: Int): Optional<ScanLog>
 }
 
 @QueryRepository
@@ -69,6 +72,9 @@ interface PrinterRepository {
 
     @Query("select * from printer where id = :id")
     fun findById(@Bind("id") printerId: Int): Printer
+
+    @Query("select * from printer where id = :id")
+    fun findOptionalById(@Bind("id") printerId: Int): Optional<Printer>
 
     @Query("update printer set active = :state where id = :id")
     fun toggleActivation(@Bind("id") id: Int, @Bind("state") state: Boolean): Int

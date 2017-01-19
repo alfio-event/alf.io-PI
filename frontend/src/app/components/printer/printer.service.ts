@@ -30,9 +30,7 @@ export class PrinterService {
   }
 
   removeUserFromPrinters(userId: number): Observable<boolean> {
-    let params = new URLSearchParams();
-    params.append("userId", userId.toString());
-    return this.http.delete(`/api/internal/user-printer/`, {search: params})
+    return this.http.delete(`/api/internal/user-printer/${userId}`)
       .map(res => res.json())
   }
 

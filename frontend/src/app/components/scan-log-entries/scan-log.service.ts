@@ -18,6 +18,7 @@
 import {Injectable} from "@angular/core";
 import {Http} from "@angular/http";
 import {Observable} from "rxjs";
+import {Printer} from "../printer/printer.service";
 
 @Injectable()
 export class ScanLogService {
@@ -32,6 +33,11 @@ export class ScanLogService {
   getEntries(max: number): Observable<Array<ScanLogEntry>> {
     return this.http.get(`/api/internal/scan-log?max=${max || -1}`)
       .map(res => res.json())
+  }
+
+  reprint(entry: ScanLogEntry, printer: Printer): Observable<boolean> {
+    return this.http.get(`/api/internal/scan-log/${entry.id}/reprint?printer=${printer.id}`)
+      .map(res => res.json());
   }
 
 }
