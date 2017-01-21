@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {EventService, Event} from "../event.service";
+import {ServerEventsService, EventType, EventUpdated} from "../../../server-events.service";
 
 @Component({
   selector: 'event-list',
@@ -10,10 +11,16 @@ export class EventListComponent implements OnInit {
 
   events: Array<Event>;
 
-  constructor(private eventService: EventService) { }
+  constructor(private eventService: EventService, private serverEventsService: ServerEventsService) { }
 
   ngOnInit(): void {
     this.loadEvents();
+    this.serverEventsService.events.subscribe(e => {
+      if(e.type == EventType.EVENT_UPDATED) {
+        let {key, timestamp} = <EventUpdated>e.data;
+        this.events.filter(e => e.key == key).forEach(e => e.lastUpdate = timestamp);
+      }
+    })
   }
 
   private loadEvents() {

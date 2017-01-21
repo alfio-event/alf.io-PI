@@ -5,6 +5,7 @@ import {Observable} from "rxjs";
 import {EventService, Event} from "../event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
+import {ServerEventsService, EventType} from "../../server-events.service";
 
 @Component({
   selector: 'scan-log-entries',
@@ -22,11 +23,19 @@ export class ScanLogEntriesComponent implements OnInit {
   term: string;
   printers: Array<Printer> = [];
 
-  constructor(private scanLogService: ScanLogService, private eventService: EventService, private printerService: PrinterService) {
+  constructor(private scanLogService: ScanLogService,
+              private eventService: EventService,
+              private printerService: PrinterService,
+              private serverEventsService: ServerEventsService) {
   }
 
   ngOnInit() {
     this.loadData();
+    this.serverEventsService.events.subscribe(e => {
+      if(e.type == EventType.NEW_SCAN) {
+        console.log(e);
+      }
+    })
   }
 
   private loadData() {

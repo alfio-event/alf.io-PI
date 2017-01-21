@@ -227,7 +227,9 @@ internal fun calcHash256(hmac: String) : String {
 }
 
 @Component
-open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager, val eventRepository: EventRepository) {
+open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
+                                   val eventRepository: EventRepository,
+                                   val publisher: SystemEventManager) {
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
@@ -236,11 +238,14 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager, v
             .map { it to checkInDataManager.loadCachedAttendees(it.key) }
             .filter { it.second.isNotEmpty() }
             .forEach {
-                val result = eventAttendeesCache.replace(it.first.key, it.first.value, it.second)
+                val eventKey = it.first.key
+                val result = eventAttendeesCache.replace(eventKey, it.first.value, it.second)
                 if(result) {
-                    eventRepository.updateTimestamp(it.first.key, ZonedDateTime.now())
+                    val lastUpdate = ZonedDateTime.now()
+                    eventRepository.updateTimestamp(eventKey, lastUpdate)
+                    publisher.publishEvent(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventKey, lastUpdate)))
                 }
-                logger.trace("tried to replace value for ${it.first.key}, result: $result")
+                logger.trace("tried to replace value for $eventKey, result: $result")
             }
     }
 

@@ -25,6 +25,7 @@ import { HomeComponent } from './components/home/home.component';
 import { ScanLogComponent } from './components/scan-log/scan-log.component';
 import {FilterScanLogEntries} from "./filter.pipe";
 import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
+import {ServerEventsService} from "./server-events.service";
 
 @NgModule({
   declarations: [
@@ -57,7 +58,7 @@ import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
       { path: 'scan-log/view', component: ScanLogComponent },
     ])
   ],
-  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService],
+  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

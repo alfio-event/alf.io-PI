@@ -17,6 +17,7 @@
 package alfio.pi
 
 import alfio.pi.Constants.*
+import alfio.pi.manager.SystemEventHandler
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
@@ -44,6 +45,9 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.embedded.jetty.JettyEmbeddedServletContainerFactory
+import org.springframework.boot.context.embedded.jetty.JettyServerCustomizer
+import org.springframework.boot.web.servlet.ServletRegistrationBean
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -64,8 +68,13 @@ import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.util.ClassUtils
 import org.springframework.util.MethodInvoker
+import org.springframework.web.servlet.DispatcherServlet
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
+import org.springframework.web.socket.config.annotation.EnableWebSocket
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import java.math.BigInteger
 import java.net.NetworkInterface
 import java.nio.file.Files
@@ -240,6 +249,13 @@ open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String
     }
 }
 
+@Configuration
+@EnableWebSocket
+open class WebSocketConfiguration(val systemEventHandler: SystemEventHandler): WebSocketConfigurer {
+    override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
+        registry.addHandler(systemEventHandler, "/api/internal/ws/stream")
+    }
+}
 
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
 
