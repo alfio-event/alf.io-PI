@@ -41,12 +41,12 @@ data class Printer(@Column("id") val id: Int, @Column("name") val name: String, 
 }
 
 @Component
-internal open class GsonContainer(val gson: Gson) {
+internal open class GsonContainer(gson: Gson) {
     init {
         GSON = gson
     }
     companion object {
-        var GSON: Gson? = null;
+        var GSON: Gson? = null
     }
 }
 

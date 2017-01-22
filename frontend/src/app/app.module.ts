@@ -52,9 +52,10 @@ import {ServerEventsService} from "./server-events.service";
     HttpModule,
     DragulaModule,
     RouterModule.forRoot([
-      { path: '', component: HomeComponent },
-      { path: 'user/new', component: UserEditComponent },
-      { path: 'user/edit/:userId', component: UserEditComponent },
+      { path: '', component: HomeComponent, children: [
+        { path: 'user/new', component: UserEditComponent },
+        { path: 'user/edit/:userId', component: UserEditComponent }
+      ] },
       { path: 'scan-log/view', component: ScanLogComponent },
     ])
   ],

@@ -15,29 +15,20 @@
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 /// <reference path="../EventSource.d.ts"/>
-import {Injectable, OnInit} from "@angular/core";
-import {Observable, Subject} from "rxjs";
+import {Injectable} from "@angular/core";
+import {Observable} from "rxjs";
 import {WindowRef} from "./window.service";
-import {RSA_X931_PADDING} from "constants";
+import {ScanLogEntry} from "./components/scan-log-entries/scan-log.service";
+import {Event} from "./components/event/event.service";
 
 @Injectable()
 export class ServerEventsService {
 
-  private eventSource: Subject<ServerEvent>;
   events: Observable<ServerEvent>;
 
   constructor(private windowRef: WindowRef) {
     let $window = windowRef.nativeWindow;
     this.events = Observable.webSocket(`ws://${$window.location.host}/api/internal/ws/stream`).asObservable();
-    //this.events = this.eventSource.asObservable();
-    // let es = new EventSource("/api/internal/sse/stream");
-    // es.addEventListener('message', data => {
-    //   if(data instanceof ServerEvent) {
-    //     this.eventSource.next(<ServerEvent>data);
-    //   } else {
-    //     console.log("unrecognized data", data);
-    //   }
-    // });
   }
 }
 
@@ -54,5 +45,9 @@ export const EventType = {
 
 export class EventUpdated {
   constructor(public key: string, public timestamp: string) {}
+}
+
+export class NewScan {
+  constructor(public scanData: ScanLogEntry, public event: Event) {}
 }
 

@@ -5,7 +5,8 @@ import {Observable} from "rxjs";
 import {EventService, Event} from "../event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
-import {ServerEventsService, EventType} from "../../server-events.service";
+import {ServerEventsService, EventType, NewScan} from "../../server-events.service";
+import {isNullOrUndefined} from "util";
 
 @Component({
   selector: 'scan-log-entries',
@@ -33,7 +34,11 @@ export class ScanLogEntriesComponent implements OnInit {
     this.loadData();
     this.serverEventsService.events.subscribe(e => {
       if(e.type == EventType.NEW_SCAN) {
-        console.log(e);
+        let newScan = <NewScan>e.data;
+        if(!isNullOrUndefined(this.maxEntries) && this.maxEntries > 0 && this.entries.length >= this.maxEntries) {
+          this.entries.splice(this.maxEntries - 1, 1);
+        }
+        this.entries.unshift(new ScanLogEntryWithEvent(newScan.scanData, newScan.event));
       }
     })
   }

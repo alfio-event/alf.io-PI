@@ -53,14 +53,6 @@ export class ScanLogEntry {
               public badgePrinted: boolean,
               public ticket: Ticket) {
   }
-
-  get localSuccess(): boolean {
-    return this.localResult == CheckInStatus.SUCCESS;
-  }
-
-  get remoteSuccess(): boolean {
-    return this.remoteResult == CheckInStatus.SUCCESS;
-  }
 }
 
 export class Ticket {
@@ -71,15 +63,10 @@ export class Ticket {
 }
 
 
-export enum CheckInStatus {
-  RETRY,
-  EVENT_NOT_FOUND,
-  TICKET_NOT_FOUND,
-  EMPTY_TICKET_CODE,
-  INVALID_TICKET_CODE,
-  INVALID_TICKET_STATE,
-  ALREADY_CHECK_IN,
-  MUST_PAY,
-  OK_READY_TO_BE_CHECKED_IN,
-  SUCCESS
-}
+export type CheckInStatus = "RETRY" | "EVENT_NOT_FOUND" | "TICKET_NOT_FOUND" | "EMPTY_TICKET_CODE"
+  | "INVALID_TICKET_CODE" | "INVALID_TICKET_STATE" | "ALREADY_CHECK_IN" | "MUST_PAY" | "OK_READY_TO_BE_CHECKED_IN" | "SUCCESS";
+
+export const CheckInStatus = {
+  SUCCESS: "SUCCESS" as CheckInStatus,
+  MUST_PAY: "MUST_PAY" as CheckInStatus
+};

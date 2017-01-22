@@ -36,6 +36,7 @@ import org.springframework.transaction.PlatformTransactionManager
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -64,7 +65,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val transactionManager: PlatformTransactionManager,
                               val printerRepository: PrinterRepository,
                               val gson: Gson,
-                              val printManager: PrintManager) {
+                              val printManager: PrintManager,
+                              val publisher: SystemEventManager) {
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
     private val ticketDataNotFound = "ticket-not-found"
 
@@ -121,8 +123,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                             }
                             val ticket = localDataResult.ticket!!
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printManager.printLabel(user, ticket)
-                            scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(ticket))
-                            logger.info("returning status $localResult for ticket $uuid (${ticket.fullName})")
+                            val keyContainer = scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(ticket))
+                            publisher.publishEvent(SystemEvent(SystemEventType.NEW_SCAN, NewScan(scanLogRepository.findById(keyContainer.key), event)))
+                            logger.debug("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
                             localDataResult

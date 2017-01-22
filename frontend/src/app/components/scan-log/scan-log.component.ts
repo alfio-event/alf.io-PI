@@ -1,14 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import {Component} from "@angular/core";
 
 @Component({
   selector: 'scan-log',
   templateUrl: './scan-log.component.html'
 })
-export class ScanLogComponent implements OnInit {
+export class ScanLogComponent {
 
   constructor() { }
-
-  ngOnInit() {
-  }
 
 }

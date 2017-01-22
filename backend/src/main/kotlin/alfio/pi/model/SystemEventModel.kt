@@ -28,3 +28,4 @@ enum class SystemEventType {
 }
 
 data class EventUpdated(val key: String, val timestamp: ZonedDateTime): SystemEventData
+data class NewScan(val scanData: ScanLog, val event: Event): SystemEventData

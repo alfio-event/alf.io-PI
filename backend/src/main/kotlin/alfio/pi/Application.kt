@@ -18,6 +18,7 @@ package alfio.pi
 
 import alfio.pi.Constants.*
 import alfio.pi.manager.SystemEventHandler
+import alfio.pi.manager.SystemEventManager
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
@@ -45,9 +46,6 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.embedded.jetty.JettyEmbeddedServletContainerFactory
-import org.springframework.boot.context.embedded.jetty.JettyServerCustomizer
-import org.springframework.boot.web.servlet.ServletRegistrationBean
 import org.springframework.context.ApplicationListener
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -56,6 +54,7 @@ import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.core.annotation.Order
 import org.springframework.core.env.Environment
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -68,8 +67,6 @@ import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import org.springframework.util.ClassUtils
 import org.springframework.util.MethodInvoker
-import org.springframework.web.servlet.DispatcherServlet
-import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import org.springframework.web.socket.config.annotation.EnableWebSocket
@@ -83,6 +80,7 @@ import java.nio.file.StandardOpenOption
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
@@ -162,13 +160,14 @@ open class Application {
             .appendLiteral(':')
             .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
             .toFormatter(Locale.ROOT)
-        return JsonSerializer { src, type, jsonSerializationContext -> JsonPrimitive(src.format(DateTimeFormatterBuilder()
+        return JsonSerializer { src, type, jsonSerializationContext -> JsonPrimitive(src.withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)
             .appendLiteral('T')
             .append(timeFormatter)
             .appendLiteral('Z')
-            .toFormatter(Locale.ROOT))) }
+            .toFormatter(Locale.ROOT)))
+        }
     }
 
     @Bean

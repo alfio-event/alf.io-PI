@@ -20,7 +20,7 @@
     <li class="list-group-item" *ngFor="let event of events">
       <div class="d-flex w-100 justify-content-start">
         <div><i class="fa fa-ticket fa-3x"></i></div>
-        <h4 class="align-self-center ml-2 w-100 d-flex col">{{event.name}} <small class="ml-5">last update: {{event.lastUpdate | date:'medium'}}</small></h4>
+        <h4 class="align-self-center ml-2 w-100 d-flex col">{{event.name}} <small class="ml-5">last update: {{event.lastUpdate | date:'y-MM-dd HH:mm:ss'}}</small></h4>
         <div class="d-flex w-25 justify-content-end">
           <i class="fa fa-2x" [class.text-success]="event.active" [class.text-muted]="!event.active" [class.fa-toggle-on]="event.active" [class.fa-toggle-off]="!event.active" (click)="toggleActivation(event)"></i>
         </div>

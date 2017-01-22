@@ -21,18 +21,14 @@ import {ScanLogEntry} from "./components/scan-log-entries/scan-log.service";
 import {isNullOrUndefined} from "util";
 @Pipe({name: 'filter'})
 export class FilterScanLogEntries implements PipeTransform {
-  transform(value: Array<ScanLogEntryWithEvent>, args): Array<ScanLogEntryWithEvent> {
-    if(isNullOrUndefined(args)) {
-      return value;
-    }
-    let [term] = args;
+  transform(value: Array<ScanLogEntryWithEvent>, term): Array<ScanLogEntryWithEvent> {
     if(isNullOrUndefined(term)) {
       return value;
     }
-    return value.filter(ee => FilterScanLogEntries.flattenEntry(ee.entry).includes(term));
+    return value.filter(ee => FilterScanLogEntries.flattenEntry(ee.entry).includes(term.toLowerCase()));
   }
 
   private static flattenEntry(entry: ScanLogEntry): string {
-    return `${entry.ticket.firstName}###${entry.ticket.firstName}###${entry.ticket.email}`
+    return `${entry.ticket.firstName}###${entry.ticket.lastName}###${entry.ticket.email}`.toLowerCase()
   }
 }

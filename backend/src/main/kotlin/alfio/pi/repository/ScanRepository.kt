@@ -50,13 +50,16 @@ interface ScanLogRepository {
                @Bind("localResult") localResult: CheckInStatus,
                @Bind("remoteResult") remoteResult: CheckInStatus,
                @Bind("badgePrinted") badgePrinted: Boolean,
-               @Bind("ticketData") ticketData: String?): Int
+               @Bind("ticketData") ticketData: String?): AffectedRowCountAndKey<Int>
 
     @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid")
     fun loadSuccessfulScanForTicket(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String) : Optional<ScanLog>
 
     @Query("select * from scan_log where id = :id")
     fun findOptionalById(@Bind("id") id: Int): Optional<ScanLog>
+
+    @Query("select * from scan_log where id = :id")
+    fun findById(@Bind("id") id: Int): ScanLog
 }
 
 @QueryRepository
