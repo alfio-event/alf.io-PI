@@ -45,6 +45,8 @@ import org.springframework.stereotype.Component
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 
 interface LabelTemplate {
@@ -72,16 +74,23 @@ open class DymoLW450Turbo41x89: LabelTemplate {
         val font = fontLoader.invoke(DymoLW450Turbo41x89::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
         stream.use {
             it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-            it.setFont(font, 24F)
+            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F), true)
+            it.setFont(font, firstRowContent.second)
             it.beginText()
             it.newLineAtOffset(10F, 70F)
-            it.showText(labelContent.firstRow)
-            it.setFont(font, 16F)
+            it.showText(firstRowContent.first)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(18 to 16F, 19 to 14F), true)
+            println("text: ${secondRowContent.first} size: ${secondRowContent.second}")
+
+            it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -20F)
-            it.showText(labelContent.secondRow)
-            it.setFont(font, 10F)
+            it.showText(secondRowContent.first)
+
+            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(27 to 10F, 29 to 9F), true)
+
+            it.setFont(font, thirdRowContent.second)
             it.newLineAtOffset(0F, -20F)
-            it.showText(labelContent.thirdRow)
+            it.showText(thirdRowContent.first)
             it.endText()
             it.drawImage(labelContent.qrCode, 175F, 30F, 70F, 70F)
             it.setFont(font, 9F)
@@ -91,6 +100,34 @@ open class DymoLW450Turbo41x89: LabelTemplate {
         }
     }
 }
+
+internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
+    val sizes = maxLengthForSize.map {
+        val (maxLength, fontSize) = it
+        checkTextLength(compactText, content, fontSize, maxLength)
+    }
+    return Optional.ofNullable(sizes.firstOrNull { it.first })
+        .map { it!!.second to it.third }
+        .orElseGet {
+            val conf = maxLengthForSize[maxLengthForSize.size - 1]
+            content.substring(0..conf.first-1) to conf.second
+        }
+}
+
+private fun checkTextLength(compactText: Boolean, content: String, fontSize: Float, maxLength: Int): Triple<Boolean, String, Float> {
+    val text = if (content.length <= maxLength || !compactText) {
+        content
+    } else {
+        compact(content)
+    }
+    return if (text.length <= maxLength) {
+        Triple(true, text, fontSize)
+    } else {
+        Triple(false, text, fontSize)
+    }
+}
+
+private fun compact(text: String): String = text.splitToSequence(" ").mapIndexed { i, s -> if(i > 0) { "${s.substring(0,1)}." } else {s} }.joinToString(" ")
 
 fun generatePDFLabel(firstName: String, lastName: String, company: String, ticketUUID: String): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
@@ -173,6 +210,4 @@ open class PrintManager(val userPrinterRepository: UserPrinterRepository,
             systemPrinter.print(printJob).isSuccessfulResult
         }
     }
-
-
 }
