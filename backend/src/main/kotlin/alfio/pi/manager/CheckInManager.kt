@@ -136,7 +136,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                             }
                             val ticket = localDataResult.ticket!!
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printManager.printLabel(user, ticket)
-                            val keyContainer = scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(ticket))
+                            val keyContainer = scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac)))
                             publisher.publishEvent(SystemEvent(SystemEventType.NEW_SCAN, NewScan(scanLogRepository.findById(keyContainer.key), event)))
                             logger.debug("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
@@ -146,6 +146,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                     }
             }.orElseGet{ EmptyTicketResult() }
     }
+
+    private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
+        if(remoteResult.result.status == RETRY) {
+            Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.company, hmac = hmac)
+        } else {
+            ticket
+        }
 
     internal fun loadCachedAttendees(eventName: String) : Pair<String, Map<String, String>> {
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
@@ -192,6 +199,28 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         logger.warn("got Exception while performing remote check-in")
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
     })
+
+    @Scheduled(fixedDelay = 60000L)
+    open fun processPendingEntries() {
+        val failures = scanLogRepository.findRemoteFailures()
+        logger.debug("found ${failures.size} pending scan to upload")
+        failures
+            .groupBy { it.eventId }
+            .mapKeys { eventRepository.loadSingle(it.key) }
+            .filter { it.key.isPresent }
+            .forEach { entry -> uploadEntriesForEvent(entry) }
+    }
+
+    private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
+        tryOrDefault<Unit>().invoke({
+            val event = entry.key.get()
+            entry.value.filter { it.ticket != null }.forEach {
+                val ticket = it.ticket!!
+                val response = remoteCheckIn(event.key, ticket.uuid, ticket.hmac!!)
+                scanLogRepository.updateRemoteResult(response.result.status, it.id)
+            }
+        }, { logger.error("unable to upload pending check-in", it)})
+    }
 }
 
 fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> CheckInResponse = { manager ->

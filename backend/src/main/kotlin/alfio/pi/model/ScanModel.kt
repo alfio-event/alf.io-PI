@@ -84,7 +84,7 @@ data class UserAndPrinter(@Column("username") private val username: String,
 
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 
-open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?, val company: String?, val fullName: String = "$firstName $lastName")
+open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?, val company: String?, val fullName: String = "$firstName $lastName", val hmac: String? = null)
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", "")
 

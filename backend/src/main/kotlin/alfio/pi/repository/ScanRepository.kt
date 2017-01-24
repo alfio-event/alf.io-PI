@@ -60,6 +60,12 @@ interface ScanLogRepository {
 
     @Query("select * from scan_log where id = :id")
     fun findById(@Bind("id") id: Int): ScanLog
+
+    @Query("select * from scan_log where remote_result = 'RETRY'")
+    fun findRemoteFailures(): List<ScanLog>
+
+    @Query("update scan_log set remote_result = :remoteResult where id = :id")
+    fun updateRemoteResult(@Bind("remoteResult") remoteResult: CheckInStatus, @Bind("id") id: Int)
 }
 
 @QueryRepository
