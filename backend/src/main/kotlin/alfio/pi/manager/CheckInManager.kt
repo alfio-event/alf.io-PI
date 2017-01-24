@@ -20,22 +20,40 @@ package alfio.pi.manager
 import alfio.pi.ConnectionDescriptor
 import alfio.pi.model.*
 import alfio.pi.model.CheckInStatus.*
-import alfio.pi.repository.*
+import alfio.pi.repository.EventDataRepository
+import alfio.pi.repository.EventRepository
+import alfio.pi.repository.ScanLogRepository
+import alfio.pi.repository.UserRepository
 import alfio.pi.wrapper.CannotBeginTransaction
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import de.spqrinfo.cups4j.PrintJob
-import okhttp3.*
+import okhttp3.Credentials
+import okhttp3.MediaType
+import okhttp3.Request
+import okhttp3.RequestBody
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.InitializingBean
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.ApplicationListener
+import org.springframework.context.event.ContextRefreshedEvent
+import org.springframework.context.event.EventListener
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.core.support.AbstractLobCreatingPreparedStatementCallback
+import org.springframework.jdbc.support.lob.DefaultLobHandler
+import org.springframework.jdbc.support.lob.LobCreator
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.util.StreamUtils
+import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
+import java.sql.Date
+import java.sql.PreparedStatement
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
@@ -48,11 +66,6 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
-import javax.print.DocFlavor
-import javax.print.SimpleDoc
-import javax.print.attribute.HashPrintRequestAttributeSet
-import javax.print.attribute.PrintRequestAttributeSet
-import javax.print.attribute.standard.MediaSizeName
 
 private val eventAttendeesCache: ConcurrentMap<String, Map<String, String>> = ConcurrentHashMap()
 
@@ -60,19 +73,19 @@ private val eventAttendeesCache: ConcurrentMap<String, Map<String, String>> = Co
 open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
                               val scanLogRepository: ScanLogRepository,
                               val eventRepository: EventRepository,
-                              val userPrinterRepository: UserPrinterRepository,
                               val userRepository: UserRepository,
                               val transactionManager: PlatformTransactionManager,
-                              val printerRepository: PrinterRepository,
                               val gson: Gson,
                               val printManager: PrintManager,
                               val publisher: SystemEventManager) {
+
+
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
     private val ticketDataNotFound = "ticket-not-found"
 
     private fun getLocalTicketData(event: Event, uuid: String, hmac: String) : CheckInResponse {
         val eventData = eventAttendeesCache.computeIfAbsent(event.key, {
-            val result = loadCachedAttendees(it)
+            val result = loadCachedAttendees(it).second
             if(result.isNotEmpty()) {
                 eventRepository.updateTimestamp(it, ZonedDateTime.now())
             }
@@ -134,9 +147,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             }.orElseGet{ EmptyTicketResult() }
     }
 
-    internal fun loadCachedAttendees(eventName: String) : Map<String, String> {
+    internal fun loadCachedAttendees(eventName: String) : Pair<String, Map<String, String>> {
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
-        return tryOrDefault<Map<String, String>>().invoke({
+        return tryOrDefault<Pair<String, Map<String, String>>>().invoke({
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
                 .url(url)
@@ -145,19 +158,18 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 .execute()
                 .use { resp ->
                     if(resp.isSuccessful) {
-                        parseTicketDataResponse(resp.body().string()).withDefault { ticketDataNotFound }
+                        val body = resp.body().string()
+                        body to parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
                         logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
-                        mapOf()
+                        "" to mapOf()
                     }
                 }
         }, {
             logger.warn("Got exception while trying to load the attendees", it)
-            mapOf()
+            "" to mapOf()
         })
     }
-
-    private fun parseTicketDataResponse(body: String): Map<String, String> = gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type)
 
     private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
         val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
@@ -185,6 +197,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
 fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> CheckInResponse = { manager ->
     manager.performCheckIn(eventName, uuid, hmac, username)
 }
+
+fun parseTicketDataResponse(body: String): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }
 
 private fun decrypt(key: String, payload: String): String {
     try {
@@ -232,13 +246,37 @@ internal fun calcHash256(hmac: String) : String {
 @Component
 open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
                                    val eventRepository: EventRepository,
-                                   val publisher: SystemEventManager) {
+                                   val publisher: SystemEventManager,
+                                   val jdbc: NamedParameterJdbcTemplate,
+                                   val eventDataRepository: EventDataRepository,
+                                   val gson: Gson) {
+
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
+
+    @EventListener
+    open fun handleContextRefresh(event: ContextRefreshedEvent) {
+        eventDataRepository.loadAllKeys().forEach { key ->
+            logger.trace("preload event data for $key")
+            jdbc.query(eventDataRepository.loadEventDataTemplate(), MapSqlParameterSource("key", key), { rs ->
+                tryOrDefault<Unit>().invoke({
+                    ByteArrayOutputStream().use { baos ->
+                        rs.getBinaryStream("data").use({ s -> StreamUtils.copy(s, baos) })
+                        eventAttendeesCache.putIfAbsent(key, parseTicketDataResponse(String(baos.toByteArray())).invoke(gson))
+                        logger.trace("done.")
+                    }
+                }, {logger.error("cannot load stored event data for $key", it)})
+            })
+        }
+    }
+
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
         logger.trace("downloading attendees data")
         eventAttendeesCache.entries
-            .map { it to checkInDataManager.loadCachedAttendees(it.key) }
+            .map {
+                val dataResult = checkInDataManager.loadCachedAttendees(it.key)
+                Triple(it, dataResult.second, dataResult.first)
+            }
             .filter { it.second.isNotEmpty() }
             .forEach {
                 val eventKey = it.first.key
@@ -246,16 +284,34 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
                 if(result) {
                     val lastUpdate = ZonedDateTime.now()
                     eventRepository.updateTimestamp(eventKey, lastUpdate)
+                    insertOrUpdateEventData(eventKey, it.third, lastUpdate)
                     publisher.publishEvent(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventKey, lastUpdate)))
                 }
                 logger.trace("tried to replace value for $eventKey, result: $result")
             }
     }
 
+    private fun insertOrUpdateEventData(key: String, data: String, lastUpdate: ZonedDateTime) {
+        val lobHandler = DefaultLobHandler()
+        val query = if(eventDataRepository.isPresent(key) == 1) {
+            eventDataRepository.updateTemplate()
+        } else {
+            eventDataRepository.insertTemplate()
+        }
+        jdbc.jdbcOperations.execute(query,
+            object : AbstractLobCreatingPreparedStatementCallback(lobHandler) {
+                override fun setValues(ps: PreparedStatement, lobCreator: LobCreator) {
+                    lobCreator.setBlobAsBytes(ps, 1, data.toByteArray())
+                    ps.setDate(2, Date(lastUpdate.withZoneSameInstant(ZoneId.of("UTC")).toInstant().toEpochMilli()))
+                    ps.setString(3, key)
+                }
+            })
+    }
+
     open fun onDemandSync(events: List<RemoteEvent>) {
         logger.debug("on-demand synchronization")
         val (existing, notExisting) = events.map { it.key!! to eventAttendeesCache[it.key] }
-            .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first)) }
+            .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first).second) }
             .filter { it.third.isNotEmpty() }
             .partition { it.second != null }
 

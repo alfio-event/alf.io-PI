@@ -111,3 +111,21 @@ interface EventRepository {
         private const val UPDATE_QUERY = "update event set key = :key, name = :name, image_url = :imageUrl, begin_ts = :begin, end_ts = :end, location = :location, api_version = :apiVersion, one_day = :oneDay where id = :id"
     }
 }
+
+@QueryRepository
+interface EventDataRepository {
+    @Query(type = QueryType.TEMPLATE, value = "update event_data set data = ?, last_update = ? where key = ?")
+    fun updateTemplate(): String
+
+    @Query(type = QueryType.TEMPLATE, value = "insert into event_data (data, last_update, key) values(?, ?, ?)")
+    fun insertTemplate(): String
+
+    @Query("select count(key) from event_data where key = :key")
+    fun isPresent(@Bind("key") key: String): Int
+
+    @Query("select key from event_data")
+    fun loadAllKeys(): List<String>
+
+    @Query(type = QueryType.TEMPLATE, value = "select data from event_data where key = :key")
+    fun loadEventDataTemplate(): String
+}
