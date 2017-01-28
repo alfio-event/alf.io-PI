@@ -80,7 +80,6 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.newLineAtOffset(10F, 70F)
             it.showText(firstRowContent.first)
             val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(18 to 16F, 19 to 14F), true)
-            println("text: ${secondRowContent.first} size: ${secondRowContent.second}")
 
             it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -20F)
@@ -191,6 +190,15 @@ open class PrintManager(val userPrinterRepository: UserPrinterRepository,
             doPrint(labelTemplates.first(), printer, ticket)
         }, {
             logger.error("cannot reprint label for ticket ${ticket.uuid}, printer ${printer.name}", it)
+            false
+        })
+    }
+
+    fun printTestLabel(printer: Printer): Boolean {
+        return tryOrDefault<Boolean>().invoke({
+            doPrint(labelTemplates.first(), printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
+        }, {
+            logger.error("cannot print test label", it)
             false
         })
     }

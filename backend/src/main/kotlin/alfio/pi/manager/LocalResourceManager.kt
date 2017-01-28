@@ -147,6 +147,12 @@ fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterReposito
     })
 }
 
+fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean = { printManager: PrintManager, printerRepository: PrinterRepository ->
+    printerRepository.findOptionalById(printerId)
+        .map { printManager.printTestLabel(it) }
+        .orElse(false)
+}
+
 @Component
 open class PrinterManager(val printerRepository: PrinterRepository) {
     @Scheduled(fixedDelay = 5000L)

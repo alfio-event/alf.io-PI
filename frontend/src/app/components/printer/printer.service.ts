@@ -34,6 +34,11 @@ export class PrinterService {
       .map(res => res.json())
   }
 
+  printTestPage(printerId: number): Observable<boolean> {
+    return this.http.put(`/api/internal/printers/${printerId}/test`, {})
+      .map(res => res.json())
+  }
+
 }
 
 export class Printer {

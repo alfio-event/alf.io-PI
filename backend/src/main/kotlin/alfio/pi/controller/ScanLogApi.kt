@@ -102,7 +102,10 @@ class UserPrinterForm {
 
 @RestController
 @RequestMapping("/api/internal/printers")
-open class PrinterApi (val transactionManager: PlatformTransactionManager, val printerRepository: PrinterRepository, val userPrinterRepository: UserPrinterRepository) {
+open class PrinterApi (val transactionManager: PlatformTransactionManager,
+                       val printerRepository: PrinterRepository,
+                       val userPrinterRepository: UserPrinterRepository,
+                       val printManager: PrintManager) {
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
 
@@ -111,4 +114,7 @@ open class PrinterApi (val transactionManager: PlatformTransactionManager, val p
 
     @RequestMapping(value = "/with-users", method = arrayOf(RequestMethod.GET))
     open fun loadPrintConfiguration() = loadPrinterConfiguration().invoke(userPrinterRepository, printerRepository)
+
+    @RequestMapping(value = "/{printerId}/test", method = arrayOf(RequestMethod.PUT))
+    open fun printTestPage(@PathVariable("printerId") printerId: Int) = printTestBadge(printerId).invoke(printManager, printerRepository)
 }

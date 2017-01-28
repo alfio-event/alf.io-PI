@@ -28,7 +28,8 @@ export class ServerEventsService {
 
   constructor(private windowRef: WindowRef) {
     let $window = windowRef.nativeWindow;
-    this.events = Observable.webSocket(`ws://${$window.location.host}/api/internal/ws/stream`).asObservable();
+    let wsProtocol = $window.location.protocol.includes('https') ? 'wss' : 'ws';
+    this.events = Observable.webSocket(`${wsProtocol}://${$window.location.host}/api/internal/ws/stream`).asObservable();
   }
 }
 

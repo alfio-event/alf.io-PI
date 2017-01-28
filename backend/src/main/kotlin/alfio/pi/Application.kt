@@ -120,9 +120,6 @@ open class Application {
     }
 
     @Bean
-    open fun queryRepositoryScanner(queryFactory: QueryFactory): QueryRepositoryScanner = QueryRepositoryScanner(queryFactory, "alfio.pi.repository")
-
-    @Bean
     open fun databaseConfiguration(@Value("\${jdbc.url}") url: String,
                                    @Value("\${jdbc.username}") username: String,
                                    @Value("\${jdbc.password}") password: String): ConnectionDescriptor = ConnectionDescriptor(url, username, password)
@@ -187,6 +184,12 @@ open class Application {
             logger.info("*******************************************************************")
         }
     }
+
+    companion object {
+        @JvmStatic
+        @Bean
+        fun queryRepositoryScanner(queryFactory: QueryFactory): QueryRepositoryScanner = QueryRepositoryScanner(queryFactory, "alfio.pi.repository")
+    }
 }
 
 @EnableWebSecurity
@@ -241,9 +244,9 @@ open class FormLoginWebSecurity: WebSecurityConfig() {
 open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String): WebMvcConfigurerAdapter() {
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
         val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion"
-        registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico")
+        registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico", "/*.woff", "/*.ttf", "/*.woff2", "/*.eot", "/*.svg")
             .addResourceLocations("$baseDir/").setCachePeriod(15 * 60)
-        registry.addResourceHandler("/assets/*.css", "/assets/*.map")
+        registry.addResourceHandler("/assets/*.png", "/assets/*.css", "/assets/*.map")
             .addResourceLocations("$baseDir/assets/").setCachePeriod(15 * 60)
     }
 }

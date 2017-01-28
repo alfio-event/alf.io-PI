@@ -54,4 +54,9 @@ export class PrinterListComponent implements OnInit {
       .subscribe(result => this.reloadPrinterWithUsers());
   }
 
+  printTestPage(printer: Printer): void {
+    this.progressManager.monitorCall(() => this.printerService.printTestPage(printer.id))
+      .subscribe(result => {})
+  }
+
 }
