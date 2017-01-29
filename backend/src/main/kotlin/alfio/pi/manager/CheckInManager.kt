@@ -128,7 +128,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
                         if (localDataResult.isSuccessful()) {
                             localDataResult as TicketAndCheckInResult
-                            val remoteResult = remoteCheckIn(event.key, uuid, hmac)
+                            val remoteResult = remoteCheckIn(event.key, uuid, hmac, username)
                             val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE).contains(remoteResult.result.status)) {
                                 remoteResult.result.status
                             } else {
@@ -178,12 +178,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         })
     }
 
-    private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
+    private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
         val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
         val request = Request.Builder()
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
             .post(requestBody)
-            .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid")
+            .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username")
             .build()
         httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
             .newCall(request)
@@ -216,8 +216,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             val event = entry.key.get()
             entry.value.filter { it.ticket != null }.forEach {
                 val ticket = it.ticket!!
-                val response = remoteCheckIn(event.key, ticket.uuid, ticket.hmac!!)
-                scanLogRepository.updateRemoteResult(response.result.status, it.id)
+                userRepository.findById(it.userId).map {
+                    val response = remoteCheckIn(event.key, ticket.uuid, ticket.hmac!!, it.username)
+                    scanLogRepository.updateRemoteResult(response.result.status, it.id)
+                }
             }
         }, { logger.error("unable to upload pending check-in", it)})
     }
