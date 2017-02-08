@@ -31,12 +31,13 @@ export class ScanLogService {
   }
 
   getEntries(max: number): Observable<Array<ScanLogEntry>> {
-    return this.http.get(`/api/internal/scan-log?max=${max || -1}`)
+    let maxItems = max || -1;
+    return this.http.get(`/api/internal/scan-log?max=${maxItems}`)
       .map(res => res.json())
   }
 
   reprint(entry: ScanLogEntry, printer: Printer): Observable<boolean> {
-    return this.http.get(`/api/internal/scan-log/${entry.id}/reprint?printer=${printer.id}`)
+    return this.http.put(`/api/internal/scan-log/${entry.id}/reprint`, {printer: printer.id})
       .map(res => res.json());
   }
 

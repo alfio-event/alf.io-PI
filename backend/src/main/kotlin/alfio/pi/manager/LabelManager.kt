@@ -22,7 +22,6 @@ import alfio.pi.model.Ticket
 import alfio.pi.model.User
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
-import alfio.pi.repository.findPrinterByName
 import alfio.pi.wrapper.tryOrDefault
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
@@ -30,7 +29,6 @@ import com.google.zxing.MultiFormatWriter
 import com.google.zxing.client.j2se.MatrixToImageWriter
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
-import de.spqrinfo.cups4j.PrintJob
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
@@ -45,9 +43,8 @@ import org.springframework.stereotype.Component
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 interface LabelTemplate {
     fun getPageDimensions(): PDRectangle
@@ -132,7 +129,7 @@ fun generatePDFLabel(firstName: String, lastName: String, company: String, ticke
     val document = PDDocument()
     val out = ByteArrayOutputStream()
     document.use {
-        val page = PDPage(PDRectangle(convertMMToPoint(41F), convertMMToPoint(89F)))
+        val page = PDPage(template.getPageDimensions())
         val pageWidth = page.mediaBox.width
         it.addPage(page)
         val qr = LosslessFactory.createFromImage(it, generateQRCode(ticketUUID))
@@ -205,17 +202,12 @@ open class PrintManager(val userPrinterRepository: UserPrinterRepository,
 
     private fun doPrint(labelTemplate: LabelTemplate, printer: Printer, ticket: Ticket): Boolean {
         val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplate)
-        val systemPrinter = findPrinterByName(printer.name)
-        return if (systemPrinter == null) {
-            logger.warn("cannot find printer with name ${printer.name}")
-            false
-        } else {
-            val printJob = PrintJob.Builder(pdf)
-                .attributes(mutableMapOf("job-attributes" to "media:keyword:${labelTemplate.getCUPSMediaName()}"))
-                .copies(1)
-                .jobName("ticket-${ticket.uuid.substringBefore('-')}")
-                .build()
-            systemPrinter.print(printJob).isSuccessfulResult
+        val cmd = "/usr/bin/lpr -U anonymous -P ${printer.name} -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
+        logger.trace(cmd)
+        val print = Runtime.getRuntime().exec(cmd)
+        print.outputStream.use {
+            it.write(pdf)
         }
+        return print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
     }
 }

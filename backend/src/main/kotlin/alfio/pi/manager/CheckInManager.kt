@@ -138,7 +138,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printManager.printLabel(user, ticket)
                             val keyContainer = scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac)))
                             publisher.publishEvent(SystemEvent(SystemEventType.NEW_SCAN, NewScan(scanLogRepository.findById(keyContainer.key), event)))
-                            logger.debug("returning status $localResult for ticket $uuid (${ticket.fullName})")
+                            logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
                             localDataResult
@@ -203,7 +203,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     @Scheduled(fixedDelay = 60000L)
     open fun processPendingEntries() {
         val failures = scanLogRepository.findRemoteFailures()
-        logger.debug("found ${failures.size} pending scan to upload")
+        logger.trace("found ${failures.size} pending scan to upload")
         failures
             .groupBy { it.eventId }
             .mapKeys { eventRepository.loadSingle(it.key) }
@@ -348,11 +348,11 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
 
         existing.forEach {
             val result = eventAttendeesCache.replace(it.first, it.second, it.third)
-            logger.debug("tried to replace value for ${it.first}, result: $result")
+            logger.trace("tried to replace value for ${it.first}, result: $result")
         }
         notExisting.forEach {
             val result = eventAttendeesCache.putIfAbsent(it.first, it.third)
-            logger.debug("tried to insert ${it.first}, result: $result")
+            logger.trace("tried to insert ${it.first}, result: $result")
         }
     }
 }

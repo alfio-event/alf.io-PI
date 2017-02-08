@@ -18,18 +18,17 @@
 package alfio.pi.repository
 
 import alfio.pi.model.*
+import alfio.pi.wrapper.tryOrDefault
 import ch.digitalfondue.npjt.AffectedRowCountAndKey
 import ch.digitalfondue.npjt.Bind
 import ch.digitalfondue.npjt.Query
 import ch.digitalfondue.npjt.QueryRepository
-import de.spqrinfo.cups4j.CupsClient
-import de.spqrinfo.cups4j.CupsPrinter
+import org.slf4j.LoggerFactory
 import java.time.ZonedDateTime
 import java.util.*
-import javax.print.DocFlavor
-import javax.print.PrintService
-import javax.print.PrintServiceLookup
-import javax.print.attribute.standard.PrinterIsAcceptingJobs
+import java.util.stream.Collectors
+
+private val logger = LoggerFactory.getLogger("ScanRepository")
 
 @QueryRepository
 interface ScanLogRepository {
@@ -112,8 +111,22 @@ interface UserPrinterRepository {
 
 }
 
+private val systemPrinterExtractor = Regex("printer (\\S+) .*")
 
-fun getSystemPrinters(): List<CupsPrinter> = CupsClient().printers
-fun findPrinterByName(name: String) = getSystemPrinters().filter {
-    name == it.name
-}.firstOrNull()
+fun getSystemPrinters(): MutableList<SystemPrinter> = tryOrDefault<MutableList<SystemPrinter>>().invoke({
+    val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
+    process.inputStream.use {
+        it.bufferedReader().lines()
+            .map {
+                val result = systemPrinterExtractor.find(it)
+                result?.groupValues?.get(1)
+            }.filter { it != null }
+            .map({ SystemPrinter(it!!) })
+            .collect(Collectors.toList<SystemPrinter>())
+    }
+}, {
+    logger.error("cannot load printers", it)
+    mutableListOf()
+})
+
+data class SystemPrinter(val name: String)

@@ -18,7 +18,9 @@
 package alfio.pi.controller
 
 import alfio.pi.manager.*
-import alfio.pi.model.*
+import alfio.pi.model.Event
+import alfio.pi.model.Printer
+import alfio.pi.model.ScanLog
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
@@ -28,7 +30,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.*
-import java.util.*
 
 @RestController
 @RequestMapping("/api/internal/scan-log")
@@ -40,9 +41,20 @@ open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManage
     @RequestMapping("/event/{eventId}")
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
 
-    @RequestMapping("/{entryId}/reprint")
+    @RequestMapping(value = "/{entryId}/reprint", method = arrayOf(RequestMethod.PUT))
     open fun reprint(@PathVariable("entryId") entryId: Int,
-                     @RequestParam("printerId") printerId: Int) = reprintBadge(entryId, printerId).invoke(printManager, printerRepository, scanLogRepository)
+                     @RequestBody form: ReprintForm): ResponseEntity<Boolean> {
+        val printerId = form.printer;
+        return if(printerId != null) {
+            ResponseEntity.ok(reprintBadge(entryId, printerId).invoke(printManager, printerRepository, scanLogRepository))
+        } else {
+            ResponseEntity(HttpStatus.BAD_REQUEST)
+        }
+    }
+}
+
+class ReprintForm {
+    var printer: Int?=null
 }
 
 

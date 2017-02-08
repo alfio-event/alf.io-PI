@@ -17,7 +17,10 @@
 
 package alfio.pi.manager
 
-import alfio.pi.model.*
+import alfio.pi.model.Event
+import alfio.pi.model.Printer
+import alfio.pi.model.PrinterWithUsers
+import alfio.pi.model.ScanLog
 import alfio.pi.repository.*
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
@@ -155,10 +158,12 @@ fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean
 
 @Component
 open class PrinterManager(val printerRepository: PrinterRepository) {
-    @Scheduled(fixedDelay = 5000L)
+    @Scheduled(fixedDelay = 10000L)
     open fun syncPrinters() {
         val existingPrinters = printerRepository.loadAll()
-        getSystemPrinters().filter { sp -> existingPrinters.none { e -> e.name == sp.name }}.forEach {
+        val systemPrinters = getSystemPrinters()
+        logger.trace("getSystemPrinters returned ${systemPrinters.size} elements, $systemPrinters")
+        systemPrinters.filter { sp -> existingPrinters.none { e -> e.name == sp.name }}.forEach {
             printerRepository.insert(it.name, "", true)
         }
     }
