@@ -17,13 +17,9 @@
 package alfio.pi
 
 import alfio.pi.Constants.*
-import alfio.pi.manager.CupsPrintManager
-import alfio.pi.manager.PrintManager
 import alfio.pi.manager.SystemEventHandler
-import alfio.pi.manager.SystemEventManager
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
-import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.repository.UserRepository
 import alfio.pi.util.PasswordGenerator
 import ch.digitalfondue.npjt.QueryFactory
@@ -34,6 +30,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.zaxxer.hikari.HikariDataSource
+import okhttp3.OkHttpClient
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
@@ -57,7 +54,6 @@ import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.core.annotation.Order
 import org.springframework.core.env.Environment
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -89,7 +85,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 import java.util.*
-import java.util.stream.Stream
+import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.X509TrustManager
 import javax.sql.DataSource
 
 
@@ -101,6 +98,7 @@ open class Application {
     private val logger = LoggerFactory.getLogger(Application::class.java)!!
 
     @Bean
+    @Profile("server", "full")
     open fun dataSource(@Qualifier("databaseConfiguration") config: ConnectionDescriptor) : DataSource {
         val dataSource = HikariDataSource()
         dataSource.jdbcUrl = config.url
@@ -110,12 +108,15 @@ open class Application {
     }
 
     @Bean
+    @Profile("server", "full")
     open fun getPasswordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
+    @Profile("server", "full")
     open fun namedParameterJdbcTemplate(dataSource: DataSource): NamedParameterJdbcTemplate = NamedParameterJdbcTemplate(dataSource)
 
     @Bean
+    @Profile("server", "full")
     open fun queryFactory(env: Environment, namedParameterJdbcTemplate: NamedParameterJdbcTemplate): QueryFactory {
         val qf = QueryFactory("HSQLDB", namedParameterJdbcTemplate)
         qf.addColumnMapperFactory(ZonedDateTimeMapper.Factory())
@@ -124,6 +125,7 @@ open class Application {
     }
 
     @Bean
+    @Profile("server", "full")
     open fun databaseConfiguration(@Value("\${jdbc.url}") url: String,
                                    @Value("\${jdbc.username}") username: String,
                                    @Value("\${jdbc.password}") password: String): ConnectionDescriptor = ConnectionDescriptor(url, username, password)
@@ -134,6 +136,7 @@ open class Application {
                                            @Value("\${master.password}") password: String): ConnectionDescriptor = ConnectionDescriptor(url, username, password)
 
     @Bean
+    @Profile("server", "full")
     open fun localServerURL(env: Environment): String {
         val scheme = if(env.acceptsProfiles("dev")) {
             "http"
@@ -150,6 +153,19 @@ open class Application {
         val builder = GsonBuilder()
         builder.registerTypeAdapter(ZonedDateTime::class.java, getZonedDateTimeSerializer())
         return builder.create()
+    }
+
+    @Bean
+    open fun httpClient(): OkHttpClient = OkHttpClient()
+
+    @Bean
+    @Profile("server", "printer")
+    open fun trustManager(): X509TrustManager {
+        val keyStore = KeyStore.getInstance("JKS")
+        keyStore.load(Files.newInputStream(Paths.get(Constants.KEYSTORE_FILE.value)), Constants.KEYSTORE_PASS.value.toCharArray())
+        val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
+        trustManagerFactory.init(keyStore)
+        return trustManagerFactory.trustManagers[0] as X509TrustManager
     }
 
     fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
@@ -172,6 +188,7 @@ open class Application {
     }
 
     @Bean
+    @Profile("server", "full")
     open fun initializer() = ApplicationListener<ContextRefreshedEvent> {
         val applicationContext = it.applicationContext
         val user = applicationContext.getBean(UserRepository::class.java).findByUsername("admin")
@@ -192,6 +209,7 @@ open class Application {
     companion object {
         @JvmStatic
         @Bean
+        @Profile("server", "full")
         fun queryRepositoryScanner(queryFactory: QueryFactory): QueryRepositoryScanner = QueryRepositoryScanner(queryFactory, "alfio.pi.repository")
     }
 }
@@ -210,6 +228,7 @@ abstract class WebSecurityConfig : WebSecurityConfigurerAdapter() {
 }
 
 @Configuration
+@Profile("server", "full")
 @Order(1)
 open class BasicAuthWebSecurity : WebSecurityConfig() {
     override fun configure(http: HttpSecurity) {
@@ -223,6 +242,7 @@ open class BasicAuthWebSecurity : WebSecurityConfig() {
 }
 
 @Configuration
+@Profile("server", "full")
 @Order(2)
 open class FormLoginWebSecurity: WebSecurityConfig() {
     override fun configure(http: HttpSecurity) {
@@ -257,6 +277,7 @@ open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String
 
 @Configuration
 @EnableWebSocket
+@Profile("server", "full")
 open class WebSocketConfiguration(val systemEventHandler: SystemEventHandler): WebSocketConfigurer {
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
         registry.addHandler(systemEventHandler, "/api/internal/ws/stream")
@@ -270,7 +291,6 @@ fun main(args: Array<String>) {
     System.setProperty("alfio.server.address", address)
     generateSslKeyPair(address)
     SpringApplication.run(Application::class.java, *args)
-    //if(!ctx.environment.acceptsProfiles("full", "server", "printer")) {
 }
 
 private fun retrieveIPAddress(): String {

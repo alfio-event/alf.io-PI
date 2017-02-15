@@ -25,6 +25,7 @@ import alfio.pi.repository.EventRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
 import alfio.pi.repository.UserPrinterRepository
+import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -33,7 +34,8 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/internal/scan-log")
-open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManager: CupsPrintManager, val printerRepository: PrinterRepository) {
+@Profile("server", "full")
+open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManager: PrintManager, val printerRepository: PrinterRepository) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
@@ -61,6 +63,7 @@ class ReprintForm {
 
 @RestController
 @RequestMapping("/api/internal/events")
+@Profile("server", "full")
 open class EventApi (val transactionManager: PlatformTransactionManager,
                      val eventRepository: EventRepository) {
 
@@ -79,6 +82,7 @@ open class EventApi (val transactionManager: PlatformTransactionManager,
 
 @RestController
 @RequestMapping("/api/internal/user-printer")
+@Profile("server", "full")
 open class UserPrinterApi(val transactionManager: PlatformTransactionManager, val userPrinterRepository: UserPrinterRepository) {
     @RequestMapping(value = "/", method = arrayOf(RequestMethod.POST))
     open fun linkUserToPrinter(@RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
@@ -114,10 +118,11 @@ class UserPrinterForm {
 
 @RestController
 @RequestMapping("/api/internal/printers")
+@Profile("server", "full")
 open class PrinterApi (val transactionManager: PlatformTransactionManager,
                        val printerRepository: PrinterRepository,
                        val userPrinterRepository: UserPrinterRepository,
-                       val printManager: CupsPrintManager) {
+                       val printManager: PrintManager) {
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
 

@@ -17,66 +17,134 @@
 
 package alfio.pi.manager
 
-import alfio.pi.model.Printer
-import alfio.pi.model.SystemPrinter
-import alfio.pi.model.Ticket
-import alfio.pi.model.User
+import alfio.pi.ConnectionDescriptor
+import alfio.pi.Constants
+import alfio.pi.model.*
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
+import com.google.gson.Gson
+import okhttp3.*
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
+import org.springframework.context.event.EventListener
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.nio.file.Files
 import java.nio.file.Paths
+import java.security.KeyStore
+import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
+import javax.net.ssl.SSLContext
+import javax.net.ssl.X509TrustManager
 
 private val logger = LoggerFactory.getLogger(PrintManager::class.java)
 
 interface PrintManager {
-    fun printLabel(user: User, ticket: Ticket): Boolean
-    fun reprintLabel(printer: Printer, ticket: Ticket): Boolean
-    fun printTestLabel(printer: Printer): Boolean
+    fun printLabel(printer: Printer, ticket: Ticket): Boolean
     fun getAvailablePrinters(): List<SystemPrinter>
+    fun printLabel(user: User, ticket: Ticket): Boolean
+    fun printTestLabel(printer: Printer): Boolean
 }
 
 @Component
 @Profile("printer")
-open class LocalPrintManager : PrintManager {
+open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
+                             val trustManager: X509TrustManager,
+                             val httpClient: OkHttpClient,
+                             @Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
+                             val gson: Gson) : PrintManager {
 
-    override fun printLabel(user: User, ticket: Ticket): Boolean {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    private var cachedPrinters: List<SystemPrinter>? = null
 
-    override fun reprintLabel(printer: Printer, ticket: Ticket): Boolean {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun printLabel(user: User, ticket: Ticket): Boolean = false
 
-    override fun printTestLabel(printer: Printer): Boolean {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun printTestLabel(printer: Printer): Boolean = false
+
+    override fun printLabel(printer: Printer, ticket: Ticket): Boolean =
+        if(getAvailablePrinters().any { it.name == printer.name }) {
+            doPrint(labelTemplates.first(), printer, ticket)
+        } else {
+            false
+        }
 
     override fun getAvailablePrinters(): List<SystemPrinter> = getConnectedPrinters()
+
+    @Scheduled(fixedDelay = 5000L)
+    open fun uploadPrinters() {
+        val currentPrinters = getAvailablePrinters()
+        if(cachedPrinters == null || cachedPrinters!! != currentPrinters) {
+            cachedPrinters = currentPrinters
+            val httpClient = httpClientBuilderWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
+                .invoke(httpClient)
+                .trustKeyStore(trustManager)
+                .build()
+            val request = Request.Builder()
+                .url("${master.url}/printers/register")
+                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(currentPrinters)))
+                .build()
+            val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
+            if(!result) {
+                logger.warn("cannot upload printer list...")
+            }
+        }
+    }
 }
 
+/**
+ * Here we assume that both server and printer instances are using the same SSL certificate.
+ * Will be improved in the next releases.
+ */
 @Component
 @Profile("server")
-open class RemotePrintManager: PrintManager {
+open class RemotePrintManager(val httpClient: OkHttpClient,
+                              val userPrinterRepository: UserPrinterRepository,
+                              val printerRepository: PrinterRepository,
+                              val gson: Gson,
+                              val trustManager: X509TrustManager): PrintManager {
 
-    override fun printLabel(user: User, ticket: Ticket): Boolean {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
+    val printers = CopyOnWriteArraySet<RemotePrinter>()
+
+
+    override fun printLabel(user: User, ticket: Ticket): Boolean =
+        userPrinterRepository.getOptionalActivePrinter(user.id)
+            .map { printerRepository.findById(it.printerId) }
+            .map { printer -> tryOrDefault<Boolean>().invoke({remotePrint(printer, ticket)}, {false}) }
+            .orElse(false)
+
+    private fun remotePrint(printer: Printer, ticket: Ticket): Boolean {
+        val remotePrinter = printers.filter { it.name == printer.name }.firstOrNull()
+        return if(remotePrinter != null) {
+            val httpClient = httpClientBuilderWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
+                .invoke(httpClient)
+                .trustKeyStore(trustManager)
+                .build()
+            val request = Request.Builder()
+                .url("https://${remotePrinter.remoteHost}:8443/printers/${remotePrinter.name}/print")
+                .put(RequestBody.create(MediaType.parse("application/json"), gson.toJson(ticket)))
+                .build()
+            httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
+        } else {
+            false
+        }
     }
 
-    override fun reprintLabel(printer: Printer, ticket: Ticket): Boolean {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({remotePrint(printer, ticket)}, {false})
 
-    override fun printTestLabel(printer: Printer): Boolean {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun printTestLabel(printer: Printer): Boolean = remotePrint(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
 
-    override fun getAvailablePrinters(): List<SystemPrinter> {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun getAvailablePrinters(): List<SystemPrinter> = printers.map { SystemPrinter(it.name) }
+
+    @EventListener(PrintersRegistered::class)
+    open fun onPrinterAdded(event: PrintersRegistered) {
+        val existing = printers.filter { it.remoteHost == event.remoteHost }
+        if(event.printers.none() || existing.map { it.name }.any { name -> event.printers.none { it.name == name } }) {
+            printers.removeAll(existing)
+            printers.addAll(event.printers)
+        }
     }
 }
 
@@ -101,7 +169,7 @@ open class CupsPrintManager(val userPrinterRepository: UserPrinterRepository,
         })
     }
 
-    override fun reprintLabel(printer: Printer, ticket: Ticket): Boolean {
+    override fun printLabel(printer: Printer, ticket: Ticket): Boolean {
         return tryOrDefault<Boolean>().invoke({
             doPrint(labelTemplates.first(), printer, ticket)
         }, {
@@ -161,4 +229,11 @@ private fun getConnectedPrinters(): List<SystemPrinter> = tryOrDefault<List<Syst
     logger.error("cannot load local printers", it)
     listOf()
 })
+
+fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpClient.Builder {
+    val sslContext = SSLContext.getInstance("TLS")
+    sslContext.init(null, arrayOf(trustManager), null)
+    this.sslSocketFactory(sslContext.socketFactory, trustManager)
+    return this
+}
 

@@ -30,6 +30,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.Scheduled
@@ -40,15 +41,19 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-val httpClient = OkHttpClient()
 
-fun httpClientWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): OkHttpClient = httpClient
-    .newBuilder()
-    .connectTimeout(timeout, timeUnit)
-    .build()
+fun httpClientWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): (OkHttpClient) -> OkHttpClient = {
+    httpClientBuilderWithCustomTimeout(timeout, timeUnit).invoke(it).build()
+}
+
+fun httpClientBuilderWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): (OkHttpClient) -> OkHttpClient.Builder = {
+    it.newBuilder().connectTimeout(timeout, timeUnit)
+}
 
 @Component
+@Profile("server", "full")
 open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val configuration: ConnectionDescriptor,
+                                 val httpClient: OkHttpClient,
                                  val gson: Gson) {
     private val logger = LoggerFactory.getLogger(RemoteResourceManager::class.java)
 
@@ -59,7 +64,7 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val
                 .url("${configuration.url}$resource")
                 .build()
             val client = if(timeoutMillis > -1L) {
-                httpClientWithCustomTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+                httpClientWithCustomTimeout(timeoutMillis, TimeUnit.MILLISECONDS).invoke(httpClient)
             } else {
                 httpClient
             }
@@ -85,6 +90,7 @@ fun getRemoteEventList(): (RemoteResourceManager) -> List<RemoteEvent> = {
 }
 
 @Component
+@Profile("server", "full")
 open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
                              val eventRepository: EventRepository,
                              val transactionManager: PlatformTransactionManager,

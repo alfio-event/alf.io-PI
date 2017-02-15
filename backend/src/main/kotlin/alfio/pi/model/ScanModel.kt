@@ -153,3 +153,5 @@ data class PrinterWithUsers(val printer: Printer, val users: List<User>): Compar
 }
 
 data class SystemPrinter(val name: String)
+
+data class RemotePrinter(val name: String, val remoteHost: String)

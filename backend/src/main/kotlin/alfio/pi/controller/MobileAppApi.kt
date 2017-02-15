@@ -21,6 +21,7 @@ import alfio.pi.manager.*
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.Event
 import alfio.pi.repository.EventRepository
+import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*
 import java.security.Principal
 
 @RestController
+@Profile("server", "full")
 @RequestMapping("/admin/api/check-in")
 open class CheckInApi(val checkInDataManager: CheckInDataManager) {
 
@@ -45,6 +47,7 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager) {
 }
 
 @RestController
+@Profile("server", "full")
 open class AppEventApi(val eventRepository: EventRepository) {
 
     @RequestMapping(value = "/api/events/{eventName}", method = arrayOf(RequestMethod.GET))
@@ -62,8 +65,9 @@ open class AppEventApi(val eventRepository: EventRepository) {
 }
 
 @Controller
+@Profile("server", "full")
 @RequestMapping("/file")
-open class ResourceController() {
+open class ResourceController {
     @RequestMapping("/*")
     open fun loadImage() = "redirect:/images/logo-alfio-pi.png"
 }

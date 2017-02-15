@@ -29,12 +29,10 @@ import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import okhttp3.Credentials
-import okhttp3.MediaType
-import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.annotation.Profile
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
@@ -68,12 +66,14 @@ import javax.crypto.spec.SecretKeySpec
 private val eventAttendeesCache: ConcurrentMap<String, Map<String, String>> = ConcurrentHashMap()
 
 @Component
+@Profile("server", "full")
 open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
                               val scanLogRepository: ScanLogRepository,
                               val eventRepository: EventRepository,
                               val userRepository: UserRepository,
                               val transactionManager: PlatformTransactionManager,
                               val gson: Gson,
+                              val httpClient: OkHttpClient,
                               val printManager: PrintManager,
                               val publisher: SystemEventManager) {
 
@@ -184,6 +184,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username")
             .build()
         httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
+            .invoke(httpClient)
             .newCall(request)
             .execute()
             .use { resp ->
@@ -273,6 +274,7 @@ internal fun calcHash256(hmac: String) : String {
 }
 
 @Component
+@Profile("server", "full")
 open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
                                    val eventRepository: EventRepository,
                                    val publisher: SystemEventManager,

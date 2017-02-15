@@ -144,7 +144,7 @@ fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterReposito
             .flatMap { scanLog ->
                 printerRepository.findOptionalById(printerId).map { printer -> printer to scanLog.ticket!! }
             }.map {
-                printManager.reprintLabel(it.first, it.second)
+                printManager.printLabel(it.first, it.second)
             }.orElse(false)
     }, {
         logger.error("cannot re-print label. ",it)
@@ -159,7 +159,7 @@ fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean
 }
 
 @Component
-@Profile("full", "printer")
+@Profile("full", "server")
 open class PrinterSynchronizer(val printerRepository: PrinterRepository, val printManager: PrintManager) {
     @Scheduled(fixedDelay = 10000L)
     open fun syncPrinters() {

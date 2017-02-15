@@ -30,6 +30,7 @@ import alfio.pi.wrapper.doInTransaction
 import com.google.gson.Gson
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -40,6 +41,7 @@ import javax.servlet.http.HttpServletResponse
 
 @RestController
 @RequestMapping("/api/internal/users")
+@Profile("server", "full")
 open class UserApi(val userRepository: UserRepository,
                    val transactionManager: PlatformTransactionManager,
                    val passwordGenerator: PasswordGenerator,

@@ -20,6 +20,7 @@ package alfio.pi.manager
 import alfio.pi.model.SystemEvent
 import com.google.gson.Gson
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -29,6 +30,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.util.concurrent.CopyOnWriteArraySet
 
 @Component
+@Profile("server", "full")
 open class SystemEventManager(val eventHandler: SystemEventHandler) {
 
     @Async
@@ -38,6 +40,7 @@ open class SystemEventManager(val eventHandler: SystemEventHandler) {
 }
 
 @Component
+@Profile("server", "full")
 open class SystemEventHandler(val gson: Gson): TextWebSocketHandler() {
     private val logger = LoggerFactory.getLogger(SystemEventHandler::class.java)
     private val sessions = CopyOnWriteArraySet<WebSocketSession>()

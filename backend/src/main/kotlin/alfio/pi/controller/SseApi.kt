@@ -18,6 +18,7 @@
 package alfio.pi.controller
 
 import alfio.pi.model.SystemEvent
+import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.RequestMapping
@@ -27,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 
 @RestController
 @RequestMapping("/api/internal/sse")
+@Profile("server", "full")
 open class SseApi {
 
     private val emitters = CopyOnWriteArraySet<SseEmitter>()
