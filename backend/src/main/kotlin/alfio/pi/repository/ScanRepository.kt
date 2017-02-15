@@ -24,6 +24,8 @@ import ch.digitalfondue.npjt.Bind
 import ch.digitalfondue.npjt.Query
 import ch.digitalfondue.npjt.QueryRepository
 import org.slf4j.LoggerFactory
+import org.springframework.core.env.Environment
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.stream.Collectors
@@ -110,23 +112,3 @@ interface UserPrinterRepository {
     fun loadAll(): List<UserAndPrinter>
 
 }
-
-private val systemPrinterExtractor = Regex("printer (\\S+) .*")
-
-fun getSystemPrinters(): MutableList<SystemPrinter> = tryOrDefault<MutableList<SystemPrinter>>().invoke({
-    val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
-    process.inputStream.use {
-        it.bufferedReader().lines()
-            .map {
-                val result = systemPrinterExtractor.find(it)
-                result?.groupValues?.get(1)
-            }.filter { it != null }
-            .map({ SystemPrinter(it!!) })
-            .collect(Collectors.toList<SystemPrinter>())
-    }
-}, {
-    logger.error("cannot load printers", it)
-    mutableListOf()
-})
-
-data class SystemPrinter(val name: String)

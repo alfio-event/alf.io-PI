@@ -26,6 +26,8 @@ import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
+import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
@@ -157,13 +159,14 @@ fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean
 }
 
 @Component
-open class PrinterManager(val printerRepository: PrinterRepository) {
+@Profile("full", "printer")
+open class PrinterSynchronizer(val printerRepository: PrinterRepository, val printManager: PrintManager) {
     @Scheduled(fixedDelay = 10000L)
     open fun syncPrinters() {
         val existingPrinters = printerRepository.loadAll()
-        val systemPrinters = getSystemPrinters()
+        val systemPrinters = printManager.getAvailablePrinters()
         logger.trace("getSystemPrinters returned ${systemPrinters.size} elements, $systemPrinters")
-        systemPrinters.filter { sp -> existingPrinters.none { e -> e.name == sp.name }}.forEach {
+        systemPrinters.filter { sp -> existingPrinters.none { e -> e.name.equals(sp.name, true) }}.forEach {
             printerRepository.insert(it.name, "", true)
         }
     }

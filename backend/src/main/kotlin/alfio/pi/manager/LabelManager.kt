@@ -17,12 +17,6 @@
 
 package alfio.pi.manager
 
-import alfio.pi.model.Printer
-import alfio.pi.model.Ticket
-import alfio.pi.model.User
-import alfio.pi.repository.PrinterRepository
-import alfio.pi.repository.UserPrinterRepository
-import alfio.pi.wrapper.tryOrDefault
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
@@ -38,13 +32,11 @@ import org.apache.pdfbox.pdmodel.font.PDType0Font
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
 import org.apache.pdfbox.util.Matrix
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 interface LabelTemplate {
     fun getPageDimensions(): PDRectangle
@@ -159,55 +151,4 @@ private fun generateBitMatrix(value: String, width: Int, height: Int): BitMatrix
 fun generateQRCodeImage(value: String): ByteArray {
     val output = ByteArrayOutputStream()
     return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value, 350, 350), "png", it); it.toByteArray() }
-}
-
-@Component
-open class PrintManager(val userPrinterRepository: UserPrinterRepository,
-                        val labelTemplates: List<LabelTemplate>,
-                        val printerRepository: PrinterRepository) {
-    private val logger = LoggerFactory.getLogger(PrintManager::class.java)
-
-    fun printLabel(user: User, ticket: Ticket): Boolean {
-        return tryOrDefault<Boolean>().invoke({
-            userPrinterRepository.getOptionalActivePrinter(user.id)
-                .map { printerRepository.findById(it.printerId) }
-                .map { printer ->
-                    val labelTemplate = labelTemplates.first()
-                    doPrint(labelTemplate, printer, ticket)
-                }.orElse(false)
-
-        }, {
-            logger.error("cannot print label for ticket ${ticket.uuid}, username ${user.username}", it)
-            false
-        })
-    }
-
-    fun reprintLabel(printer: Printer, ticket: Ticket): Boolean {
-        return tryOrDefault<Boolean>().invoke({
-            doPrint(labelTemplates.first(), printer, ticket)
-        }, {
-            logger.error("cannot reprint label for ticket ${ticket.uuid}, printer ${printer.name}", it)
-            false
-        })
-    }
-
-    fun printTestLabel(printer: Printer): Boolean {
-        return tryOrDefault<Boolean>().invoke({
-            doPrint(labelTemplates.first(), printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
-        }, {
-            logger.error("cannot print test label", it)
-            false
-        })
-    }
-
-    private fun doPrint(labelTemplate: LabelTemplate, printer: Printer, ticket: Ticket): Boolean {
-        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplate)
-        val cmd = "/usr/bin/lpr -U anonymous -P ${printer.name} -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
-        logger.trace(cmd)
-        val print = Runtime.getRuntime().exec(cmd)
-        print.outputStream.use {
-            it.write(pdf)
-        }
-        return print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
-    }
 }

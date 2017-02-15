@@ -151,3 +151,5 @@ data class PrinterWithUsers(val printer: Printer, val users: List<User>): Compar
         return printer.id.hashCode()
     }
 }
+
+data class SystemPrinter(val name: String)

@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/internal/scan-log")
-open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManager: PrintManager, val printerRepository: PrinterRepository) {
+open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManager: CupsPrintManager, val printerRepository: PrinterRepository) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
@@ -117,7 +117,7 @@ class UserPrinterForm {
 open class PrinterApi (val transactionManager: PlatformTransactionManager,
                        val printerRepository: PrinterRepository,
                        val userPrinterRepository: UserPrinterRepository,
-                       val printManager: PrintManager) {
+                       val printManager: CupsPrintManager) {
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
 

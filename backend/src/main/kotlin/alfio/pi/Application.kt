@@ -17,10 +17,13 @@
 package alfio.pi
 
 import alfio.pi.Constants.*
+import alfio.pi.manager.CupsPrintManager
+import alfio.pi.manager.PrintManager
 import alfio.pi.manager.SystemEventHandler
 import alfio.pi.manager.SystemEventManager
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
+import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.repository.UserRepository
 import alfio.pi.util.PasswordGenerator
 import ch.digitalfondue.npjt.QueryFactory
@@ -86,6 +89,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 import java.util.*
+import java.util.stream.Stream
 import javax.sql.DataSource
 
 
@@ -262,16 +266,35 @@ open class WebSocketConfiguration(val systemEventHandler: SystemEventHandler): W
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
 
 fun main(args: Array<String>) {
-    val address = guessIPAddress()
+    val address = retrieveIPAddress()
     System.setProperty("alfio.server.address", address)
     generateSslKeyPair(address)
     SpringApplication.run(Application::class.java, *args)
+    //if(!ctx.environment.acceptsProfiles("full", "server", "printer")) {
 }
 
-private fun guessIPAddress() = NetworkInterface.getNetworkInterfaces().toList()
-    .flatMap { it.interfaceAddresses }
-    .map {it.address}
-    .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }.hostAddress
+private fun retrieveIPAddress(): String {
+    val ipAddress: String
+    while(true) {
+        val result = guessIPAddress()
+        if(result != null) {
+            ipAddress = result
+            break
+        } else{
+            println("can't get IP Address, retrying in 1 sec.")
+            Thread.sleep(1000L)
+        }
+    }
+    return ipAddress
+}
+
+private fun guessIPAddress(): String? {
+    val address = NetworkInterface.getNetworkInterfaces().toList()
+        .flatMap { it.interfaceAddresses }
+        .map {it.address}
+        .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }
+    return Optional.of(address).map { it.hostAddress }.orElse(null)
+}
 
 private fun generateSslKeyPair(hostAddress: String) {
     val keyStorePath = Paths.get(KEYSTORE_FILE.value)
