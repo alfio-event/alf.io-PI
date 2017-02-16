@@ -17,10 +17,7 @@
 
 package alfio.pi.manager
 
-import alfio.pi.model.Event
-import alfio.pi.model.Printer
-import alfio.pi.model.PrinterWithUsers
-import alfio.pi.model.ScanLog
+import alfio.pi.model.*
 import alfio.pi.repository.*
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
@@ -156,6 +153,15 @@ fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean
     printerRepository.findOptionalById(printerId)
         .map { printManager.printTestLabel(it) }
         .orElse(false)
+}
+
+fun printOnLocalPrinter(printerName: String, ticket: Ticket): (PrintManager) -> Boolean = { printManager ->
+    val printer = printManager.getAvailablePrinters().filter { it.name.equals(printerName, true) }.firstOrNull()
+    if(printer != null) {
+        printManager.printLabel(Printer(-1, printer.name, null, true), ticket)
+    } else {
+        false
+    }
 }
 
 @Component

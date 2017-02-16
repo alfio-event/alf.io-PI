@@ -18,23 +18,22 @@
 package alfio.pi.manager
 
 import alfio.pi.ConnectionDescriptor
-import alfio.pi.Constants
 import alfio.pi.model.*
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
-import okhttp3.*
+import okhttp3.MediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.nio.file.Files
 import java.nio.file.Paths
-import java.security.KeyStore
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
@@ -83,7 +82,7 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
                 .trustKeyStore(trustManager)
                 .build()
             val request = Request.Builder()
-                .url("${master.url}/printers/register")
+                .url("${master.url}/api/printers/register")
                 .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(currentPrinters)))
                 .build()
             val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
@@ -112,11 +111,11 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
     override fun printLabel(user: User, ticket: Ticket): Boolean =
         userPrinterRepository.getOptionalActivePrinter(user.id)
             .map { printerRepository.findById(it.printerId) }
-            .map { printer -> tryOrDefault<Boolean>().invoke({remotePrint(printer, ticket)}, {false}) }
+            .map { printer -> tryOrDefault<Boolean>().invoke({remotePrint(printer.name, ticket)}, {false}) }
             .orElse(false)
 
-    private fun remotePrint(printer: Printer, ticket: Ticket): Boolean {
-        val remotePrinter = printers.filter { it.name == printer.name }.firstOrNull()
+    private fun remotePrint(printerName: String, ticket: Ticket): Boolean {
+        val remotePrinter = printers.filter { it.name == printerName }.firstOrNull()
         return if(remotePrinter != null) {
             val httpClient = httpClientBuilderWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
@@ -128,13 +127,14 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
                 .build()
             httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
         } else {
+            logger.debug("can't find printer $printerName")
             false
         }
     }
 
-    override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({remotePrint(printer, ticket)}, {false})
+    override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({remotePrint(printer.name, ticket)}, {false})
 
-    override fun printTestLabel(printer: Printer): Boolean = remotePrint(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
+    override fun printTestLabel(printer: Printer): Boolean = remotePrint(printer.name, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
 
     override fun getAvailablePrinters(): List<SystemPrinter> = printers.map { SystemPrinter(it.name) }
 

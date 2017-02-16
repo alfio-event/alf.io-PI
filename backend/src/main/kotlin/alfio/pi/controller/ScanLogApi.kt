@@ -21,6 +21,7 @@ import alfio.pi.manager.*
 import alfio.pi.model.Event
 import alfio.pi.model.Printer
 import alfio.pi.model.ScanLog
+import alfio.pi.model.Ticket
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
@@ -78,60 +79,4 @@ open class EventApi (val transactionManager: PlatformTransactionManager,
     @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
     open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleEventActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
 
-}
-
-@RestController
-@RequestMapping("/api/internal/user-printer")
-@Profile("server", "full")
-open class UserPrinterApi(val transactionManager: PlatformTransactionManager, val userPrinterRepository: UserPrinterRepository) {
-    @RequestMapping(value = "/", method = arrayOf(RequestMethod.POST))
-    open fun linkUserToPrinter(@RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
-        val userId = userPrinterForm.userId
-        val printerId = userPrinterForm.printerId
-        return if(userId != null && printerId != null) {
-            val result = alfio.pi.manager.linkUserToPrinter(userId, printerId).invoke(transactionManager, userPrinterRepository)
-            if(result) {
-                ResponseEntity.ok(true)
-            } else {
-                ResponseEntity(HttpStatus.CONFLICT)
-            }
-        } else {
-            ResponseEntity(HttpStatus.BAD_REQUEST)
-        }
-    }
-
-    @RequestMapping(value = "/{userId}", method = arrayOf(RequestMethod.DELETE))
-    open fun removeUserPrinterLink(@PathVariable("userId") userId: Int): ResponseEntity<Boolean> {
-        val result = alfio.pi.manager.removeUserPrinterLink(userId).invoke(transactionManager, userPrinterRepository)
-        return if(result) {
-            ResponseEntity.ok(true)
-        } else {
-            ResponseEntity(HttpStatus.CONFLICT)
-        }
-    }
-}
-
-class UserPrinterForm {
-    var userId: Int? = null
-    var printerId: Int? = null
-}
-
-@RestController
-@RequestMapping("/api/internal/printers")
-@Profile("server", "full")
-open class PrinterApi (val transactionManager: PlatformTransactionManager,
-                       val printerRepository: PrinterRepository,
-                       val userPrinterRepository: UserPrinterRepository,
-                       val printManager: PrintManager) {
-    @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
-    open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
-
-    @RequestMapping(value = "/{printerId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
-    open fun toggleActiveState(@PathVariable("printerId") printerId: Int, method: HttpMethod): Boolean = togglePrinterActivation(printerId, method == HttpMethod.PUT).invoke(transactionManager, printerRepository)
-
-    @RequestMapping(value = "/with-users", method = arrayOf(RequestMethod.GET))
-    open fun loadPrintConfiguration() = loadPrinterConfiguration().invoke(userPrinterRepository, printerRepository)
-
-    @RequestMapping(value = "/{printerId}/test", method = arrayOf(RequestMethod.PUT))
-    open fun printTestPage(@PathVariable("printerId") printerId: Int) = printTestBadge(printerId).invoke(printManager, printerRepository)
 }
