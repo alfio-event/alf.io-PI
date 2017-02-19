@@ -53,6 +53,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.core.annotation.Order
 import org.springframework.core.env.Environment
+import org.springframework.http.HttpMethod
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
@@ -226,6 +227,17 @@ abstract class WebSecurityConfig : WebSecurityConfigurerAdapter() {
             .passwordEncoder(passwordEncoder)
     }
 }
+@Configuration
+@Profile("server")
+@Order(0)
+open class PrintApiSecurity: WebSecurityConfig() {
+    override fun configure(http: HttpSecurity) {
+        http.requestMatcher { it.requestURI == "/api/printers/register" }
+            .csrf().disable()
+            .authorizeRequests()
+            .antMatchers(HttpMethod.POST, "/api/printers/register").permitAll()
+    }
+}
 
 @Configuration
 @Profile("server", "full")
@@ -262,16 +274,34 @@ open class FormLoginWebSecurity: WebSecurityConfig() {
         return repo
     }
 }
+@Configuration
+@Profile("printer")
+open class PrinterWebSecurity: WebSecurityConfigurerAdapter() {
+    override fun configure(auth: AuthenticationManagerBuilder) {
+        auth.inMemoryAuthentication()
+            .withUser("printer").password("printer").roles("PRINTER")
+    }
+    override fun configure(http: HttpSecurity) {
+        http.csrf().disable()
+            .authorizeRequests()
+            .antMatchers("/api/printers/**").authenticated()
+            .antMatchers("/**").denyAll()
+            .and()
+            .httpBasic()
+    }
+}
 
 @Configuration
 @Profile("!dev")
-open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String): WebMvcConfigurerAdapter() {
+open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String, val environment: Environment): WebMvcConfigurerAdapter() {
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
-        val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion"
-        registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico", "/*.woff", "/*.ttf", "/*.woff2", "/*.eot", "/*.svg")
-            .addResourceLocations("$baseDir/").setCachePeriod(15 * 60)
-        registry.addResourceHandler("/assets/*.png", "/assets/*.css", "/assets/*.map")
-            .addResourceLocations("$baseDir/assets/").setCachePeriod(15 * 60)
+        if(environment.acceptsProfiles("server", "full")) {
+            val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion"
+            registry.addResourceHandler("/index.html", "/*.js", "/*.map", "/*.js.gz", "/*.css", "/favicon.ico", "/*.woff", "/*.ttf", "/*.woff2", "/*.eot", "/*.svg")
+                .addResourceLocations("$baseDir/").setCachePeriod(15 * 60)
+            registry.addResourceHandler("/assets/*.png", "/assets/*.css", "/assets/*.map")
+                .addResourceLocations("$baseDir/assets/").setCachePeriod(15 * 60)
+        }
     }
 }
 
@@ -294,10 +324,11 @@ fun main(args: Array<String>) {
 }
 
 private fun retrieveIPAddress(): String {
-    val ipAddress: String
-    while(true) {
+    var ipAddress = System.getenv("ALFIO_IP")
+    while(ipAddress == null) {
         val result = guessIPAddress()
         if(result != null) {
+            println("[INIT] - Got IP address: $result")
             ipAddress = result
             break
         } else{
@@ -309,11 +340,10 @@ private fun retrieveIPAddress(): String {
 }
 
 private fun guessIPAddress(): String? {
-    val address = NetworkInterface.getNetworkInterfaces().toList()
-        .flatMap { it.interfaceAddresses }
-        .map {it.address}
-        .first { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }
-    return Optional.of(address).map { it.hostAddress }.orElse(null)
+    return NetworkInterface.getNetworkInterfaces().toList()
+    .flatMap { it.interfaceAddresses }
+    .map {it.address}
+    .firstOrNull { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }?.hostAddress
 }
 
 private fun generateSslKeyPair(hostAddress: String) {

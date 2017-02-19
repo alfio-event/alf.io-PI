@@ -23,16 +23,14 @@ import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
-import okhttp3.MediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.TimeUnit
@@ -57,8 +55,6 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
                              @Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
                              val gson: Gson) : PrintManager {
 
-    private var cachedPrinters: List<SystemPrinter>? = null
-
     override fun printLabel(user: User, ticket: Ticket): Boolean = false
 
     override fun printTestLabel(printer: Printer): Boolean = false
@@ -72,24 +68,21 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
 
     override fun getAvailablePrinters(): List<SystemPrinter> = getConnectedPrinters()
 
-    @Scheduled(fixedDelay = 5000L)
+    @Scheduled(fixedDelay = 10000L)
     open fun uploadPrinters() {
-        val currentPrinters = getAvailablePrinters()
-        if(cachedPrinters == null || cachedPrinters!! != currentPrinters) {
-            cachedPrinters = currentPrinters
-            val httpClient = httpClientBuilderWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
-                .invoke(httpClient)
-                .trustKeyStore(trustManager)
-                .build()
-            val request = Request.Builder()
-                .url("${master.url}/api/printers/register")
-                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(currentPrinters)))
-                .build()
-            val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
-            if(!result) {
-                logger.warn("cannot upload printer list...")
-            }
+        val httpClient = httpClientBuilderWithCustomTimeout(1L, TimeUnit.SECONDS)
+            .invoke(httpClient)
+            .trustKeyStore(trustManager)
+            .build()
+        val request = Request.Builder()
+            .url("${master.url}/api/printers/register")
+            .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(getAvailablePrinters())))
+            .build()
+        val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
+        if(!result) {
+            logger.warn("cannot upload printer list...")
         }
+
     }
 }
 
@@ -117,15 +110,20 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
     private fun remotePrint(printerName: String, ticket: Ticket): Boolean {
         val remotePrinter = printers.filter { it.name == printerName }.firstOrNull()
         return if(remotePrinter != null) {
-            val httpClient = httpClientBuilderWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
+            val httpClient = httpClientBuilderWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
                 .trustKeyStore(trustManager)
                 .build()
+            logger.info("calling ${remotePrinter.remoteHost}")
             val request = Request.Builder()
-                .url("https://${remotePrinter.remoteHost}:8443/printers/${remotePrinter.name}/print")
-                .put(RequestBody.create(MediaType.parse("application/json"), gson.toJson(ticket)))
+                .addHeader("Authorization", Credentials.basic("printer", "printer"))
+                .url("https://${remotePrinter.remoteHost}:8443/api/printers/${remotePrinter.name}/print")
+                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(ticket)))
                 .build()
-            httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
+            httpClient.newCall(request).execute().use { resp ->
+                logger.debug("result: ${resp.code()} ${resp.message()}")
+                resp.isSuccessful
+            }
         } else {
             logger.debug("can't find printer $printerName")
             false
@@ -140,8 +138,11 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
 
     @EventListener(PrintersRegistered::class)
     open fun onPrinterAdded(event: PrintersRegistered) {
+        logger.trace("received ${event.printers.size} printers from ${event.remoteHost}")
         val existing = printers.filter { it.remoteHost == event.remoteHost }
-        if(event.printers.none() || existing.map { it.name }.any { name -> event.printers.none { it.name == name } }) {
+        logger.trace("saved printers: $printers")
+        if(event.printers.none() || event.printers.map { it.name }.filter { name -> existing.none { it.name == name } }.any()) {
+            logger.info("adding ${event.printers} for ${event.remoteHost}")
             printers.removeAll(existing)
             printers.addAll(event.printers)
         }
@@ -221,10 +222,9 @@ private fun getCupsPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPri
 })
 
 private fun getConnectedPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
-    Paths.get("/dev/usb/")
+    Files.newDirectoryStream(Paths.get("/dev/usb/"))
         .filter { it.fileName.toString().startsWith("Alfio") }
         .map { SystemPrinter(it.fileName.toString()) }
-
 }, {
     logger.error("cannot load local printers", it)
     listOf()
@@ -234,6 +234,7 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(null, arrayOf(trustManager), null)
     this.sslSocketFactory(sslContext.socketFactory, trustManager)
+    this.hostnameVerifier { hostname, sslSession -> true }//FIXME does it make sense to validate the hostname if we share the same certificate across all devices?
     return this
 }
 

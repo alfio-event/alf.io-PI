@@ -106,6 +106,7 @@ open class RemotePrinterApi(val applicationEventPublisher: ApplicationEventPubli
     @RequestMapping(value = "/register", method = arrayOf(RequestMethod.POST))
     open fun registerPrinters(@RequestBody printers: List<SystemPrinter>, request: HttpServletRequest) = tryOrDefault<ResponseEntity<Unit>>().invoke({
         val remoteAddress = request.remoteAddr
+        logger.trace("registering $printers for $remoteAddress")
         applicationEventPublisher.publishEvent(PrintersRegistered(printers.map { RemotePrinter(it.name, remoteAddress) }, remoteAddress))
         ResponseEntity.ok(null)
     }, {

@@ -199,7 +199,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
     })
 
-    @Scheduled(fixedDelay = 60000L)
+    @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
         val failures = scanLogRepository.findRemoteFailures()
         logger.trace("found ${failures.size} pending scan to upload")
