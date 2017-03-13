@@ -171,7 +171,11 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                     }
                 }
         }, {
-            logger.warn("Got exception while trying to load the attendees", it)
+            if(logger.isTraceEnabled) {
+                logger.trace("Got exception while trying to load the attendees", it)
+            } else {
+                logger.error("Cannot load remote attendees: $it")
+            }
             "" to mapOf()
         })
     }
@@ -183,7 +187,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             .post(requestBody)
             .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username")
             .build()
-        httpClientWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
+        httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
             .invoke(httpClient)
             .newCall(request)
             .execute()
@@ -211,6 +215,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     }
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
+        logger.info("******** uploading check-in **********")
+        var count = 0
         tryOrDefault<Unit>().invoke({
             val event = entry.key.get()
             entry.value.filter { it.ticket != null }.forEach {
@@ -221,6 +227,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 }
             }
         }, { logger.error("unable to upload pending check-in", it)})
+        logger.info("******** upload completed **********")
     }
 }
 
