@@ -38,6 +38,12 @@ To build launch:
 * on OSX or Linux: `./gradlew build`
 * on Windows: `gradlew.bat build`
 
+Move to backend directory
+
+```bash
+cd backend
+```
+
 To start backend server launch:
 
 * on OSX or Linux: `./gradlew -Dspring.profiles.active=dev :bootRun`
