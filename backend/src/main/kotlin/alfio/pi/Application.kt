@@ -72,7 +72,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import org.springframework.web.socket.config.annotation.EnableWebSocket
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
+import java.io.IOException
 import java.math.BigInteger
+import java.net.InetAddress
 import java.net.NetworkInterface
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -86,6 +88,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 import java.util.*
+import javax.jmdns.JmDNS
+import javax.jmdns.ServiceInfo
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 import javax.sql.DataSource
@@ -207,6 +211,20 @@ open class Application {
         }
     }
 
+    @Bean
+    @Profile("server", "full")
+    open fun initializerForExposingServerUrl(env: Environment) = ApplicationListener<ContextRefreshedEvent> {
+        try {
+            val jmdns = JmDNS.create(InetAddress.getLocalHost())
+            val port = env.getProperty("server.port", Int::class.java, 8080)
+            val serviceInfo = ServiceInfo.create("_http._tcp.local.", "alfio-server", port, "url="+localServerURL(env))
+            logger.info("Exposing service through mdns")
+            jmdns.registerService(serviceInfo);
+        } catch (e: IOException) {
+            logger.info("Error while exposing the service through mdns", e);
+        }
+    }
+
     companion object {
         @JvmStatic
         @Bean
@@ -228,7 +246,7 @@ abstract class WebSecurityConfig : WebSecurityConfigurerAdapter() {
     }
 }
 @Configuration
-@Profile("server")
+@Profile("server", "full")
 @Order(0)
 open class PrintApiSecurity: WebSecurityConfig() {
     override fun configure(http: HttpSecurity) {

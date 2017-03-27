@@ -38,16 +38,11 @@ To build launch:
 * on OSX or Linux: `./gradlew build`
 * on Windows: `gradlew.bat build`
 
-Move to backend directory
-
-```bash
-cd backend
-```
 
 To start backend server launch:
 
-* on OSX or Linux: `./gradlew -Dspring.profiles.active=dev :bootRun`
-* on Windows: `gradlew.bat -Dspring.profiles.active=dev :bootRun`
+* on OSX or Linux: `./gradlew -Dspring.profiles.active=dev :backend:bootRun`
+* on Windows: `gradlew.bat -Dspring.profiles.active=dev :backend:bootRun`
 
 Then point your browser to http://localhost:8080/ and login with credentials:
 

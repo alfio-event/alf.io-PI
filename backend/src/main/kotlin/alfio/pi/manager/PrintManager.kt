@@ -17,7 +17,6 @@
 
 package alfio.pi.manager
 
-import alfio.pi.ConnectionDescriptor
 import alfio.pi.model.*
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
@@ -25,7 +24,6 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import okhttp3.*
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
@@ -37,6 +35,13 @@ import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
+import java.net.InetAddress
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicReference
+import javax.jmdns.JmDNS
+import javax.jmdns.ServiceEvent
+import javax.jmdns.ServiceListener
+
 
 private val logger = LoggerFactory.getLogger(PrintManager::class.java)
 
@@ -52,8 +57,34 @@ interface PrintManager {
 open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
                              val trustManager: X509TrustManager,
                              val httpClient: OkHttpClient,
-                             @Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
                              val gson: Gson) : PrintManager {
+
+    private val masterUrl = AtomicReference<String>()
+
+    private val MDNS_NAME = "alfio-server"
+
+    init {
+
+        val jmdns = JmDNS.create(InetAddress.getLocalHost())
+        jmdns.addServiceListener("_http._tcp.local.", object: ServiceListener {
+            override fun serviceRemoved(event: ServiceEvent?) {
+                if (MDNS_NAME.equals(event?.info?.name)) {
+                    masterUrl.set(null);
+                }
+            }
+
+            override fun serviceAdded(event: ServiceEvent?) {
+            }
+
+            override fun serviceResolved(event: ServiceEvent?) {
+                if (MDNS_NAME.equals(event?.info?.name))  {
+                    val resolvedMasterUrl = event?.info?.getPropertyString("url");
+                    logger.info("Resolved master url: " + resolvedMasterUrl)
+                    masterUrl.set(resolvedMasterUrl);
+                }
+            }
+        })
+    }
 
     override fun printLabel(user: User, ticket: Ticket): Boolean = false
 
@@ -70,12 +101,17 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
 
     @Scheduled(fixedDelay = 10000L)
     open fun uploadPrinters() {
+        val url = masterUrl.get();
+        if(url == null) {
+            return;
+        }
+
         val httpClient = httpClientBuilderWithCustomTimeout(1L, TimeUnit.SECONDS)
             .invoke(httpClient)
             .trustKeyStore(trustManager)
             .build()
         val request = Request.Builder()
-            .url("${master.url}/api/printers/register")
+            .url("${url}/api/printers/register")
             .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(getAvailablePrinters())))
             .build()
         val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
