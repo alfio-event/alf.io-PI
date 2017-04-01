@@ -38,6 +38,18 @@ import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.servlet.http.HttpServletResponse
+import java.util.ArrayList
+import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
+import javax.imageio.ImageIO
+
+
+
+
+
+
+
+
 
 @RestController
 @RequestMapping("/api/internal/users")
@@ -105,8 +117,29 @@ open class UserApi(val userRepository: UserRepository,
             if(user.isPresent) {
                 response.status = HttpServletResponse.SC_OK
                 val map = sslKeyExporter.appendTo(mapOf("baseUrl" to localServerUrl, "username" to user.get().username, "password" to String(Base64.getDecoder().decode(password))))
+
+                val jsonString = gson.toJson(map);
+                //split in 3,
+                val splittedSize = jsonString.length / 3;
+                val splitted = ArrayList<String>()
+                splitted.add(jsonString.substring(0, splittedSize))
+                splitted.add(jsonString.substring(splittedSize, 2 * splittedSize))
+                splitted.add(jsonString.substring(splittedSize * 2, jsonString.length))
+
+                //a single qrcode has a size of 350 * 350px;
+                val result = BufferedImage(350, 350 * 3, BufferedImage.TYPE_INT_RGB)
+                val g = result.graphics
+                var i = 0
+                for(payload in splitted) {
+                    val idx = i+1;
+                    val bi = ImageIO.read(ByteArrayInputStream(generateQRCodeImage("$idx:3:$payload")))
+                    g.drawImage(bi, 0, 350 * i, null)
+                    i += 1
+                }
+                //
+
                 response.contentType = "image/png"
-                response.outputStream.write(generateQRCodeImage(gson.toJson(map)))
+                ImageIO.write(result, "png", response.outputStream)
             }
             response.status = HttpServletResponse.SC_NOT_FOUND
         }, {
@@ -119,3 +152,4 @@ open class UserApi(val userRepository: UserRepository,
         var username: String? = null
     }
 }
+

@@ -143,7 +143,7 @@ private fun generateQRCode(value: String): BufferedImage {
 
 private fun generateBitMatrix(value: String, width: Int, height: Int): BitMatrix {
     val hintMap = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
-    hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
+    hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M)
     val matrix = MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hintMap)
     return matrix
 }

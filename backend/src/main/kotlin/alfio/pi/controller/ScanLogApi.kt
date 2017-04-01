@@ -19,13 +19,10 @@ package alfio.pi.controller
 
 import alfio.pi.manager.*
 import alfio.pi.model.Event
-import alfio.pi.model.Printer
 import alfio.pi.model.ScanLog
-import alfio.pi.model.Ticket
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
-import alfio.pi.repository.UserPrinterRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
