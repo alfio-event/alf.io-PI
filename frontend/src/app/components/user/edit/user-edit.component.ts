@@ -56,6 +56,7 @@ export class UserEditComponent implements OnInit {
         this.displayQRCode = true;
         this.userQRCodeUrl = this.getQRCodeURL(res);
         this.userNotifierService.userCreated(res.username);
+        this.startImageSwapping();
       })
   }
 
