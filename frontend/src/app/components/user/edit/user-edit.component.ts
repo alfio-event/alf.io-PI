@@ -19,6 +19,8 @@ export class UserEditComponent implements OnInit {
   displayReset: boolean = false;
   displayQRCode: boolean = false;
   userQRCodeUrl: string;
+  imageIdx: number = 0;
+  interval: any;
 
   constructor(private route: ActivatedRoute,
               private formBuilder: FormBuilder,
@@ -64,7 +66,16 @@ export class UserEditComponent implements OnInit {
         this.displayQRCode = true;
         this.userQRCodeUrl = this.getQRCodeURL(res);
         this.userNotifierService.passwordReset(this.user.username);
+        this.startImageSwapping();
       });
+  }
+
+  startImageSwapping() : void {
+    clearInterval(this.interval);
+    this.imageIdx = 0;
+    this.interval = setInterval(() => {
+      this.imageIdx = (this.imageIdx+1)%3;
+    }, 1000)
   }
 
   onSubmit(): void {
@@ -73,7 +84,7 @@ export class UserEditComponent implements OnInit {
         this.user = res;
         this.displayQRCode = true;
         this.userQRCodeUrl = this.getQRCodeURL(res);
-
+        this.startImageSwapping();
       });
   }
 
