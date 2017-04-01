@@ -28,8 +28,14 @@
     <div *ngIf="displayQRCode">
       <h3 class="text-success">Success! <close-detail></close-detail></h3>
       <div class="text-xs-center align-middle">
-        <h4 style="text-align: center">{{imageIdx+1}}/3</h4>
-        <div style="height:350px;width:350px;background-repeat: no-repeat;" [style.backgroundPositionY]="(imageIdx*-350)+'px'" [style.backgroundImage]="'url('+userQRCodeUrl+')'"></div>
+        <h4 class="align-center">{{imageIdx+1}}/3</h4>
+        <div class="align-center">
+          <button class="btn btn-sm btn-default" *ngIf="isSwappingImage" (click)="stopImageSwapping()">Stop</button>
+          <button class="btn btn-sm btn-default" *ngIf="!isSwappingImage" (click)="previousImage()">Show previous</button>
+          <button class="btn btn-sm btn-default" *ngIf="!isSwappingImage" (click)="startImageSwapping()">Start</button>
+          <button class="btn btn-sm btn-default" *ngIf="!isSwappingImage" (click)="nextImage()">Show next</button>
+        </div>
+        <div class="qr-code-container" [style.backgroundPositionY]="(imageIdx*-350)+'px'" [style.backgroundImage]="'url('+userQRCodeUrl+')'"></div>
         <div>
           <p><strong>username:</strong> {{user.username}}</p>
           <p><strong>password:</strong> {{getUserWithPassword().password}}</p>

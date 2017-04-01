@@ -9,7 +9,8 @@ import {UserNotifierService} from "../user-notifier.service";
 
 @Component({
   selector: 'user-edit',
-  templateUrl: './user-edit.component.html'
+  templateUrl: './user-edit.component.html',
+  styleUrls:  ['./user-edit.component.css']
 })
 export class UserEditComponent implements OnInit {
 
@@ -21,6 +22,7 @@ export class UserEditComponent implements OnInit {
   userQRCodeUrl: string;
   imageIdx: number = 0;
   interval: any;
+  isSwappingImage: boolean = false;
 
   constructor(private route: ActivatedRoute,
               private formBuilder: FormBuilder,
@@ -73,10 +75,25 @@ export class UserEditComponent implements OnInit {
 
   startImageSwapping() : void {
     clearInterval(this.interval);
+    this.isSwappingImage = true;
     this.imageIdx = 0;
     this.interval = setInterval(() => {
       this.imageIdx = (this.imageIdx+1)%3;
     }, 1000)
+  }
+
+  stopImageSwapping() : void {
+    clearInterval(this.interval);
+    this.isSwappingImage = false;
+  }
+
+  previousImage() : void {
+    let newIdx = this.imageIdx-1;
+    this.imageIdx = newIdx < 0 ? 2 : newIdx;
+  }
+
+  nextImage() : void {
+    this.imageIdx = (this.imageIdx+1)%3;
   }
 
   onSubmit(): void {

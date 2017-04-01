@@ -1,0 +1,9 @@
+.qr-code-container {
+  height:350px;
+  width:350px;
+  background-repeat: no-repeat;
+}
+
+.align-center {
+  text-align: center;
+}
