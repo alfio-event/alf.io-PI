@@ -79,7 +79,7 @@ export class UserEditComponent implements OnInit {
     this.imageIdx = 0;
     this.interval = setInterval(() => {
       this.imageIdx = (this.imageIdx+1)%3;
-    }, 1000)
+    }, 3000)
   }
 
   stopImageSwapping() : void {
