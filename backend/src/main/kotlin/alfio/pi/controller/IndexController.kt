@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 @Profile("!dev")
 @RequestMapping("/")
 open class IndexController {
-    @RequestMapping("")
-    open fun redirectIndex() = "redirect:/index.html"
+
+    @RequestMapping("", "user/**", "scan-log/**")
+    open fun showIndex() = "/index.html"
 }
