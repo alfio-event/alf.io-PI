@@ -1,0 +1,1 @@
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash /opt/alfio/init-printer.sh $attr{serial}" SYMLINK+="usb/Alfio-%c"

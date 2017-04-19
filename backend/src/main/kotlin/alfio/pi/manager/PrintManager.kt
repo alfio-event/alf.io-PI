@@ -24,6 +24,7 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import okhttp3.*
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
@@ -37,6 +38,7 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceEvent
@@ -54,10 +56,12 @@ interface PrintManager {
 
 @Component
 @Profile("printer")
-open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
+open class LocalPrintManager(labelTemplates: List<LabelTemplate>,
                              val trustManager: X509TrustManager,
                              val httpClient: OkHttpClient,
-                             val gson: Gson) : PrintManager {
+                             val gson: Gson) : CupsPrintManager(labelTemplates) {
+
+    override fun retrieveRegisteredPrinter(user: User): Optional<Printer> = Optional.empty()
 
     private val masterUrl = AtomicReference<String>()
 
@@ -68,8 +72,8 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
         val jmdns = JmDNS.create(InetAddress.getLocalHost())
         jmdns.addServiceListener("_http._tcp.local.", object: ServiceListener {
             override fun serviceRemoved(event: ServiceEvent?) {
-                if (MDNS_NAME.equals(event?.info?.name)) {
-                    masterUrl.set(null);
+                if (MDNS_NAME == event?.info?.name) {
+                    masterUrl.set(null)
                 }
             }
 
@@ -77,49 +81,33 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
             }
 
             override fun serviceResolved(event: ServiceEvent?) {
-                if (MDNS_NAME.equals(event?.info?.name))  {
-                    val resolvedMasterUrl = event?.info?.getPropertyString("url");
+                if (MDNS_NAME == event?.info?.name)  {
+                    val resolvedMasterUrl = event?.info?.getPropertyString("url")
                     logger.info("Resolved master url: " + resolvedMasterUrl)
-                    masterUrl.set(resolvedMasterUrl);
+                    masterUrl.set(resolvedMasterUrl)
                 }
             }
         })
     }
 
-    override fun printLabel(user: User, ticket: Ticket): Boolean = false
-
-    override fun printTestLabel(printer: Printer): Boolean = false
-
-    override fun printLabel(printer: Printer, ticket: Ticket): Boolean =
-        if(getAvailablePrinters().any { it.name == printer.name }) {
-            doPrint(labelTemplates.first(), printer, ticket)
-        } else {
-            false
-        }
-
-    override fun getAvailablePrinters(): List<SystemPrinter> = getConnectedPrinters()
-
     @Scheduled(fixedDelay = 10000L)
     open fun uploadPrinters() {
-        val url = masterUrl.get();
-        if(url == null) {
-            return;
-        }
+        val url = masterUrl.get() ?: return
 
         val httpClient = httpClientBuilderWithCustomTimeout(1L, TimeUnit.SECONDS)
             .invoke(httpClient)
             .trustKeyStore(trustManager)
             .build()
         val request = Request.Builder()
-            .url("${url}/api/printers/register")
+            .url("$url/api/printers/register")
             .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(getAvailablePrinters())))
             .build()
         val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
         if(!result) {
             logger.warn("cannot upload printer list...")
         }
-
     }
+
 }
 
 /**
@@ -127,21 +115,23 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>,
  * Will be improved in the next releases.
  */
 @Component
-@Profile("server")
+@Profile("server", "full")
 open class RemotePrintManager(val httpClient: OkHttpClient,
+                              labelTemplates: List<LabelTemplate>,
                               val userPrinterRepository: UserPrinterRepository,
                               val printerRepository: PrinterRepository,
                               val gson: Gson,
-                              val trustManager: X509TrustManager): PrintManager {
+                              val trustManager: X509TrustManager): CupsPrintManager(labelTemplates) {
 
     val printers = CopyOnWriteArraySet<RemotePrinter>()
 
+    override fun retrieveRegisteredPrinter(user: User): Optional<Printer> = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
 
     override fun printLabel(user: User, ticket: Ticket): Boolean =
-        userPrinterRepository.getOptionalActivePrinter(user.id)
-            .map { printerRepository.findById(it.printerId) }
-            .map { printer -> tryOrDefault<Boolean>().invoke({remotePrint(printer.name, ticket)}, {false}) }
-            .orElse(false)
+        retrieveRegisteredPrinter(user)
+            .filter { p -> super.getAvailablePrinters().none { it.name == p.name } }
+            .map { remotePrint(it.name, ticket) }
+            .orElseGet { super.printLabel(user, ticket) }
 
     private fun remotePrint(printerName: String, ticket: Ticket): Boolean {
         val remotePrinter = printers.filter { it.name == printerName }.firstOrNull()
@@ -166,11 +156,15 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
         }
     }
 
-    override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({remotePrint(printer.name, ticket)}, {false})
+    override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({
+        if(getAvailablePrinters().none { it.name == printer.name }) {
+            remotePrint(printer.name, ticket)
+        } else {
+            super.printLabel(printer, ticket)
+        }
+    }, {false})
 
-    override fun printTestLabel(printer: Printer): Boolean = remotePrint(printer.name, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
-
-    override fun getAvailablePrinters(): List<SystemPrinter> = printers.map { SystemPrinter(it.name) }
+    override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
 
     @EventListener(PrintersRegistered::class)
     open fun onPrinterAdded(event: PrintersRegistered) {
@@ -185,26 +179,21 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
     }
 }
 
-@Component
-@Profile("full")
-open class CupsPrintManager(val userPrinterRepository: UserPrinterRepository,
-                            val labelTemplates: List<LabelTemplate>,
-                            val printerRepository: PrinterRepository) : PrintManager {
+abstract class CupsPrintManager(val labelTemplates: List<LabelTemplate>) : PrintManager {
 
     override fun printLabel(user: User, ticket: Ticket): Boolean {
         return tryOrDefault<Boolean>().invoke({
-            userPrinterRepository.getOptionalActivePrinter(user.id)
-                .map { printerRepository.findById(it.printerId) }
+            retrieveRegisteredPrinter(user)
                 .map { printer ->
-                    val labelTemplate = labelTemplates.first()
-                    doPrint(labelTemplate, printer, ticket)
+                    printLabel(printer, ticket)
                 }.orElse(false)
-
         }, {
             logger.error("cannot print label for ticket ${ticket.uuid}, username ${user.username}", it)
             false
         })
     }
+
+    protected abstract fun retrieveRegisteredPrinter(user: User): Optional<Printer>
 
     override fun printLabel(printer: Printer, ticket: Ticket): Boolean {
         return tryOrDefault<Boolean>().invoke({
@@ -226,6 +215,24 @@ open class CupsPrintManager(val userPrinterRepository: UserPrinterRepository,
 
     override fun getAvailablePrinters(): List<SystemPrinter> = getCupsPrinters()
 
+    private val systemPrinterExtractor = Regex("printer (\\S+) .*")
+
+    private fun getCupsPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
+        val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
+        process.inputStream.use {
+            it.bufferedReader().lines()
+                .map {
+                    val result = systemPrinterExtractor.find(it)
+                    result?.groupValues?.get(1)
+                }.filter { it != null }
+                .map({ SystemPrinter(it!!) })
+                .collect(Collectors.toList<SystemPrinter>())
+        }
+    }, {
+        logger.error("cannot load printers", it)
+        mutableListOf()
+    })
+
 }
 
 internal fun doPrint(labelTemplate: LabelTemplate, printer: Printer, ticket: Ticket): Boolean {
@@ -238,33 +245,6 @@ internal fun doPrint(labelTemplate: LabelTemplate, printer: Printer, ticket: Tic
     }
     return print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
 }
-
-private val systemPrinterExtractor = Regex("printer (\\S+) .*")
-
-private fun getCupsPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
-    val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
-    process.inputStream.use {
-        it.bufferedReader().lines()
-            .map {
-                val result = systemPrinterExtractor.find(it)
-                result?.groupValues?.get(1)
-            }.filter { it != null }
-            .map({ SystemPrinter(it!!) })
-            .collect(Collectors.toList<SystemPrinter>())
-    }
-}, {
-    logger.error("cannot load printers", it)
-    mutableListOf()
-})
-
-private fun getConnectedPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
-    Files.newDirectoryStream(Paths.get("/dev/usb/"))
-        .filter { it.fileName.toString().startsWith("Alfio") }
-        .map { SystemPrinter(it.fileName.toString()) }
-}, {
-    logger.error("cannot load local printers", it)
-    listOf()
-})
 
 fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpClient.Builder {
     val sslContext = SSLContext.getInstance("TLS")

@@ -28,6 +28,8 @@ import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
@@ -176,4 +178,34 @@ open class PrinterSynchronizer(val printerRepository: PrinterRepository, val pri
             printerRepository.insert(it.name, "", true)
         }
     }
+}
+
+@Component
+open class LocalPrinterMonitor(val printManager: PrintManager) {
+    @Scheduled(fixedDelay = 2000L)
+    open fun monitorPrinters() {
+        val cupsPrinters = printManager.getAvailablePrinters()
+        val connectedPrinters = getConnectedPrinters()
+        cupsPrinters
+            .filter { it.name.startsWith("Alfio") && !connectedPrinters.contains(it) }
+            .forEach {
+                logger.warn("removing printer ${it.name}, symlink /dev/usb/${it.name}")
+                Runtime.getRuntime().exec("/usr/sbin/lpadmin -x ${it.name}")
+            }
+    }
+
+    private fun getConnectedPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
+        val path = Paths.get("/dev/usb/")
+        if(Files.exists(path)) {
+            Files.newDirectoryStream(path)
+                .filter { it.fileName.toString().startsWith("Alfio") }
+                .map { SystemPrinter(it.fileName.toString()) }
+        } else {
+            logger.warn("path /dev/usb does not exist")
+            listOf()
+        }
+    }, {
+        logger.error("cannot load local printers", it)
+        listOf()
+    })
 }

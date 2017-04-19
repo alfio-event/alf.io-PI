@@ -22,6 +22,7 @@ import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
 import alfio.pi.util.PasswordGenerator
+import alfio.pi.wrapper.tryOrDefault
 import ch.digitalfondue.npjt.QueryFactory
 import ch.digitalfondue.npjt.QueryRepositoryScanner
 import ch.digitalfondue.npjt.mapper.ZonedDateTimeMapper
@@ -56,10 +57,15 @@ import org.springframework.core.env.Environment
 import org.springframework.http.HttpMethod
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.security.authentication.AnonymousAuthenticationToken
+import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
@@ -92,15 +98,16 @@ import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
+import javax.servlet.http.HttpServletRequest
 import javax.sql.DataSource
 
+private val logger = LoggerFactory.getLogger(Application::class.java)!!
 
 @SpringBootApplication
 @EnableTransactionManagement
 @EnableScheduling
 open class Application {
 
-    private val logger = LoggerFactory.getLogger(Application::class.java)!!
 
     @Bean
     @Profile("server", "full")
@@ -164,7 +171,7 @@ open class Application {
     open fun httpClient(): OkHttpClient = OkHttpClient()
 
     @Bean
-    @Profile("server", "printer")
+    @Profile("server", "printer", "full")
     open fun trustManager(): X509TrustManager {
         val keyStore = KeyStore.getInstance("JKS")
         keyStore.load(Files.newInputStream(Paths.get(Constants.KEYSTORE_FILE.value)), Constants.KEYSTORE_PASS.value.toCharArray())
@@ -219,9 +226,9 @@ open class Application {
             val port = env.getProperty("server.port", Int::class.java, 8080)
             val serviceInfo = ServiceInfo.create("_http._tcp.local.", "alfio-server", port, "url="+localServerURL(env))
             logger.info("Exposing service through mdns")
-            jmdns.registerService(serviceInfo);
+            jmdns.registerService(serviceInfo)
         } catch (e: IOException) {
-            logger.info("Error while exposing the service through mdns", e);
+            logger.info("Error while exposing the service through mdns", e)
         }
     }
 
@@ -248,7 +255,7 @@ abstract class WebSecurityConfig : WebSecurityConfigurerAdapter() {
 @Configuration
 @Profile("server", "full")
 @Order(0)
-open class PrintApiSecurity: WebSecurityConfig() {
+open class PrintApiSecurity: WebSecurityConfigurerAdapter() {
     override fun configure(http: HttpSecurity) {
         http.requestMatcher { it.requestURI == "/api/printers/register" }
             .csrf().disable()
@@ -258,8 +265,31 @@ open class PrintApiSecurity: WebSecurityConfig() {
 }
 
 @Configuration
-@Profile("server", "full")
+@Profile("desk")
 @Order(1)
+open class DeskWebSecurity : WebSecurityConfigurerAdapter() {
+    override fun configure(http: HttpSecurity) {
+        http.requestMatcher { isLocalAddress(it.remoteAddr) }
+            .anonymous()
+            .authorities("ROLE_ADMIN")
+    }
+
+    private fun isLocalAddress(address: String) = tryOrDefault<Boolean>().invoke({
+        val inetAddress = InetAddress.getByName(address)
+        inetAddress.isAnyLocalAddress || inetAddress.isLoopbackAddress || NetworkInterface.getByInetAddress(inetAddress) != null
+    }, {false})
+
+    override fun authenticationManager(): AuthenticationManager {
+        return AuthenticationManager {
+            logger.warn("authenticating local user")
+            AnonymousAuthenticationToken("local", "admin", mutableListOf(SimpleGrantedAuthority(Role.ADMIN.name)))
+        }
+    }
+}
+
+@Configuration
+@Profile("server", "full")
+@Order(2)
 open class BasicAuthWebSecurity : WebSecurityConfig() {
     override fun configure(http: HttpSecurity) {
         http.requestMatcher { it.requestURI.startsWith("/admin/api/") }
@@ -273,7 +303,7 @@ open class BasicAuthWebSecurity : WebSecurityConfig() {
 
 @Configuration
 @Profile("server", "full")
-@Order(2)
+@Order(3)
 open class FormLoginWebSecurity: WebSecurityConfig() {
     override fun configure(http: HttpSecurity) {
         http.csrf().csrfTokenRepository(csrfTokenRepository())
