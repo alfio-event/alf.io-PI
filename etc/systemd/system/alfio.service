@@ -1,0 +1,13 @@
+[Unit]
+Description=Alf.io-PI
+After=syslog.target
+
+[Service]
+User=pi
+ExecStart=/home/pi/app/alfio-boot.jar
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
