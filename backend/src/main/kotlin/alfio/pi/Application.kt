@@ -87,6 +87,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.Principal
 import java.security.SecureRandom
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -102,6 +103,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.sql.DataSource
 
 private val logger = LoggerFactory.getLogger(Application::class.java)!!
+private val deskUsername = "desk-user";
 
 @SpringBootApplication
 @EnableTransactionManagement
@@ -219,6 +221,20 @@ open class Application {
     }
 
     @Bean
+    @Profile("desk")
+    open fun initializeDeskUser() = ApplicationListener<ContextRefreshedEvent> {
+        val applicationContext = it.applicationContext
+        val user = applicationContext.getBean(UserRepository::class.java).findByUsername(deskUsername)
+        if(!user.isPresent) {
+            val password = applicationContext.getBean(PasswordGenerator::class.java).generateRandomPassword()
+            val encryptedPassword = applicationContext.getBean(PasswordEncoder::class.java).encode(password)
+            applicationContext.getBean(UserRepository::class.java).insert(deskUsername, encryptedPassword)
+            applicationContext.getBean(AuthorityRepository::class.java).insert(deskUsername, Role.ADMIN)
+            logger.info("desk user created")
+        }
+    }
+
+    @Bean
     @Profile("server", "full")
     open fun initializerForExposingServerUrl(env: Environment) = ApplicationListener<ContextRefreshedEvent> {
         try {
@@ -272,6 +288,7 @@ open class DeskWebSecurity : WebSecurityConfigurerAdapter() {
         http.requestMatcher { isLocalAddress(it.remoteAddr) }
             .anonymous()
             .authorities("ROLE_ADMIN")
+            .principal(Principal { deskUsername })
     }
 
     private fun isLocalAddress(address: String) = tryOrDefault<Boolean>().invoke({

@@ -201,7 +201,7 @@ open class LocalPrinterMonitor(val printManager: PrintManager) {
                 .filter { it.fileName.toString().startsWith("Alfio") }
                 .map { SystemPrinter(it.fileName.toString()) }
         } else {
-            logger.warn("path /dev/usb does not exist")
+            logger.trace("path /dev/usb does not exist")
             listOf()
         }
     }, {
