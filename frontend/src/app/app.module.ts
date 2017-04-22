@@ -26,6 +26,11 @@ import { ScanLogComponent } from './components/scan-log/scan-log.component';
 import {FilterScanLogEntries} from "./filter.pipe";
 import {NgbModule} from "@ng-bootstrap/ng-bootstrap";
 import {ServerEventsService} from "./server-events.service";
+import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { UserPrinterComponent } from './components/user-printer/user-printer.component';
+import { ResponsiveLayoutComponent } from './components/responsive-layout/responsive-layout.component';
+import { EventListPageComponent } from './components/event/list-page/event-list-page.component';
+import { ConfirmPowerOffComponent } from './components/confirm-power-off/confirm-power-off.component';
 
 @NgModule({
   declarations: [
@@ -42,7 +47,12 @@ import {ServerEventsService} from "./server-events.service";
     LoadingIndicatorComponent,
     ScanLogEntriesComponent,
     HomeComponent,
-    ScanLogComponent
+    ScanLogComponent,
+    SidebarComponent,
+    UserPrinterComponent,
+    ResponsiveLayoutComponent,
+    EventListPageComponent,
+    ConfirmPowerOffComponent
   ],
   imports: [
     NgbModule.forRoot(),
@@ -57,6 +67,14 @@ import {ServerEventsService} from "./server-events.service";
         { path: 'user/edit/:userId', component: UserEditComponent }
       ] },
       { path: 'scan-log/view', component: ScanLogComponent },
+      { path: 'users-printers', component: UserPrinterComponent, children: [
+        { path: 'user/new', component: UserEditComponent },
+        { path: 'user/edit/:userId', component: UserEditComponent }
+      ]},
+      { path: 'check-in', component: UserPrinterComponent},
+      { path: 'events', component: EventListPageComponent},
+      { path: 'power-off', component: ConfirmPowerOffComponent}
+
     ])
   ],
   providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService],
