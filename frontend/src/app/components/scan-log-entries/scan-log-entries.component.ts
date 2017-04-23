@@ -2,7 +2,7 @@ import {Component, OnInit, Input} from "@angular/core";
 import {ScanLogService, ScanLogEntry, Ticket, CheckInStatus} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
 import {Observable} from "rxjs";
-import {EventService, Event} from "../event/event.service";
+import {EventService, Event} from "../../shared/event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
 import {ServerEventsService, EventType, NewScan} from "../../server-events.service";

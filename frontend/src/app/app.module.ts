@@ -9,7 +9,7 @@ import {UserViewComponent} from "./components/user/view/user-view.component";
 import {UserService} from "./components/user/user.service";
 import {UserListComponent} from "./components/user/list/user-list.component";
 import {EventListComponent} from "./components/event/list/event-list.component";
-import {EventService} from "./components/event/event.service";
+import {EventService} from "./shared/event/event.service";
 import {EventConfigurationComponent} from "./components/event/configuration/event-configuration.component";
 import {PrinterListComponent} from "./components/printer/list/printer-list.component";
 import {PrinterService} from "./components/printer/printer.service";
@@ -31,6 +31,9 @@ import { UserPrinterComponent } from './components/user-printer/user-printer.com
 import { ResponsiveLayoutComponent } from './components/responsive-layout/responsive-layout.component';
 import { EventListPageComponent } from './components/event/list-page/event-list-page.component';
 import { ConfirmPowerOffComponent } from './components/confirm-power-off/confirm-power-off.component';
+import { CheckInComponent } from './components/check-in/check-in.component';
+import {ScanListenerDirective} from "./components/check-in/scan-listener.directive";
+import {ScanService} from "./scan-module/scan/scan.service";
 
 @NgModule({
   declarations: [
@@ -52,7 +55,9 @@ import { ConfirmPowerOffComponent } from './components/confirm-power-off/confirm
     UserPrinterComponent,
     ResponsiveLayoutComponent,
     EventListPageComponent,
-    ConfirmPowerOffComponent
+    ConfirmPowerOffComponent,
+    CheckInComponent,
+    ScanListenerDirective
   ],
   imports: [
     NgbModule.forRoot(),
@@ -71,13 +76,13 @@ import { ConfirmPowerOffComponent } from './components/confirm-power-off/confirm
         { path: 'user/new', component: UserEditComponent },
         { path: 'user/edit/:userId', component: UserEditComponent }
       ]},
-      { path: 'check-in', component: UserPrinterComponent},
+      { path: 'check-in', component: CheckInComponent},
       { path: 'events', component: EventListPageComponent},
       { path: 'power-off', component: ConfirmPowerOffComponent}
 
     ])
   ],
-  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService],
+  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService, ScanService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

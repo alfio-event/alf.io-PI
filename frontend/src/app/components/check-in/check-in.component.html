@@ -1,0 +1,37 @@
+<alfio-responsive-layout>
+  <alfio-key-listener (scanStream)="onScan($event)"></alfio-key-listener>
+  <div class="h-100 mt-2 mb-5 d-flex flex-column align-content-between">
+    <div class="h-25 d-flex">
+        <div class="form-group align-self-center">
+          <label for="events">Check-in for Event</label>
+          <select class="form-control ml-2" id="events" title="select event for check-in" [(ngModel)]="activeEvent">
+            <option *ngFor="let e of events" [ngValue]="e">{{e.name}}</option>
+          </select>
+        </div>
+    </div>
+    <div class="h-75 d-flex flex-column align-content-start" *ngIf="activeEvent">
+      <div class="text-center mt-5 text-muted" *ngIf="!status && !loading">
+        <i class="fa fa-qrcode fa-5x"></i>
+        <h3>Scanning for {{activeEvent.name}}</h3>
+      </div>
+      <div class="text-center mt-2" *ngIf="!loading && isStatusSuccess()">
+        <i class="fa fa-check-circle text-success fa-5x mb-2"></i>
+        <div class="d-flex flex-column">
+          <h4>{{ticket.firstName}}</h4>
+          <h4>{{ticket.lastName}}</h4>
+          <span>{{ticket.email}}</span>
+          <span>{{ticket.uuid}}</span>
+        </div>
+        <button class="btn btn-success btn-lg mt-5" (click)="nextScan()">next</button>
+      </div>
+      <div class="text-center mt-2 text-danger" *ngIf="!loading && isStatusError()">
+        <i class="fa fa-exclamation-circle fa-5x mb-2"></i>
+        <h4>{{getStatusMessage()}}</h4>
+        <button class="btn btn-danger btn-lg mt-5" (click)="nextScan()">next</button>
+      </div>
+      <div class="mt-auto mb-auto text-center">
+        <loading-indicator [observable]="progressManager.observable" [big]="true"></loading-indicator>
+      </div>
+    </div>
+  </div>
+</alfio-responsive-layout>

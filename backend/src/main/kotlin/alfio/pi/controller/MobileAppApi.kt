@@ -22,23 +22,32 @@ import alfio.pi.model.CheckInResponse
 import alfio.pi.model.Event
 import alfio.pi.repository.EventRepository
 import org.springframework.context.annotation.Profile
+import org.springframework.core.env.Environment
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import java.security.Principal
+import java.util.*
 
 @RestController
 @Profile("server", "full")
 @RequestMapping("/admin/api/check-in")
-open class CheckInApi(val checkInDataManager: CheckInDataManager) {
+open class CheckInApi(val checkInDataManager: CheckInDataManager, val environment: Environment) {
 
     @RequestMapping(value = "/event/{eventName}/ticket/{ticketIdentifier}", method = arrayOf(RequestMethod.POST))
     open fun performCheckIn(@PathVariable("eventName") eventName: String,
                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
                             @RequestBody ticketCode: TicketCode,
-                            principal: Principal): CheckInResponse {
-        return checkIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), principal.name).invoke(checkInDataManager)
+                            principal: Principal?): ResponseEntity<CheckInResponse> {
+
+        val username = if(environment.acceptsProfiles("desk")) "desk-user" else principal?.name
+        return Optional.ofNullable(username)
+            .map {
+                ResponseEntity.ok(checkIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!).invoke(checkInDataManager))
+            }.orElseGet {
+                ResponseEntity(HttpStatus.UNAUTHORIZED)
+            }
     }
 
     class TicketCode {

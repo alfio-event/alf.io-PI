@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {EventService, Event} from "../event.service";
+import {EventService, Event} from "../../../shared/event/event.service";
 import {ActivatedRoute, Params} from "@angular/router";
 import "rxjs/add/operator/switchMap";
 import {PrinterService, Printer, PrinterWithUsers} from "../../printer/printer.service";

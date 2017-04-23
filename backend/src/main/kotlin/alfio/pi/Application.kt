@@ -103,7 +103,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.sql.DataSource
 
 private val logger = LoggerFactory.getLogger(Application::class.java)!!
-private val deskUsername = "desk-user";
+private val deskUsername = "desk-user"
 
 @SpringBootApplication
 @EnableTransactionManagement
@@ -229,7 +229,7 @@ open class Application {
             val password = applicationContext.getBean(PasswordGenerator::class.java).generateRandomPassword()
             val encryptedPassword = applicationContext.getBean(PasswordEncoder::class.java).encode(password)
             applicationContext.getBean(UserRepository::class.java).insert(deskUsername, encryptedPassword)
-            applicationContext.getBean(AuthorityRepository::class.java).insert(deskUsername, Role.ADMIN)
+            applicationContext.getBean(AuthorityRepository::class.java).insert(deskUsername, Role.OPERATOR)
             logger.info("desk user created")
         }
     }
@@ -287,8 +287,20 @@ open class DeskWebSecurity : WebSecurityConfigurerAdapter() {
     override fun configure(http: HttpSecurity) {
         http.requestMatcher { isLocalAddress(it.remoteAddr) }
             .anonymous()
-            .authorities("ROLE_ADMIN")
+            .authorities("ROLE_${Role.OPERATOR.name}")
             .principal(Principal { deskUsername })
+            .and()
+            .csrf().csrfTokenRepository(csrfTokenRepository())
+            .and()
+            .authorizeRequests()
+            .antMatchers("/**").permitAll()
+    }
+
+    @Bean
+    open fun csrfTokenRepository(): CsrfTokenRepository {
+        val repo = CookieCsrfTokenRepository.withHttpOnlyFalse()
+        repo.setParameterName("_csrf")
+        return repo
     }
 
     private fun isLocalAddress(address: String) = tryOrDefault<Boolean>().invoke({

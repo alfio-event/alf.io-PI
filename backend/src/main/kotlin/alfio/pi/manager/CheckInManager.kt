@@ -216,7 +216,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
         logger.info("******** uploading check-in **********")
-        var count = 0
         tryOrDefault<Unit>().invoke({
             val event = entry.key.get()
             entry.value.filter { it.ticket != null }.forEach {

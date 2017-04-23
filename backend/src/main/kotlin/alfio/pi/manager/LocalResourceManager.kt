@@ -18,19 +18,23 @@
 package alfio.pi.manager
 
 import alfio.pi.model.*
-import alfio.pi.repository.*
+import alfio.pi.repository.EventRepository
+import alfio.pi.repository.PrinterRepository
+import alfio.pi.repository.ScanLogRepository
+import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
-import org.springframework.core.env.Environment
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
-import java.nio.file.Files
-import java.nio.file.Paths
+import java.nio.file.*
 import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.properties.Delegates
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
 
@@ -182,30 +186,50 @@ open class PrinterSynchronizer(val printerRepository: PrinterRepository, val pri
 
 @Component
 open class LocalPrinterMonitor(val printManager: PrintManager) {
-    @Scheduled(fixedDelay = 2000L)
+
+    private val monitorInitialized = AtomicBoolean(false)
+    private var watchKey by Delegates.notNull<WatchKey>()
+    private val connectedPrinters = CopyOnWriteArrayList<SystemPrinter>()
+    private val path = Paths.get("/dev/usb/")
+
+    @Scheduled(fixedDelay = 5000L)
     open fun monitorPrinters() {
+        synchronizeLocalPrinters()
         val cupsPrinters = printManager.getAvailablePrinters()
-        val connectedPrinters = getConnectedPrinters()
         cupsPrinters
             .filter { it.name.startsWith("Alfio") && !connectedPrinters.contains(it) }
             .forEach {
-                logger.warn("removing printer ${it.name}, symlink /dev/usb/${it.name}")
-                Runtime.getRuntime().exec("/usr/sbin/lpadmin -x ${it.name}")
+                logger.trace("printer ${it.name} to be removed")
+                val result  = Runtime.getRuntime().exec("/usr/sbin/lpadmin -x ${it.name}").waitFor()
+                if(result == 0) {
+                    logger.warn("removed printer ${it.name}, symlink /dev/usb/${it.name}")
+                }
             }
     }
 
-    private fun getConnectedPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
-        val path = Paths.get("/dev/usb/")
-        if(Files.exists(path)) {
-            Files.newDirectoryStream(path)
-                .filter { it.fileName.toString().startsWith("Alfio") }
-                .map { SystemPrinter(it.fileName.toString()) }
-        } else {
-            logger.trace("path /dev/usb does not exist")
-            listOf()
+    private fun synchronizeLocalPrinters() {
+        val initialized = monitorInitialized.get()
+        if(!initialized && Files.exists(path)) {
+            Files.newDirectoryStream(path).use {
+                it.filter { it.fileName.toString().startsWith("Alfio") }
+                    .mapTo(connectedPrinters, { SystemPrinter(it.fileName.toString()) })
+            }
+            val watcher = FileSystems.getDefault().newWatchService()
+            watchKey = path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE)
+            monitorInitialized.set(true)
+        } else if(initialized) {
+            watchKey.pollEvents()
+                .filter { it.kind() == StandardWatchEventKinds.ENTRY_CREATE || it.kind() == StandardWatchEventKinds.ENTRY_DELETE}
+                .map { (it.context() as Path).fileName.toString() to it.kind() }
+                .filter { it.first.startsWith("Alfio") }
+                .forEach { p ->
+                    if(p.second == StandardWatchEventKinds.ENTRY_CREATE) {
+                        connectedPrinters.add(SystemPrinter(p.first))
+                    } else {
+                        connectedPrinters.removeIf { it.name == p.first }
+                    }
+                }
+            monitorInitialized.set(watchKey.reset())
         }
-    }, {
-        logger.error("cannot load local printers", it)
-        listOf()
-    })
+    }
 }

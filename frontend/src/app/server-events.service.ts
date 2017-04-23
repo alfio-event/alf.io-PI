@@ -19,7 +19,7 @@ import {Injectable} from "@angular/core";
 import {Observable} from "rxjs";
 import {WindowRef} from "./window.service";
 import {ScanLogEntry} from "./components/scan-log-entries/scan-log.service";
-import {Event} from "./components/event/event.service";
+import {Event} from "./shared/event/event.service";
 
 @Injectable()
 export class ServerEventsService {
