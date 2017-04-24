@@ -162,14 +162,6 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
         return availablePrinters
     }
 
-    override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({
-        if(getAvailablePrinters().none { it.name == printer.name }) {
-            remotePrint(printer.name, ticket)
-        } else {
-            super.printLabel(printer, ticket)
-        }
-    }, {false})
-
     override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
 
     @EventListener(PrintersRegistered::class)

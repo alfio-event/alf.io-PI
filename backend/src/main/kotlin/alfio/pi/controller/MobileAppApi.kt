@@ -41,7 +41,7 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager, val environmen
                             @RequestBody ticketCode: TicketCode,
                             principal: Principal?): ResponseEntity<CheckInResponse> {
 
-        val username = if(environment.acceptsProfiles("desk")) "desk-user" else principal?.name
+        val username = if((principal == null) and environment.acceptsProfiles("desk")) "desk-user" else principal?.name
         return Optional.ofNullable(username)
             .map {
                 ResponseEntity.ok(checkIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!).invoke(checkInDataManager))

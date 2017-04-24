@@ -43,14 +43,6 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
 
-
-
-
-
-
-
-
-
 @RestController
 @RequestMapping("/api/internal/users")
 @Profile("server", "full")
@@ -118,9 +110,9 @@ open class UserApi(val userRepository: UserRepository,
                 response.status = HttpServletResponse.SC_OK
                 val map = sslKeyExporter.appendTo(mapOf("baseUrl" to localServerUrl, "username" to user.get().username, "password" to String(Base64.getDecoder().decode(password))))
 
-                val jsonString = gson.toJson(map);
+                val jsonString = gson.toJson(map)
                 //split in 3,
-                val splittedSize = jsonString.length / 3;
+                val splittedSize = jsonString.length / 3
                 val splitted = ArrayList<String>()
                 splitted.add(jsonString.substring(0, splittedSize))
                 splitted.add(jsonString.substring(splittedSize, 2 * splittedSize))
@@ -131,7 +123,7 @@ open class UserApi(val userRepository: UserRepository,
                 val g = result.graphics
                 var i = 0
                 for(payload in splitted) {
-                    val idx = i+1;
+                    val idx = i+1
                     val bi = ImageIO.read(ByteArrayInputStream(generateQRCodeImage("$idx:3:$payload")))
                     g.drawImage(bi, 0, 350 * i, null)
                     i += 1
