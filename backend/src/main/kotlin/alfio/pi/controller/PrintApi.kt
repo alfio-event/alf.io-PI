@@ -101,7 +101,7 @@ open class LocalPrinterApi(val printManager: PrintManager) {
 
 @RestController
 @RequestMapping("/api/printers")
-@Profile("server")
+@Profile("server", "full")
 open class RemotePrinterApi(val applicationEventPublisher: ApplicationEventPublisher) {
     @RequestMapping(value = "/register", method = arrayOf(RequestMethod.POST))
     open fun registerPrinters(@RequestBody printers: List<SystemPrinter>, request: HttpServletRequest) = tryOrDefault<ResponseEntity<Unit>>().invoke({

@@ -129,7 +129,7 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
 
     override fun printLabel(user: User, ticket: Ticket): Boolean =
         retrieveRegisteredPrinter(user)
-            .filter { p -> super.getAvailablePrinters().none { it.name == p.name } }
+            .filter { p -> printers.any { it.name == p.name } }
             .map { remotePrint(it.name, ticket) }
             .orElseGet { super.printLabel(user, ticket) }
 
@@ -154,6 +154,12 @@ open class RemotePrintManager(val httpClient: OkHttpClient,
             logger.debug("can't find printer $printerName")
             false
         }
+    }
+
+    override fun getAvailablePrinters(): List<SystemPrinter> {
+        val availablePrinters = super.getAvailablePrinters().toMutableList()
+        availablePrinters.addAll(printers.map { SystemPrinter(it.name) })
+        return availablePrinters
     }
 
     override fun printLabel(printer: Printer, ticket: Ticket): Boolean = tryOrDefault<Boolean>().invoke({
