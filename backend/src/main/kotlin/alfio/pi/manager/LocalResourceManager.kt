@@ -188,11 +188,11 @@ open class PrinterSynchronizer(val printerRepository: PrinterRepository, val pri
 open class LocalPrinterMonitor(val printManager: PrintManager) {
 
     private val monitorInitialized = AtomicBoolean(false)
-    private var watchKey by Delegates.notNull<WatchKey>()
+    private val watcher = FileSystems.getDefault().newWatchService()
     private val connectedPrinters = CopyOnWriteArrayList<SystemPrinter>()
     private val path = Paths.get("/dev/usb/")
 
-    @Scheduled(fixedDelay = 5000L)
+    @Scheduled(fixedDelay = 1000L)
     open fun monitorPrinters() {
         synchronizeLocalPrinters()
         val cupsPrinters = printManager.getAvailablePrinters()
@@ -214,22 +214,25 @@ open class LocalPrinterMonitor(val printManager: PrintManager) {
                 it.filter { it.fileName.toString().startsWith("Alfio") }
                     .mapTo(connectedPrinters, { SystemPrinter(it.fileName.toString()) })
             }
-            val watcher = FileSystems.getDefault().newWatchService()
-            watchKey = path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE)
+            pollEvents(path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE))
             monitorInitialized.set(true)
         } else if(initialized) {
-            watchKey.pollEvents()
-                .filter { it.kind() == StandardWatchEventKinds.ENTRY_CREATE || it.kind() == StandardWatchEventKinds.ENTRY_DELETE}
-                .map { (it.context() as Path).fileName.toString() to it.kind() }
-                .filter { it.first.startsWith("Alfio") }
-                .forEach { p ->
-                    if(p.second == StandardWatchEventKinds.ENTRY_CREATE) {
-                        connectedPrinters.add(SystemPrinter(p.first))
-                    } else {
-                        connectedPrinters.removeIf { it.name == p.first }
-                    }
-                }
-            monitorInitialized.set(watchKey.reset())
+            pollEvents(watcher.take())
         }
+    }
+
+    private fun pollEvents(watchKey: WatchKey) {
+        watchKey.pollEvents()
+            .filter { it.kind() == StandardWatchEventKinds.ENTRY_CREATE || it.kind() == StandardWatchEventKinds.ENTRY_DELETE }
+            .map { (it.context() as Path).fileName.toString() to it.kind() }
+            .filter { it.first.startsWith("Alfio") }
+            .forEach { p ->
+                if (p.second == StandardWatchEventKinds.ENTRY_CREATE) {
+                    connectedPrinters.add(SystemPrinter(p.first))
+                } else {
+                    connectedPrinters.removeIf { it.name == p.first }
+                }
+            }
+        monitorInitialized.set(watchKey.reset())
     }
 }

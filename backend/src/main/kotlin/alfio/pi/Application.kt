@@ -303,11 +303,6 @@ open class DeskWebSecurity : WebSecurityConfigurerAdapter() {
         return repo
     }
 
-    private fun isLocalAddress(address: String) = tryOrDefault<Boolean>().invoke({
-        val inetAddress = InetAddress.getByName(address)
-        inetAddress.isAnyLocalAddress || inetAddress.isLoopbackAddress || NetworkInterface.getByInetAddress(inetAddress) != null
-    }, {false})
-
     override fun authenticationManager(): AuthenticationManager {
         return AuthenticationManager {
             logger.warn("authenticating local user")
@@ -465,3 +460,8 @@ enum class Constants(val value: String) {
     KEY_ALIAS("alfio-pi"),
     KEY_PASS("alfio-pi-key")
 }
+
+fun isLocalAddress(address: String) = tryOrDefault<Boolean>().invoke({
+    val inetAddress = InetAddress.getByName(address)
+    inetAddress.isAnyLocalAddress || inetAddress.isLoopbackAddress || NetworkInterface.getByInetAddress(inetAddress) != null
+}, {false})
