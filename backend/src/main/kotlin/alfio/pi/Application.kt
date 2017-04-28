@@ -191,7 +191,7 @@ open class Application {
             .appendLiteral(':')
             .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
             .toFormatter(Locale.ROOT)
-        return JsonSerializer { src, type, jsonSerializationContext -> JsonPrimitive(src.withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatterBuilder()
+        return JsonSerializer { src, _, _ -> JsonPrimitive(src.withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)
             .appendLiteral('T')

@@ -24,25 +24,21 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import okhttp3.*
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.concurrent.CopyOnWriteArraySet
-import java.util.concurrent.TimeUnit
-import java.util.stream.Collectors
-import javax.net.ssl.SSLContext
-import javax.net.ssl.X509TrustManager
 import java.net.InetAddress
-import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import java.util.stream.Collectors
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceEvent
 import javax.jmdns.ServiceListener
+import javax.net.ssl.SSLContext
+import javax.net.ssl.X509TrustManager
 
 
 private val logger = LoggerFactory.getLogger(PrintManager::class.java)
@@ -70,7 +66,7 @@ open class PrinterAnnouncer(val trustManager: X509TrustManager,
         jmdns.addServiceListener("_http._tcp.local.", object: ServiceListener {
             override fun serviceRemoved(event: ServiceEvent?) {
                 if (MDNS_NAME == event?.info?.name) {
-                    masterUrl.set(null)
+                    logger.info("master has been removed... ${event.info}")
                 }
             }
 
@@ -79,18 +75,18 @@ open class PrinterAnnouncer(val trustManager: X509TrustManager,
 
             override fun serviceResolved(event: ServiceEvent?) {
                 if (MDNS_NAME == event?.info?.name)  {
-                    val resolvedMasterUrl = event?.info?.getPropertyString("url")
+                    val resolvedMasterUrl = event.info.getPropertyString("url")
                     logger.info("Resolved master url: " + resolvedMasterUrl)
                     masterUrl.set(resolvedMasterUrl)
                 }
             }
         })
+        Executors.newScheduledThreadPool(1).scheduleWithFixedDelay({tryOrDefault<Unit>().invoke({uploadPrinters()},{logger.error("error while uploading printers", it)})}, 0, 5, TimeUnit.SECONDS)
     }
 
-    @Scheduled(fixedDelay = 5000L)
     open fun uploadPrinters() {
         val url = masterUrl.get() ?: return
-
+        logger.trace("calling master $url")
         val httpClient = httpClientBuilderWithCustomTimeout(1L, TimeUnit.SECONDS)
             .invoke(httpClient)
             .trustKeyStore(trustManager)
@@ -99,7 +95,10 @@ open class PrinterAnnouncer(val trustManager: X509TrustManager,
             .url("$url/api/printers/register")
             .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(printManager.getAvailablePrinters())))
             .build()
-        val result = httpClient.newCall(request).execute().use { resp -> resp.isSuccessful }
+        val result = httpClient.newCall(request).execute().use { resp ->
+            logger.trace("response status: ${resp.code()}")
+            resp.isSuccessful
+        }
         if(!result) {
             logger.warn("cannot upload printer list...")
         }
@@ -134,7 +133,7 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>): PrintMana
 
     override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
 
-    private val systemPrinterExtractor = Regex("printer (\\S+) .*")
+    private val systemPrinterExtractor = Regex("printer (Alfio\\S+) .*")
 
     private fun getCupsPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
         val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
@@ -182,7 +181,7 @@ open class FullPrintManager(val httpClient: OkHttpClient,
     private fun retrieveRegisteredPrinter(user: User): Optional<Printer> = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
 
     override fun printLabel(user: User, ticket: Ticket): Boolean {
-        logger.info("entering printLabel")
+        logger.trace("entering printLabel")
         val registeredPrinter = retrieveRegisteredPrinter(user)
         return if(registeredPrinter.isPresent) {
             val printer = registeredPrinter.get()
@@ -207,9 +206,9 @@ open class FullPrintManager(val httpClient: OkHttpClient,
         }
 
     private fun remotePrint(printerName: String, ticket: Ticket): Boolean {
-        logger.info("remote print $printerName for ticket $ticket")
+        logger.trace("remote print $printerName for ticket $ticket")
         val remotePrinter = remotePrinters.filter { it.name == printerName }.firstOrNull()
-        logger.info("remote print $printerName for ticket $ticket: remote printer is ${remotePrinter}")
+        logger.trace("remote print $printerName for ticket $ticket: remote printer is $remotePrinter")
         return if(remotePrinter != null) {
             val httpClient = httpClientBuilderWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
@@ -233,9 +232,9 @@ open class FullPrintManager(val httpClient: OkHttpClient,
 
     @EventListener(PrintersRegistered::class)
     open fun onPrinterAdded(event: PrintersRegistered) {
-        logger.info("received ${event.printers.size} printers from ${event.remoteHost}")
+        logger.trace("received ${event.printers.size} printers from ${event.remoteHost}")
         val existing = remotePrinters.filter { it.remoteHost == event.remoteHost }
-        logger.info("saved printers: $remotePrinters")
+        logger.trace("saved printers: $remotePrinters")
         if(event.printers.none() || event.printers.map { it.name }.filter { name -> existing.none { it.name == name } }.any()) {
             logger.info("adding ${event.printers} for ${event.remoteHost}")
             remotePrinters.removeAll(existing)
@@ -248,7 +247,7 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(null, arrayOf(trustManager), null)
     this.sslSocketFactory(sslContext.socketFactory, trustManager)
-    this.hostnameVerifier { hostname, sslSession -> true }//FIXME does it make sense to validate the hostname if we share the same certificate across all devices?
+    this.hostnameVerifier { _, _ -> true }//FIXME does it make sense to validate the hostname if we share the same certificate across all devices?
     return this
 }
 
