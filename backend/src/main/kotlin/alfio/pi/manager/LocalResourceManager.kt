@@ -173,12 +173,12 @@ fun printOnLocalPrinter(printerName: String, ticket: Ticket): (PrintManager) -> 
 @Component
 @Profile("full", "server")
 open class PrinterSynchronizer(val printerRepository: PrinterRepository, val printManager: PrintManager) {
-    @Scheduled(fixedDelay = 10000L)
+    @Scheduled(fixedDelay = 5000L)
     open fun syncPrinters() {
         val existingPrinters = printerRepository.loadAll()
         val systemPrinters = printManager.getAvailablePrinters()
         logger.trace("getSystemPrinters returned ${systemPrinters.size} elements, $systemPrinters")
-        systemPrinters.filter { sp -> existingPrinters.none { e -> e.name.equals(sp.name, true) }}.forEach {
+        systemPrinters.filter { (name) -> existingPrinters.none { e -> e.name.equals(name, true) }}.forEach {
             printerRepository.insert(it.name, "", true)
         }
     }
@@ -226,11 +226,11 @@ open class LocalPrinterMonitor(val printManager: PrintManager) {
             .filter { it.kind() == StandardWatchEventKinds.ENTRY_CREATE || it.kind() == StandardWatchEventKinds.ENTRY_DELETE }
             .map { (it.context() as Path).fileName.toString() to it.kind() }
             .filter { it.first.startsWith("Alfio") }
-            .forEach { p ->
-                if (p.second == StandardWatchEventKinds.ENTRY_CREATE) {
-                    connectedPrinters.add(SystemPrinter(p.first))
+            .forEach { (first, second) ->
+                if (second == StandardWatchEventKinds.ENTRY_CREATE) {
+                    connectedPrinters.add(SystemPrinter(first))
                 } else {
-                    connectedPrinters.removeIf { it.name == p.first }
+                    connectedPrinters.removeIf { it.name == first }
                 }
             }
         monitorInitialized.set(watchKey.reset())

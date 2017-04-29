@@ -62,4 +62,8 @@ export class CheckInComponent implements OnInit {
     this.status = null;
     this.ticket = null;
   }
+
+  setActiveEvent(event: Event) {
+    this.activeEvent = event;
+  }
 }

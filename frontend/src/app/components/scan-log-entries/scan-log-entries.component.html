@@ -6,7 +6,7 @@
   <div class="card-block" *ngIf="entries.length == 0">
     <h4>No scans so far...</h4>
   </div>
-  <div class="card-block" *ngIf="entries.length > 0 && enableFilter">
+  <div class="card-block hidden-md-down" *ngIf="entries.length > 0 && enableFilter">
     <label for="term" class="sr-only">Search</label>
     <input id="term" type="text" class="form-control" [(ngModel)]="term" placeholder="Filter by First Name, Last Name or E-Mail">
   </div>
@@ -14,32 +14,36 @@
     <table class="table table-striped w-100">
       <thead class="thead-default">
         <tr>
-          <th>Event</th>
-          <th>Timestamp</th>
+          <th>&nbsp;</th>
+          <th class="hidden-md-down">Event</th>
           <th>First Name</th>
           <th>Last Name</th>
+          <th>Timestamp</th>
           <th><i class="fa fa-qrcode" title="Local Status"></i></th>
           <th><i class="fa fa-globe" title="Remote Status"></i></th>
           <th><i class="fa fa-print" title="Badge printed"></i></th>
-          <th>&nbsp;</th>
         </tr>
       </thead>
       <tr *ngFor="let ee of entries | filter:term">
-        <td>{{ee.event.name}}</td>
-        <td>{{ee.entry.timestamp | date:'y-MM-dd HH:mm:ss'}}</td>
-        <td>{{ee.entry.ticket.firstName}}</td>
-        <td>{{ee.entry.ticket.lastName}}</td>
-        <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.localResult == 'SUCCESS', 'fa-times-circle text-danger': ee.entry.localResult != 'SUCCESS'}"></i></td>
-        <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.remoteResult == 'SUCCESS', 'fa-times-circle text-danger': ee.entry.remoteResult != 'SUCCESS'}"></i></td>
-        <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.badgePrinted, 'fa-times-circle text-danger': !ee.entry.badgePrinted}"></i></td>
         <td>
             <div ngbDropdown>
               <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
               <div class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                <button class="dropdown-item" *ngFor="let printer of printers" (click)="reprint(ee.entry, printer)">{{printer.name}}</button>
+                <div *ngFor="let printer of printers; last as isLast">
+                  <button class="dropdown-item" (click)="reprint(ee.entry, printer)">{{printer.name}}</button>
+                  <div class="dropdown-divider" *ngIf="!isLast"></div>
+                </div>
               </div>
             </div>
         </td>
+        <td class="hidden-md-down">{{ee.event.name}}</td>
+        <td>{{ee.entry.ticket.firstName}}</td>
+        <td>{{ee.entry.ticket.lastName}}</td>
+        <td class="hidden-md-down">{{ee.entry.timestamp | date:'y-MM-y-MM-dd HH:mm:ss'}}</td>
+        <td class="hidden-lg-up">{{ee.entry.timestamp | date:'HH:mm:ss'}}</td>
+        <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.localResult == 'SUCCESS', 'fa-times-circle text-danger': ee.entry.localResult != 'SUCCESS'}"></i></td>
+        <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.remoteResult == 'SUCCESS', 'fa-times-circle text-danger': ee.entry.remoteResult != 'SUCCESS'}"></i></td>
+        <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.badgePrinted, 'fa-times-circle text-danger': !ee.entry.badgePrinted}"></i></td>
       </tr>
     </table>
   </div>

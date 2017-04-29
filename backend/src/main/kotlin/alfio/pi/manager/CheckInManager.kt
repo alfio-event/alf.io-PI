@@ -116,10 +116,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     private fun doPerformCheckIn(eventName: String, hmac: String, username: String, uuid: String): CheckInResponse {
         return eventRepository.loadSingle(eventName)
             .flatMap { event -> userRepository.findByUsername(username).map { user -> event to user } }
-            .map { eventUser ->
-                val event = eventUser.first
+            .map { (event, user) ->
                 val eventId = event.id
-                val user = eventUser.second
                 scanLogRepository.loadSuccessfulScanForTicket(eventId, uuid)
                     .map(fun(existing: ScanLog) : CheckInResponse = DuplicateScanResult(originalScanLog = existing))
                     .orElseGet {
