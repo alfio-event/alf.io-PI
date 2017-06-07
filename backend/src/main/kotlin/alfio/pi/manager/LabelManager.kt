@@ -91,7 +91,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
 
 internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
     val sizes = maxLengthForSize.map {
-        val (maxLength, fontSize) = it
+        (maxLength, fontSize) ->
         checkTextLength(compactText, content, fontSize, maxLength)
     }
     return Optional.ofNullable(sizes.firstOrNull { it.first })
@@ -115,7 +115,7 @@ private fun checkTextLength(compactText: Boolean, content: String, fontSize: Flo
     }
 }
 
-private fun compact(text: String): String = text.splitToSequence(" ").mapIndexed { i, s -> if(i > 0) { "${s.substring(0,1)}." } else {s} }.joinToString(" ")
+private fun compact(text: String): String = text.trim().splitToSequence(" ").mapIndexed { i, s -> if(i > 0 && s.isNotEmpty()) { "${s.substring(0,1)}." } else {s} }.joinToString(" ")
 
 fun generatePDFLabel(firstName: String, lastName: String, company: String, ticketUUID: String): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
