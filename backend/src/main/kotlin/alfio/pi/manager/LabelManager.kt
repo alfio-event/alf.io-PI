@@ -117,14 +117,14 @@ private fun checkTextLength(compactText: Boolean, content: String, fontSize: Flo
 
 private fun compact(text: String): String = text.trim().splitToSequence(" ").mapIndexed { i, s -> if(i > 0 && s.isNotEmpty()) { "${s.substring(0,1)}." } else {s} }.joinToString(" ")
 
-fun generatePDFLabel(firstName: String, lastName: String, company: String, ticketUUID: String): (LabelTemplate) -> ByteArray = { template ->
+fun generatePDFLabel(firstName: String, lastName: String, company: String, ticketUUID: String, qrCodeContent: String = ticketUUID): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
     val out = ByteArrayOutputStream()
     document.use {
         val page = PDPage(template.getPageDimensions())
         val pageWidth = page.mediaBox.width
         it.addPage(page)
-        val qr = LosslessFactory.createFromImage(it, generateQRCode(ticketUUID))
+        val qr = LosslessFactory.createFromImage(it, generateQRCode(qrCodeContent))
         val contentStream = PDPageContentStream(it, page, PDPageContentStream.AppendMode.OVERWRITE, false)
         template.writeContent(contentStream, pageWidth, LabelContent(firstName, lastName, company, qr, ticketUUID.substringBefore('-').toUpperCase()), {PDType0Font.load(document, it)})
         it.save(out)
