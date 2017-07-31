@@ -1,5 +1,10 @@
 # alf.io-PI
+
+
+[![Build Status](https://travis-ci.org/exteso/alf.io-PI.svg?branch=master)](https://travis-ci.org/exteso/alf.io-PI)
+
 Raspberry-Pi 3 version for offline check-in
+
 
 ## Development
 
