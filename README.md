@@ -12,7 +12,7 @@ Install latest npm and angular-cli
 
 ```bash
 npm install npm -g
-npm install angular-cli -g
+npm install @angular/cli -g
 ```
 
 ### Configuration
