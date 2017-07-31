@@ -6,9 +6,9 @@
   <div class="card-block" *ngIf="entries.length == 0">
     <h4>No scans so far...</h4>
   </div>
-  <div class="card-block hidden-md-down" *ngIf="entries.length > 0 && enableFilter">
+  <div class="card-block" *ngIf="entries.length > 0 && enableFilter">
     <label for="term" class="sr-only">Search</label>
-    <input id="term" type="text" class="form-control" [(ngModel)]="term" placeholder="Filter by First Name, Last Name or E-Mail">
+    <input id="term" ng-virtual-keyboard ng-virtual-keyboard-layout="alphanumeric" type="text" class="form-control" [(ngModel)]="term" placeholder="Filter by First Name, Last Name or E-Mail">
   </div>
   <div class="w-100" *ngIf="entries.length > 0">
     <table class="table table-striped w-100">
