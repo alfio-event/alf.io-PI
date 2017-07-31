@@ -14,3 +14,12 @@
 .pointer {
   cursor: pointer;
 }
+
+
+virtual-keyboard > div > div {
+  transform: scale(0.7);
+}
+
+md-dialog-container.mat-dialog-container {
+  max-width: inherit;
+}
