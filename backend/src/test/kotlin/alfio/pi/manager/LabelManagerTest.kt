@@ -18,6 +18,7 @@
 package alfio.pi.manager
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LabelManagerTest {
@@ -37,6 +38,12 @@ class LabelManagerTest {
         assertEquals("George William" to 18F, optimizeText("George William", maxLengthForSize, false))
         assertEquals("George W. H." to 22F, optimizeText("George William Henry", maxLengthForSize, true))
         assertEquals("George William " to 18F, optimizeText("George William Henry Arthur", maxLengthForSize, false))
+    }
+
+    @Test
+    fun testGenerateLabel() {
+        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678").invoke(DymoLW450Turbo41x89())
+        assertTrue(bytes.isNotEmpty())
     }
 
 
