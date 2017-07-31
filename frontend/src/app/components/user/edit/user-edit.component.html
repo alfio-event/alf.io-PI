@@ -19,7 +19,7 @@
     <h4><span *ngIf="displayReset">Edit</span><span *ngIf="!displayReset">Create</span> user <close-detail></close-detail></h4>
     <div class="form-group">
       <label class="sr-only" for="username">Username</label>
-      <input id="username" class="form-control mb-2 mr-sm-2 mb-sm-0" *ngIf="!displayReset" type="text" [formControl]="username" placeholder="username">
+      <input ng-virtual-keyboard ng-virtual-keyboard-layout="alphanumeric" id="username" class="form-control mb-2 mr-sm-2 mb-sm-0" *ngIf="!displayReset" type="text" [formControl]="username" placeholder="username">
       <p class="form-control-static" *ngIf="displayReset">{{user.username}}</p>
     </div>
     <button type="button" class="btn btn-sm btn-warning" *ngIf="!displayReset" (click)="create()">Create</button>

@@ -3,6 +3,8 @@ import {NgModule} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 import {HttpModule} from "@angular/http";
 import {RouterModule} from "@angular/router";
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {NgVirtualKeyboardModule} from '@protacon/ng-virtual-keyboard';
 import {AppComponent} from "./app.component";
 import {UserEditComponent} from "./components/user/edit/user-edit.component";
 import {UserViewComponent} from "./components/user/view/user-view.component";
@@ -66,6 +68,8 @@ import {ScanService} from "./scan-module/scan/scan.service";
     ReactiveFormsModule,
     HttpModule,
     DragulaModule,
+    NoopAnimationsModule,
+    NgVirtualKeyboardModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, children: [
         { path: 'user/new', component: UserEditComponent },
