@@ -30,6 +30,10 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.*
+import org.jgroups.blocks.MethodCall
+import org.jgroups.blocks.RequestOptions
+import org.jgroups.blocks.ResponseMode
+import org.jgroups.blocks.RpcDispatcher
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
@@ -75,7 +79,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                               val gson: Gson,
                               val httpClient: OkHttpClient,
                               val printManager: PrintManager,
-                              val publisher: SystemEventManager) {
+                              val publisher: SystemEventManager,
+                              val cluster: JGroupsCluster) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -179,27 +184,34 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     }
 
     private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
-        val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
-        val request = Request.Builder()
-            .addHeader("Authorization", Credentials.basic(master.username, master.password))
-            .post(requestBody)
-            .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username")
-            .build()
-        httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
-            .invoke(httpClient)
-            .newCall(request)
-            .execute()
-            .use { resp ->
-                if(resp.isSuccessful) {
-                    gson.fromJson(resp.body().string(), TicketAndCheckInResult::class.java)
-                } else {
-                    EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
+
+        if(!cluster.isLeader()) {
+            val method = javaClass.getMethod("remoteCheckIn", javaClass, javaClass, javaClass, javaClass)
+            cluster.remoteCheckInToMaster(this, method, eventKey, uuid, hmac, username)
+        } else {
+            val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
+            val request = Request.Builder()
+                .addHeader("Authorization", Credentials.basic(master.username, master.password))
+                .post(requestBody)
+                .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username")
+                .build()
+            httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
+                .invoke(httpClient)
+                .newCall(request)
+                .execute()
+                .use { resp ->
+                    if (resp.isSuccessful) {
+                        gson.fromJson(resp.body().string(), TicketAndCheckInResult::class.java)
+                    } else {
+                        EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
+                    }
                 }
-            }
+        }
     }, {
         logger.warn("got Exception while performing remote check-in")
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
     })
+
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
