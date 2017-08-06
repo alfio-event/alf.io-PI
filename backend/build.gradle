@@ -96,6 +96,7 @@ dependencies {
     compile("com.google.code.gson:gson:2.8.0")
     compile("org.bouncycastle:bcpkix-jdk15on:1.53")
     compile('org.jmdns:jmdns:3.5.1')
+    compile 'org.jgroups:jgroups:4.0.4.Final'
     runtime('org.hsqldb:hsqldb')
     runtime project(':frontend')
     testCompile('org.springframework.boot:spring-boot-starter-test')
