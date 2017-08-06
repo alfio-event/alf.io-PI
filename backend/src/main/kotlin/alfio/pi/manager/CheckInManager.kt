@@ -84,7 +84,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
 
     private fun getLocalTicketData(event: Event, uuid: String, hmac: String) : CheckInResponse {
         val eventData = eventAttendeesCache.computeIfAbsent(event.key, {
-            val result = loadCachedAttendees(it).second
+            val result = loadCachedAttendees(it, null).second
             if(result.isNotEmpty()) {
                 eventRepository.updateTimestamp(it, ZonedDateTime.now())
             }
@@ -151,10 +151,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             ticket
         }
 
-    internal fun loadCachedAttendees(eventName: String) : Pair<String, Map<String, String>> {
+    internal fun loadCachedAttendees(eventName: String, since: Long?) : Pair<String, Map<String, String>> {
         if(!cluster.isLeader()) {
-            val method = javaClass.getMethod("loadCachedAttendees", String.javaClass)
-            return cluster.remoteLoadCachedAttendees(this, method, eventName)
+            val method = javaClass.getMethod("loadCachedAttendees", String.javaClass, Long.javaClass)
+            return cluster.remoteLoadCachedAttendees(this, method, eventName, null)
         }
 
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
@@ -168,6 +168,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 .use { resp ->
                     if(resp.isSuccessful) {
                         val body = resp.body().string()
+                        val serverTime = resp.header("Alfio-TIME") //FIXME
                         body to parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
                         logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
@@ -322,7 +323,7 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
         logger.trace("downloading attendees data")
         eventAttendeesCache.entries
             .map {
-                val dataResult = checkInDataManager.loadCachedAttendees(it.key)
+                val dataResult = checkInDataManager.loadCachedAttendees(it.key, null)
                 Triple(it, dataResult.second, dataResult.first)
             }
             .filter { it.second.isNotEmpty() }
@@ -359,7 +360,7 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager,
     open fun onDemandSync(events: List<RemoteEvent>) {
         logger.debug("on-demand synchronization")
         val (existing, notExisting) = events.map { it.key!! to eventAttendeesCache[it.key] }
-            .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first).second) }
+            .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first, null).second) }
             .filter { it.third.isNotEmpty() }
             .partition { it.second != null }
 
