@@ -152,6 +152,11 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         }
 
     internal fun loadCachedAttendees(eventName: String) : Pair<String, Map<String, String>> {
+        if(!cluster.isLeader()) {
+            val method = javaClass.getMethod("loadCachedAttendees", String.javaClass)
+            return cluster.remoteLoadCachedAttendees(this, method, eventName)
+        }
+
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
         return tryOrDefault<Pair<String, Map<String, String>>>().invoke({
             val request = Request.Builder()
@@ -182,7 +187,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
 
         if(!cluster.isLeader()) {
-            val method = javaClass.getMethod("remoteCheckIn", javaClass, javaClass, javaClass, javaClass)
+            val method = javaClass.getMethod("remoteCheckIn", String.javaClass, String.javaClass, String.javaClass, String.javaClass)
             cluster.remoteCheckInToMaster(this, method, eventKey, uuid, hmac, username)
         } else {
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))

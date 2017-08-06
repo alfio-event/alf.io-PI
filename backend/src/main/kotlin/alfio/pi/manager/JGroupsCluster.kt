@@ -36,9 +36,19 @@ open class JGroupsCluster {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
         val disp = RpcDispatcher(channel, checkInDataManager)
 
-        var remoteCheckInCall = MethodCall(method)
+        val remoteCheckInCall = MethodCall(method)
         remoteCheckInCall.setArgs(eventKey, uuid, hmac, username)
 
-        return disp.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts);
+        return disp.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
+    }
+
+    open fun remoteLoadCachedAttendees(checkInDataManager: CheckInDataManager, method: Method, eventName: String) : Pair<String, Map<String, String>> {
+        val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
+        val disp = RpcDispatcher(channel, checkInDataManager)
+
+        val remoteLoadCachedAttendeesCall = MethodCall(method)
+        remoteLoadCachedAttendeesCall.setArgs(eventName)
+
+        return disp.callRemoteMethod<Pair<String, Map<String, String>>>(getLeaderAddress(), remoteLoadCachedAttendeesCall, opts)
     }
 }
