@@ -113,19 +113,16 @@ interface EventRepository {
 }
 
 @QueryRepository
-interface EventDataRepository {
-    @Query(type = QueryType.TEMPLATE, value = "update event_data set data = ?, last_update = ? where key = ?")
-    fun updateTemplate(): String
+interface AttendeeDataRepository {
+    @Query(type = QueryType.TEMPLATE, value ="""merge into attendee_data using (values (:event, :identifier, :data, :last_update))
+        as vals(event, identifier, data, last_update) on attendee_data.event = vals.event and attendee_data.identifier = vals.identifier
+        when matched then update set attendee_data.data = vals.data, attendee_data.last_update = vals.last_update
+        when not matched then insert values vals.event, vals.identifier, vals.data, vals.last_update""")
+    fun mergeTemplate(): String
 
-    @Query(type = QueryType.TEMPLATE, value = "insert into event_data (data, last_update, key) values(?, ?, ?)")
-    fun insertTemplate(): String
+    @Query("select true from attendee_data  where event = :event and identifier = :identifier limit 1")
+    fun isPresent(@Bind("event") event: String, @Bind("identifier") identifier: String) : Boolean
 
-    @Query("select count(key) from event_data where key = :key")
-    fun isPresent(@Bind("key") key: String): Int
-
-    @Query("select key from event_data")
-    fun loadAllKeys(): List<String>
-
-    @Query(type = QueryType.TEMPLATE, value = "select data from event_data where key = :key")
-    fun loadEventDataTemplate(): String
+    @Query("select data from attendee_data  where event = :event and identifier = :identifier limit 1")
+    fun getData(@Bind("event") event: String, @Bind("identifier") identifier: String) : String
 }

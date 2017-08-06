@@ -42,13 +42,13 @@ open class JGroupsCluster {
         return disp.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
     }
 
-    open fun remoteLoadCachedAttendees(checkInDataManager: CheckInDataManager, method: Method, eventName: String, since: Long?) : Pair<String, Map<String, String>> {
+    open fun remoteLoadCachedAttendees(checkInDataManager: CheckInDataManager, method: Method, eventName: String, since: Long?) : Map<String, String> {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
         val disp = RpcDispatcher(channel, checkInDataManager)
 
         val remoteLoadCachedAttendeesCall = MethodCall(method)
         remoteLoadCachedAttendeesCall.setArgs(eventName, since)
 
-        return disp.callRemoteMethod<Pair<String, Map<String, String>>>(getLeaderAddress(), remoteLoadCachedAttendeesCall, opts)
+        return disp.callRemoteMethod<Map<String, String>>(getLeaderAddress(), remoteLoadCachedAttendeesCall, opts)
     }
 }
