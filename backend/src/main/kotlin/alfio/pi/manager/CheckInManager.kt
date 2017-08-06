@@ -30,10 +30,6 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.*
-import org.jgroups.blocks.MethodCall
-import org.jgroups.blocks.RequestOptions
-import org.jgroups.blocks.ResponseMode
-import org.jgroups.blocks.RpcDispatcher
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
