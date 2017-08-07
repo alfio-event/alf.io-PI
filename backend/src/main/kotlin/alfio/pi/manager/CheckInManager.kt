@@ -42,6 +42,7 @@ import java.security.GeneralSecurityException
 import java.security.MessageDigest
 import java.time.ZonedDateTime
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import javax.crypto.Cipher
@@ -49,6 +50,9 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
+
+
+private val lastUpdatedEvent: ConcurrentHashMap<String, Long> = ConcurrentHashMap();
 
 @Component
 @Profile("server", "full")
@@ -151,7 +155,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             return cluster.remoteLoadCachedAttendees(this, method, eventName, null)
         }
 
-        val url = "${master.url}/admin/api/check-in/$eventName/offline"
+        val changedSinceParam = if(since == null) "" else "?changedSince=$since"
+
+        val url = "${master.url}/admin/api/check-in/$eventName/offline$changedSinceParam"
         return tryOrDefault<Map<String, String>>().invoke({
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
@@ -162,7 +168,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 .use { resp ->
                     if(resp.isSuccessful) {
                         val body = resp.body().string()
-                        val serverTime = resp.header("Alfio-TIME") //FIXME
+                        val serverTime = resp.header("Alfio-TIME")
+                        lastUpdatedEvent.put(eventName, serverTime.toLong())
                         parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
                         logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
@@ -236,7 +243,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     }
 
     fun  syncAttendees(eventName: String) {
-        val attendeesForEvent = loadCachedAttendees(eventName, null)
+        val lastUpdateForEvent = lastUpdatedEvent.get(eventName)
+        val attendeesForEvent = loadCachedAttendees(eventName, lastUpdateForEvent)
         val batchedUpdate = attendeesForEvent.map {
             MapSqlParameterSource()
                 .addValue("event", eventName)
