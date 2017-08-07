@@ -299,85 +299,24 @@ internal fun calcHash256(hmac: String) : String {
 
 @Component
 @Profile("server", "full")
-open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager) {
+open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager, val remoteResourceManager: RemoteResourceManager) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        /*eventDataRepository.loadAllKeys().forEach { key ->
-            logger.trace("preload event data for $key")
-            jdbc.query(eventDataRepository.loadEventDataTemplate(), MapSqlParameterSource("key", key), { rs ->
-                tryOrDefault<Unit>().invoke({
-                    ByteArrayOutputStream().use { baos ->
-                        rs.getBinaryStream("data").use({ s -> StreamUtils.copy(s, baos) })
-                        eventAttendeesCache.putIfAbsent(key, parseTicketDataResponse(String(baos.toByteArray())).invoke(gson))
-                        logger.trace("done.")
-                    }
-                }, {logger.error("cannot load stored event data for $key", it)})
-            })
-        }*/
+        performSync()
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
         logger.trace("downloading attendees data")
-        /*eventAttendeesCache.entries
-            .map {
-                val dataResult = checkInDataManager.loadCachedAttendees(it.key, null)
-                Triple(it, dataResult.second, dataResult.first)
-            }
-            .filter { it.second.isNotEmpty() }
-            .forEach {
-                val eventKey = it.first.key
-                val result = eventAttendeesCache.replace(eventKey, it.first.value, it.second)
-                if(result) {
-                    val lastUpdate = ZonedDateTime.now()
-                    eventRepository.updateTimestamp(eventKey, lastUpdate)
-                    insertOrUpdateEventData(eventKey, it.third, lastUpdate)
-                    publisher.publishEvent(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventKey, lastUpdate)))
-                }
-                logger.trace("tried to replace value for $eventKey, result: $result")
-            }*/
+        val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
+        onDemandSync(remoteEvents)
     }
-
-    /*private fun insertOrUpdateEventData(key: String, data: String, lastUpdate: ZonedDateTime) {
-        val lobHandler = DefaultLobHandler()
-        val query = if(eventDataRepository.isPresent(key) == 1) {
-            eventDataRepository.updateTemplate()
-        } else {
-            eventDataRepository.insertTemplate()
-        }
-        jdbc.jdbcOperations.execute(query,
-            object : AbstractLobCreatingPreparedStatementCallback(lobHandler) {
-                override fun setValues(ps: PreparedStatement, lobCreator: LobCreator) {
-                    lobCreator.setBlobAsBytes(ps, 1, data.toByteArray())
-                    ps.setDate(2, Date(lastUpdate.withZoneSameInstant(ZoneId.of("UTC")).toInstant().toEpochMilli()))
-                    ps.setString(3, key)
-                }
-            })
-    }*/
 
     open fun onDemandSync(events: List<RemoteEvent>) {
         logger.debug("on-demand synchronization")
-
-        // TODO: remove old codepath
-        /*
-        val (existing, notExisting) = events.map { it.key!! to eventAttendeesCache[it.key] }
-            .map { Triple(it.first, it.second, checkInDataManager.loadCachedAttendees(it.first, null).second) }
-            .filter { it.third.isNotEmpty() }
-            .partition { it.second != null }
-
-        existing.forEach {
-            val result = eventAttendeesCache.replace(it.first, it.second, it.third)
-            logger.trace("tried to replace value for ${it.first}, result: $result")
-        }
-        notExisting.forEach {
-            val result = eventAttendeesCache.putIfAbsent(it.first, it.third)
-            logger.trace("tried to insert ${it.first}, result: $result")
-        }*/
-        // end old codepath
-
         events.map {
             val eventName = it.key;
             if(eventName != null) {
