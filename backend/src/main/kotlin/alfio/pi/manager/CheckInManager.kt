@@ -149,11 +149,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             ticket
         }
 
-    internal fun loadCachedAttendees(eventName: String, since: Long?) : Map<String, String> {
-        if(!cluster.isLeader()) {
-            val method = javaClass.getMethod("loadCachedAttendees", String::class.java, Long::class.java)
+    open fun loadCachedAttendees(eventName: String, since: Long?) : Map<String, String> {
+        /*if(!cluster.isLeader()) {
+            logger.info("leader address is ${cluster.getLeaderAddress().toString()}")
+            val method = javaClass.getMethod("loadCachedAttendees", String::class.java, Long::class.javaObjectType)
             return cluster.remoteLoadCachedAttendees(this, method, eventName, null)
-        }
+        }*/
 
         val changedSinceParam = if(since == null) "" else "?changedSince=$since"
 
@@ -186,7 +187,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         })
     }
 
-    private fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
+    open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
 
         if(!cluster.isLeader()) {
             val method = javaClass.getMethod("remoteCheckIn", String::class.java, String::class.java, String::class.java, String::class.java)
