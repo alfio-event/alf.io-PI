@@ -149,6 +149,40 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             ticket
         }
 
+
+    open fun loadIds(eventName: String, since: Long?) : List<Integer> {
+        val changedSinceParam = if (since == null) "" else "?changedSince=$since"
+
+        val idsUrl = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
+
+        val request = Request.Builder()
+            .addHeader("Authorization", Credentials.basic(master.username, master.password))
+            .url(idsUrl)
+            .build()
+        return httpClient.newCall(request).execute().use { resp ->
+            if (resp.isSuccessful) {
+                val body = resp.body().string()
+                val serverTime = resp.header("Alfio-TIME")
+                lastUpdatedEvent.put(eventName, serverTime.toLong())
+                parseIdsResponse(body).invoke(gson)
+            } else {
+                listOf()
+            }
+        }
+    }
+
+    // imported from https://stackoverflow.com/a/40723106
+    fun <T> Iterable<T>.partition(size: Int): List<List<T>> = with(iterator()) {
+        check(size > 0)
+        val partitions = mutableListOf<List<T>>()
+        while (hasNext()) {
+            val partition = mutableListOf<T>()
+            do partition.add(next()) while (hasNext() && partition.size < size)
+            partitions += partition
+        }
+        return partitions
+    }
+
     open fun loadCachedAttendees(eventName: String, since: Long?) : Map<String, String> {
         /*if(!cluster.isLeader()) {
             logger.info("leader address is ${cluster.getLeaderAddress().toString()}")
@@ -156,18 +190,33 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             return cluster.remoteLoadCachedAttendees(this, method, eventName, null)
         }*/
 
-        val changedSinceParam = if(since == null) "" else "?changedSince=$since"
+        val ids = loadIds(eventName, since)
 
-        val url = "${master.url}/admin/api/check-in/$eventName/offline$changedSinceParam"
+        logger.info("found ${ids.size} for event ${eventName}")
+
+        val res = HashMap<String, String>()
+        if(!ids.isEmpty()) {
+            ids.partition(200).forEach {
+                val partitionedIds = it
+                res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
+            }
+        }
+
+        return res;
+    }
+
+    private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Integer>) : Map<String, String> {
+        val url = "${master.url}/admin/api/check-in/$eventName/offline"
         return tryOrDefault<Map<String, String>>().invoke({
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
                 .url(url)
+                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
                 .build()
             httpClient.newCall(request)
                 .execute()
                 .use { resp ->
-                    if(resp.isSuccessful) {
+                    if (resp.isSuccessful) {
                         val body = resp.body().string()
                         val serverTime = resp.header("Alfio-TIME")
                         lastUpdatedEvent.put(eventName, serverTime.toLong())
@@ -178,7 +227,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                     }
                 }
         }, {
-            if(logger.isTraceEnabled) {
+            if (logger.isTraceEnabled) {
                 logger.trace("Got exception while trying to load the attendees", it)
             } else {
                 logger.error("Cannot load remote attendees: $it")
@@ -243,7 +292,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         logger.info("******** upload completed **********")
     }
 
-    fun  syncAttendees(eventName: String) {
+    fun syncAttendees(eventName: String) {
         val lastUpdateForEvent = lastUpdatedEvent.get(eventName)
         val attendeesForEvent = loadCachedAttendees(eventName, lastUpdateForEvent)
         val batchedUpdate = attendeesForEvent.map {
@@ -262,6 +311,7 @@ fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (
 }
 
 fun parseTicketDataResponse(body: String): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }
+fun parseIdsResponse(body: String): (Gson) -> List<Integer> = {gson ->  gson.fromJson(body, object: TypeToken<List<Integer>>() {}.type)}
 
 private fun decrypt(key: String, payload: String): String {
     try {
