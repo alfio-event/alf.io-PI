@@ -150,7 +150,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         }
 
 
-    open fun loadIds(eventName: String, since: Long?) : List<Integer> {
+    open fun loadIds(eventName: String, since: Long?) : Pair<List<Integer>, Long> {
         val changedSinceParam = if (since == null) "" else "?changedSince=$since"
 
         val idsUrl = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
@@ -162,11 +162,11 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         return httpClient.newCall(request).execute().use { resp ->
             if (resp.isSuccessful) {
                 val body = resp.body().string()
-                val serverTime = resp.header("Alfio-TIME")
-                lastUpdatedEvent.put(eventName, serverTime.toLong())
-                parseIdsResponse(body).invoke(gson)
+                val serverTime = resp.header("Alfio-TIME").toLong()
+                lastUpdatedEvent.put(eventName, serverTime)
+                Pair(parseIdsResponse(body).invoke(gson), serverTime)
             } else {
-                listOf()
+                Pair(listOf(), 0)
             }
         }
     }
@@ -183,14 +183,15 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         return partitions
     }
 
-    open fun loadCachedAttendees(eventName: String, since: Long?) : Map<String, String> {
+    open fun loadCachedAttendees(eventName: String, since: Long?) : Pair<Map<String, String>, Long> {
         /*if(!cluster.isLeader()) {
             logger.info("leader address is ${cluster.getLeaderAddress().toString()}")
             val method = javaClass.getMethod("loadCachedAttendees", String::class.java, Long::class.javaObjectType)
             return cluster.remoteLoadCachedAttendees(this, method, eventName, null)
         }*/
 
-        val ids = loadIds(eventName, since)
+        val idsAndTime = loadIds(eventName, since)
+        val ids = idsAndTime.first
 
         logger.info("found ${ids.size} for event ${eventName}")
 
@@ -198,11 +199,15 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         if(!ids.isEmpty()) {
             ids.partition(200).forEach {
                 val partitionedIds = it
+                logger.info("loading ${it.size}")
                 res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
+                logger.info("finished loading ${it.size}")
             }
         }
 
-        return res;
+        logger.info("finished loading")
+
+        return Pair(res, idsAndTime.second)
     }
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Integer>) : Map<String, String> {
@@ -218,8 +223,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                 .use { resp ->
                     if (resp.isSuccessful) {
                         val body = resp.body().string()
-                        val serverTime = resp.header("Alfio-TIME")
-                        lastUpdatedEvent.put(eventName, serverTime.toLong())
                         parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
                         logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
@@ -294,13 +297,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
 
     fun syncAttendees(eventName: String) {
         val lastUpdateForEvent = lastUpdatedEvent.get(eventName)
-        val attendeesForEvent = loadCachedAttendees(eventName, lastUpdateForEvent)
+        val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
+        val attendeesForEvent = attendeesForEventAndTime.first
         val batchedUpdate = attendeesForEvent.map {
             MapSqlParameterSource()
                 .addValue("event", eventName)
                 .addValue("identifier", it.key)
                 .addValue("data", it.value)
-                .addValue("last_update", 0)
+                .addValue("last_update", attendeesForEventAndTime.second)
         }.toTypedArray()
         jdbc.batchUpdate(attendeeDataRepository.mergeTemplate(), batchedUpdate)
     }
