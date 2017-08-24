@@ -23,13 +23,13 @@ open class JGroupsCluster {
     }
 
     open fun isLeader(): Boolean {
-        return getLeaderAddress().equals(channel.address)
+        return getLeaderAddress() == channel.address
     }
 
     open fun getLeaderAddress(): Address {
         // first member is considered the leader.
         // as per doc: These addresses are ordered, and the first address is always the coordinator of the view.
-        return channel.view.members.get(0)
+        return channel.view.members[0]
     }
 
     open fun remoteCheckInToMaster(checkInDataManager: CheckInDataManager, method: Method, eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse {
