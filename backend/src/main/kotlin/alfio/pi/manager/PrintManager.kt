@@ -44,18 +44,18 @@ import javax.net.ssl.X509TrustManager
 private val logger = LoggerFactory.getLogger(PrintManager::class.java)
 
 interface PrintManager {
-    fun printLabel(printer: Printer, ticket: Ticket): Boolean
+    fun printLabel(printer: Printer, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean
     fun getAvailablePrinters(): List<SystemPrinter>
-    fun printLabel(user: User, ticket: Ticket): Boolean
+    fun printLabel(user: User, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean
     fun printTestLabel(printer: Printer): Boolean
 }
 
 @Component
 @Profile("printer")
-open class PrinterAnnouncer(val trustManager: X509TrustManager,
-                            val httpClient: OkHttpClient,
-                            val printManager: PrintManager,
-                            val gson: Gson) {
+open class PrinterAnnouncer(private val trustManager: X509TrustManager,
+                            private val httpClient: OkHttpClient,
+                            private val printManager: PrintManager,
+                            private val gson: Gson) {
 
     private val masterUrl = AtomicReference<String>()
     private val MDNS_NAME = "alfio-server"
@@ -108,15 +108,13 @@ open class PrinterAnnouncer(val trustManager: X509TrustManager,
 
 @Component
 @Profile("printer")
-open class LocalPrintManager(val labelTemplates: List<LabelTemplate>): PrintManager {
+open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>): PrintManager {
 
-    override fun printLabel(printer: Printer, ticket: Ticket): Boolean {
+    override fun printLabel(printer: Printer, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean {
         return tryOrDefault<Boolean>().invoke({
-            val localPrinter = getCupsPrinters()
-                .filter { it.name == printer.name }
-                .firstOrNull()
+            val localPrinter = getCupsPrinters().firstOrNull { it.name == printer.name }
             if(localPrinter != null) {
-                doPrint(labelTemplates.first(), printer.name, ticket)
+                doPrint(labelTemplates.first(), printer.name, ticket, labelConfiguration)
             } else {
                 logger.warn("cannot find local printer ${printer.name}")
                 false
@@ -129,9 +127,9 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>): PrintMana
 
     override fun getAvailablePrinters(): List<SystemPrinter> = getCupsPrinters()
 
-    override fun printLabel(user: User, ticket: Ticket): Boolean = false
+    override fun printLabel(user: User, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean = false
 
-    override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, "Test Company Ltd."))
+    override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, mapOf("company" to "Test Company Ltd.")), null)
 
     private val systemPrinterExtractor = Regex("printer (Alfio\\S+) .*")
 
@@ -151,8 +149,21 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>): PrintMana
         mutableListOf()
     })
 
-    private fun doPrint(labelTemplate: LabelTemplate, name: String, ticket: Ticket): Boolean {
-        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, ticket.company.orEmpty(), ticket.uuid).invoke(labelTemplate)
+    private fun doPrint(labelTemplate: LabelTemplate, name: String, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean {
+        val configurableContent = if(labelConfiguration?.layout != null) {
+            val layout: LabelLayout = labelConfiguration.layout
+            val row = layout.content.thirdRow.map { ticket.additionalInfo[it].orEmpty() }.filter(String::isNotEmpty).joinToString(separator = " ")
+            val qrContent = layout.qrCode.additionalInfo.map { ticket.additionalInfo[it].orEmpty() }.filter(String::isNotEmpty).joinToString(separator = layout.qrCode.infoSeparator)
+            val partialID = if(layout.general.printPartialID) {
+                ticket.uuid.substringBefore('-').toUpperCase()
+            } else {
+                ""
+            }
+            Triple(row , qrContent, partialID)
+        } else {
+            Triple("", ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
+        }
+        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, configurableContent.first, ticket.uuid, configurableContent.second, configurableContent.third).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace(cmd)
         val print = Runtime.getRuntime().exec(cmd)
@@ -169,23 +180,23 @@ open class LocalPrintManager(val labelTemplates: List<LabelTemplate>): PrintMana
  */
 @Component
 @Profile("server", "full")
-open class FullPrintManager(val httpClient: OkHttpClient,
+open class FullPrintManager(private val httpClient: OkHttpClient,
                             labelTemplates: List<LabelTemplate>,
-                            val userPrinterRepository: UserPrinterRepository,
-                            val printerRepository: PrinterRepository,
-                            val gson: Gson,
-                            val trustManager: X509TrustManager): LocalPrintManager(labelTemplates) {
+                            private val userPrinterRepository: UserPrinterRepository,
+                            private val printerRepository: PrinterRepository,
+                            private val gson: Gson,
+                            private val trustManager: X509TrustManager): LocalPrintManager(labelTemplates) {
 
-    val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
+    private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 
     private fun retrieveRegisteredPrinter(user: User): Optional<Printer> = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
 
-    override fun printLabel(user: User, ticket: Ticket): Boolean {
+    override fun printLabel(user: User, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean {
         logger.trace("entering printLabel")
         val registeredPrinter = retrieveRegisteredPrinter(user)
         return if(registeredPrinter.isPresent) {
             val printer = registeredPrinter.get()
-            printLabel(printer, ticket)
+            printLabel(printer, ticket, labelConfiguration)
         } else {
             logger.debug("can't find printer for user ${user.username}")
             false
@@ -198,11 +209,11 @@ open class FullPrintManager(val httpClient: OkHttpClient,
         return availablePrinters
     }
 
-    override fun printLabel(printer: Printer, ticket: Ticket): Boolean =
+    override fun printLabel(printer: Printer, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean =
         if(remotePrinters.any { it.name == printer.name }) {
             remotePrint(printer.name, ticket)
         } else {
-            super.printLabel(printer, ticket)
+            super.printLabel(printer, ticket, labelConfiguration)
         }
 
     private fun remotePrint(printerName: String, ticket: Ticket): Boolean {

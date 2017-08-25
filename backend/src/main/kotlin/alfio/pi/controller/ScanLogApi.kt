@@ -21,6 +21,7 @@ import alfio.pi.manager.*
 import alfio.pi.model.Event
 import alfio.pi.model.ScanLog
 import alfio.pi.repository.EventRepository
+import alfio.pi.repository.LabelConfigurationRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.ScanLogRepository
 import org.springframework.context.annotation.Profile
@@ -33,7 +34,10 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/internal/scan-log")
 @Profile("server", "full")
-open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManager: PrintManager, val printerRepository: PrinterRepository) {
+open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
+                       private val printManager: PrintManager,
+                       private val printerRepository: PrinterRepository,
+                       private val labelConfigurationRepository: LabelConfigurationRepository) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
@@ -44,9 +48,9 @@ open class ScanLogApi (val scanLogRepository: ScanLogRepository, val printManage
     @RequestMapping(value = "/{entryId}/reprint", method = arrayOf(RequestMethod.PUT))
     open fun reprint(@PathVariable("entryId") entryId: Int,
                      @RequestBody form: ReprintForm): ResponseEntity<Boolean> {
-        val printerId = form.printer;
+        val printerId = form.printer
         return if(printerId != null) {
-            ResponseEntity.ok(reprintBadge(entryId, printerId).invoke(printManager, printerRepository, scanLogRepository))
+            ResponseEntity.ok(reprintBadge(entryId, printerId).invoke(printManager, printerRepository, scanLogRepository, labelConfigurationRepository))
         } else {
             ResponseEntity(HttpStatus.BAD_REQUEST)
         }
@@ -62,8 +66,8 @@ class ReprintForm {
 @RestController
 @RequestMapping("/api/internal/events")
 @Profile("server", "full")
-open class EventApi (val transactionManager: PlatformTransactionManager,
-                     val eventRepository: EventRepository) {
+open class EventApi (private val transactionManager: PlatformTransactionManager,
+                     private val eventRepository: EventRepository) {
 
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)

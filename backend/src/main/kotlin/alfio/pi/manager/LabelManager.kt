@@ -117,7 +117,7 @@ private fun checkTextLength(compactText: Boolean, content: String, fontSize: Flo
 
 private fun compact(text: String): String = text.trim().splitToSequence(" ").mapIndexed { i, s -> if(i > 0 && s.isNotEmpty()) { "${s.substring(0,1)}." } else {s} }.joinToString(" ")
 
-fun generatePDFLabel(firstName: String, lastName: String, company: String, ticketUUID: String, qrCodeContent: String = ticketUUID): (LabelTemplate) -> ByteArray = { template ->
+fun generatePDFLabel(firstName: String, lastName: String, thirdRow: String, ticketUUID: String, qrCodeContent: String = ticketUUID, partialUUID: String): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
     val out = ByteArrayOutputStream()
     document.use {
@@ -126,7 +126,7 @@ fun generatePDFLabel(firstName: String, lastName: String, company: String, ticke
         it.addPage(page)
         val qr = LosslessFactory.createFromImage(it, generateQRCode(qrCodeContent))
         val contentStream = PDPageContentStream(it, page, PDPageContentStream.AppendMode.OVERWRITE, false)
-        template.writeContent(contentStream, pageWidth, LabelContent(firstName, lastName, company, qr, ticketUUID.substringBefore('-').toUpperCase()), {PDType0Font.load(document, it)})
+        template.writeContent(contentStream, pageWidth, LabelContent(firstName, lastName, thirdRow, qr, partialUUID), {PDType0Font.load(document, it)})
         it.save(out)
     }
     out.toByteArray()
@@ -144,8 +144,7 @@ private fun generateQRCode(value: String): BufferedImage {
 private fun generateBitMatrix(value: String, width: Int, height: Int): BitMatrix {
     val hintMap = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M)
-    val matrix = MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hintMap)
-    return matrix
+    return MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hintMap)
 }
 
 fun generateQRCodeImage(value: String): ByteArray {

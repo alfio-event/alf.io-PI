@@ -19,6 +19,7 @@ package alfio.pi.model
 
 import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.springframework.context.ApplicationEvent
 import org.springframework.stereotype.Component
 import java.io.Serializable
@@ -82,11 +83,22 @@ data class UserAndPrinter(@Column("username") private val username: String,
     val printer = Printer(printerId, printerName, printerDescription, printerActive)
 }
 
+open class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) {
+    val layout: LabelLayout? = GsonContainer.GSON!!.fromJson(json, LabelLayout::class.java)
+}
+
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 
-open class Ticket(val uuid: String, val firstName: String, val lastName: String, val email: String?, val company: String?, val fullName: String = "$firstName $lastName", val hmac: String? = null)
+open class Ticket(val uuid: String,
+                  val firstName: String,
+                  val lastName: String,
+                  val email: String?,
+                  val additionalInfo: Map<String, String>,
+                  val fullName: String = "$firstName $lastName",
+                  val hmac: String? = null,
+                  val category: String? = null)
 
-class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", "")
+class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", emptyMap())
 
 abstract class CheckInResponse(val result: CheckInResult, val ticket: Ticket?) {
     fun isSuccessful(): Boolean = result.status.successful
@@ -114,7 +126,7 @@ enum class CheckInStatus(val successful: Boolean = false) {
     SUCCESS(true);
 }
 
-data class TicketData(val firstName: String, val lastName: String, val email: String, private val status: String, val company: String?) {
+data class TicketData(val firstName: String, val lastName: String, val email: String, private val status: String, private val additionalInfoJson: String?) {
     val checkInStatus: CheckInStatus
         get() = when(status) {
             "ACQUIRED" -> CheckInStatus.SUCCESS
@@ -122,6 +134,7 @@ data class TicketData(val firstName: String, val lastName: String, val email: St
             "TO_BE_PAID" -> CheckInStatus.MUST_PAY
             else -> CheckInStatus.INVALID_TICKET_STATE
         }
+    val additionalInfo: Map<String, String> = GsonContainer.GSON?.fromJson(additionalInfoJson, object : TypeToken<Map<String, String>>() {}.type) ?: emptyMap()
 }
 
 class RemoteEvent {
@@ -155,3 +168,8 @@ data class PrinterWithUsers(val printer: Printer, val users: List<User>): Compar
 data class SystemPrinter(val name: String)
 
 data class RemotePrinter(val name: String, val remoteHost: String)
+
+data class LabelLayout(val qrCode: QRCode, val content: Content, val general: General)
+data class QRCode(val additionalInfo: List<String>, val infoSeparator: String)
+data class Content(val thirdRow: List<String>)
+data class General(val printPartialID: Boolean)

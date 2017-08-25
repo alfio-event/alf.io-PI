@@ -22,7 +22,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LabelManagerTest {
-    val maxLengthForSize = arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F)
+    private val maxLengthForSize = arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F)
 
     @Test
     fun testOptimizeTextLength() {
@@ -42,7 +42,7 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabel() {
-        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678").invoke(DymoLW450Turbo41x89())
+        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678", "12345678", "123").invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 

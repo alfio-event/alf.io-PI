@@ -22,7 +22,8 @@ export class Ticket {
                 public firstName: string,
                 public lastName: string,
                 public fullName: string,
-                public email: string) {}
+                public email: string,
+                public category: string) {}
 }
 
 export class TicketAndCheckInResult {

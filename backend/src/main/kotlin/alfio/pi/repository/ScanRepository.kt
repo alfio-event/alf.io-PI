@@ -18,17 +18,13 @@
 package alfio.pi.repository
 
 import alfio.pi.model.*
-import alfio.pi.wrapper.tryOrDefault
 import ch.digitalfondue.npjt.AffectedRowCountAndKey
 import ch.digitalfondue.npjt.Bind
 import ch.digitalfondue.npjt.Query
 import ch.digitalfondue.npjt.QueryRepository
 import org.slf4j.LoggerFactory
-import org.springframework.core.env.Environment
-import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.*
-import java.util.stream.Collectors
 
 private val logger = LoggerFactory.getLogger("ScanRepository")
 
@@ -110,5 +106,18 @@ interface UserPrinterRepository {
 
     @Query("select u.username as username, u.id as user_id, p.id as printer_id, p.name as printer_name, p.description as printer_description, p.active as printer_active from user u, printer p, user_printer up where up.user_id_fk = u.id and up.printer_id_fk = p.id")
     fun loadAll(): List<UserAndPrinter>
+
+}
+
+@QueryRepository
+interface LabelConfigurationRepository {
+    @Query("""merge into label_configuration using (values (:eventId, :json, :enabled))
+        as vals(event_id_fk, json, enabled) on label_configuration.event_id_fk = vals.event_id_fk
+        when matched then update set label_configuration.json = vals.json, label_configuration.enabled = vals.enabled
+        when not matched then insert values vals.event_id_fk, vals.json, vals.enabled""")
+    fun merge(@Bind("eventId") eventId: Int, @Bind("json") json: String?, @Bind("enabled") enabled: Boolean)
+
+    @Query("select * from label_configuration where event_id_fk = :eventId")
+    fun loadForEvent(@Bind("eventId") eventId: Int): Optional<LabelConfiguration>
 
 }

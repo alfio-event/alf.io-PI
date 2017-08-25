@@ -18,10 +18,7 @@
 package alfio.pi.manager
 
 import alfio.pi.model.*
-import alfio.pi.repository.EventRepository
-import alfio.pi.repository.PrinterRepository
-import alfio.pi.repository.ScanLogRepository
-import alfio.pi.repository.UserPrinterRepository
+import alfio.pi.repository.*
 import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import org.slf4j.Logger
@@ -140,14 +137,14 @@ fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Co
     })
 }
 
-fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterRepository, ScanLogRepository) -> Boolean = { printManager: PrintManager, printerRepository: PrinterRepository, scanLogRepository: ScanLogRepository ->
+fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterRepository, ScanLogRepository, LabelConfigurationRepository) -> Boolean = { printManager, printerRepository, scanLogRepository, labelConfigRepository ->
     tryOrDefault<Boolean>().invoke({
         scanLogRepository.findOptionalById(scanLogId)
             .filter { it.ticket != null }
             .flatMap { scanLog ->
-                printerRepository.findOptionalById(printerId).map { printer -> printer to scanLog.ticket!! }
+                printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
             }.map {
-                printManager.printLabel(it.first, it.second)
+                printManager.printLabel(it.first, it.second, labelConfigRepository.loadForEvent(it.third).orElse(null))
             }.orElse(false)
     }, {
         logger.error("cannot re-print label. ",it)
@@ -161,10 +158,10 @@ fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean
         .orElse(false)
 }
 
-fun printOnLocalPrinter(printerName: String, ticket: Ticket): (PrintManager) -> Boolean = { printManager ->
+fun printOnLocalPrinter(printerName: String, ticket: Ticket, labelConfiguration: LabelConfiguration?): (PrintManager) -> Boolean = { printManager ->
     val printer = printManager.getAvailablePrinters().filter { it.name.equals(printerName, true) }.firstOrNull()
     if(printer != null) {
-        printManager.printLabel(Printer(-1, printer.name, null, true), ticket)
+        printManager.printLabel(Printer(-1, printer.name, null, true), ticket, labelConfiguration)
     } else {
         false
     }
@@ -172,7 +169,7 @@ fun printOnLocalPrinter(printerName: String, ticket: Ticket): (PrintManager) -> 
 
 @Component
 @Profile("full", "server")
-open class PrinterSynchronizer(val printerRepository: PrinterRepository, val printManager: PrintManager) {
+open class PrinterSynchronizer(private val printerRepository: PrinterRepository, private val printManager: PrintManager) {
     @Scheduled(fixedDelay = 5000L)
     open fun syncPrinters() {
         val existingPrinters = printerRepository.loadAll()

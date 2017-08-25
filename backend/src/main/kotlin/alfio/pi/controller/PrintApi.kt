@@ -94,15 +94,15 @@ open class PrinterApi (val transactionManager: PlatformTransactionManager,
 @RestController
 @RequestMapping("/api/printers")
 @Profile("printer")
-open class LocalPrinterApi(val printManager: PrintManager) {
+open class LocalPrinterApi(private val printManager: PrintManager) {
     @RequestMapping(value="/{printerName}/print", method = arrayOf(RequestMethod.POST))
-    open fun print(@PathVariable("printerName") printerName: String, @RequestBody ticket: Ticket) = printOnLocalPrinter(printerName, ticket).invoke(printManager)
+    open fun print(@PathVariable("printerName") printerName: String, @RequestBody ticket: Ticket) = printOnLocalPrinter(printerName, ticket, null).invoke(printManager)
 }
 
 @RestController
 @RequestMapping("/api/printers")
 @Profile("server", "full")
-open class RemotePrinterApi(val applicationEventPublisher: ApplicationEventPublisher) {
+open class RemotePrinterApi(private val applicationEventPublisher: ApplicationEventPublisher) {
     @RequestMapping(value = "/register", method = arrayOf(RequestMethod.POST))
     open fun registerPrinters(@RequestBody printers: List<SystemPrinter>, request: HttpServletRequest) = tryOrDefault<ResponseEntity<Unit>>().invoke({
         val remoteAddress = request.remoteAddr

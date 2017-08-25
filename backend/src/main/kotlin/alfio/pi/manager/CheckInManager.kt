@@ -52,22 +52,23 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 
-private val lastUpdatedEvent: ConcurrentHashMap<String, Long> = ConcurrentHashMap();
+private val lastUpdatedEvent: ConcurrentHashMap<String, Long> = ConcurrentHashMap()
 
 @Component
 @Profile("server", "full")
-open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val master: ConnectionDescriptor,
-                              val scanLogRepository: ScanLogRepository,
-                              val eventRepository: EventRepository,
-                              val attendeeDataRepository: AttendeeDataRepository,
-                              val userRepository: UserRepository,
-                              val transactionManager: PlatformTransactionManager,
-                              val gson: Gson,
-                              val jdbc: NamedParameterJdbcTemplate,
-                              val httpClient: OkHttpClient,
-                              val printManager: PrintManager,
-                              val publisher: SystemEventManager,
-                              val cluster: JGroupsCluster) {
+open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: ConnectionDescriptor,
+                              private val scanLogRepository: ScanLogRepository,
+                              private val eventRepository: EventRepository,
+                              private val attendeeDataRepository: AttendeeDataRepository,
+                              private val userRepository: UserRepository,
+                              private val transactionManager: PlatformTransactionManager,
+                              private val gson: Gson,
+                              private val jdbc: NamedParameterJdbcTemplate,
+                              private val httpClient: OkHttpClient,
+                              private val printManager: PrintManager,
+                              private val publisher: SystemEventManager,
+                              private val cluster: JGroupsCluster,
+                              private val labelConfigurationRepository: LabelConfigurationRepository) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -80,10 +81,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
             syncAttendees(event.key) //ensure our copy is up to date
         }
 
-        if(attendeeDataRepository.isPresent(event.key, key)) {
-            return attendeeDataRepository.getData(event.key, key)
+        return if(attendeeDataRepository.isPresent(event.key, key)) {
+            attendeeDataRepository.getData(event.key, key)
         } else {
-            return null
+            null
         }
     }
 
@@ -93,7 +94,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         return tryOrDefault<CheckInResponse>().invoke({
             if(result != null && result !== ticketDataNotFound) {
                 val ticketData = gson.fromJson(decrypt("$uuid/$hmac", result), TicketData::class.java)
-                TicketAndCheckInResult(Ticket(uuid, ticketData.firstName, ticketData.lastName, ticketData.email, ticketData.company), CheckInResult(ticketData.checkInStatus))
+                TicketAndCheckInResult(Ticket(uuid, ticketData.firstName, ticketData.lastName, ticketData.email, ticketData.additionalInfo), CheckInResult(ticketData.checkInStatus))
             } else {
                 logger.warn("no eventData found for $key.")
                 EmptyTicketResult()
@@ -130,7 +131,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
                                 CheckInStatus.SUCCESS
                             }
                             val ticket = localDataResult.ticket!!
-                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printManager.printLabel(user, ticket)
+                            val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
+                            val printingEnabled = configuration?.enabled ?: false
+                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, configuration)
                             val keyContainer = scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac)))
                             publisher.publishEvent(SystemEvent(SystemEventType.NEW_SCAN, NewScan(scanLogRepository.findById(keyContainer.key), event)))
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
@@ -144,13 +147,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
 
     private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
         if(remoteResult.result.status == RETRY) {
-            Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.company, hmac = hmac)
+            Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.additionalInfo, hmac = hmac)
         } else {
             ticket
         }
 
 
-    open fun loadIds(eventName: String, since: Long?) : Pair<List<Integer>, Long> {
+    private fun loadIds(eventName: String, since: Long?) : Pair<List<Int>, Long> {
         val changedSinceParam = if (since == null) "" else "?changedSince=$since"
 
         val idsUrl = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
@@ -171,8 +174,22 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         }
     }
 
+    private fun loadLabelConfiguration(eventName: String): LabelConfiguration? {
+        val request = Request.Builder()
+            .addHeader("Authorization", Credentials.basic(master.username, master.password))
+            .url("${master.url}/admin/api/check-in/$eventName/label-layout")
+            .build()
+        return httpClient.newCall(request).execute().use { resp ->
+            when {
+                resp.isSuccessful -> LabelConfiguration(-1, resp.body().string(), true)
+                resp.code() == 412 -> LabelConfiguration(-1, null, false)
+                else -> null
+            }
+        }
+    }
+
     // imported from https://stackoverflow.com/a/40723106
-    fun <T> Iterable<T>.partition(size: Int): List<List<T>> = with(iterator()) {
+    private fun <T> Iterable<T>.partition(size: Int): List<List<T>> = with(iterator()) {
         check(size > 0)
         val partitions = mutableListOf<List<T>>()
         while (hasNext()) {
@@ -183,34 +200,34 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
         return partitions
     }
 
-    open fun loadCachedAttendees(eventName: String, since: Long?) : Pair<Map<String, String>, Long> {
-        /*if(!cluster.isLeader()) {
-            logger.info("leader address is ${cluster.getLeaderAddress().toString()}")
-            val method = javaClass.getMethod("loadCachedAttendees", String::class.java, Long::class.javaObjectType)
-            return cluster.remoteLoadCachedAttendees(this, method, eventName, null)
-        }*/
+    private fun loadCachedAttendees(eventName: String, since: Long?) : Pair<Map<String, String>, Long> {
 
         val idsAndTime = loadIds(eventName, since)
         val ids = idsAndTime.first
 
-        logger.info("found ${ids.size} for event ${eventName}")
+        logger.info("found ${ids.size} for event $eventName")
 
         val res = HashMap<String, String>()
         if(!ids.isEmpty()) {
-            ids.partition(200).forEach {
-                val partitionedIds = it
-                logger.info("loading ${it.size}")
+            //fetch label config, if any
+            val labelConfiguration = loadLabelConfiguration(eventName)
+            eventRepository.loadSingle(eventName).ifPresent { (id) ->
+                if(labelConfiguration != null) {
+                    labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
+                }
+            }
+            ids.partition(200).forEach { partitionedIds ->
+                logger.info("loading ${partitionedIds.size}")
                 res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
-                logger.info("finished loading ${it.size}")
+                logger.info("finished loading ${partitionedIds.size}")
             }
         }
-
         logger.info("finished loading")
 
         return Pair(res, idsAndTime.second)
     }
 
-    private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Integer>) : Map<String, String> {
+    private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
         return tryOrDefault<Map<String, String>>().invoke({
             val request = Request.Builder()
@@ -296,7 +313,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") val ma
     }
 
     fun syncAttendees(eventName: String) {
-        val lastUpdateForEvent = lastUpdatedEvent.get(eventName)
+        val lastUpdateForEvent = lastUpdatedEvent[eventName]
         val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
         val attendeesForEvent = attendeesForEventAndTime.first
         val batchedUpdate = attendeesForEvent.map {
@@ -315,7 +332,7 @@ fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (
 }
 
 fun parseTicketDataResponse(body: String): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }
-fun parseIdsResponse(body: String): (Gson) -> List<Integer> = {gson ->  gson.fromJson(body, object: TypeToken<List<Integer>>() {}.type)}
+fun parseIdsResponse(body: String): (Gson) -> List<Int> = {gson ->  gson.fromJson(body, object: TypeToken<List<Int>>() {}.type)}
 
 private fun decrypt(key: String, payload: String): String {
     try {
@@ -362,7 +379,7 @@ internal fun calcHash256(hmac: String) : String {
 
 @Component
 @Profile("server", "full")
-open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager, val remoteResourceManager: RemoteResourceManager) {
+open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager, private val remoteResourceManager: RemoteResourceManager) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
@@ -380,11 +397,8 @@ open class CheckInDataSynchronizer(val checkInDataManager: CheckInDataManager, v
 
     open fun onDemandSync(events: List<RemoteEvent>) {
         logger.debug("on-demand synchronization")
-        events.map {
-            val eventName = it.key;
-            if(eventName != null) {
-                checkInDataManager.syncAttendees(eventName)
-            }
+        events.filter { it.key != null }.map {
+            checkInDataManager.syncAttendees(it.key!!)
         }
     }
 }

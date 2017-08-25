@@ -20,8 +20,8 @@
       <div class="text-center mt-2" *ngIf="!loading && isStatusSuccess()">
         <i class="fa fa-check-circle text-success fa-5x mb-2"></i>
         <div class="d-flex flex-column">
-          <h4>{{ticket.firstName}}</h4>
-          <h4>{{ticket.lastName}}</h4>
+          <h4>{{ticket.firstName}} {{ticket.lastName}}</h4>
+          <h3>{{ticket.category}}</h3>
           <span>{{ticket.email}}</span>
           <span>{{ticket.uuid}}</span>
         </div>
