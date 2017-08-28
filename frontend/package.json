@@ -27,7 +27,7 @@
     "@angular/router": "^4.0.0",
     "@ng-bootstrap/ng-bootstrap": "^1.0.0-alpha.23",
     "@protacon/ng-virtual-keyboard": "^0.6.0",
-    "bootstrap": "^4.0.0-alpha.6",
+    "bootstrap": "4.0.0-alpha.6",
     "core-js": "^2.4.1",
     "dragula": "^3.7.2",
     "event-source-polyfill": "0.0.7",
