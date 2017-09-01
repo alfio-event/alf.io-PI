@@ -303,7 +303,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val lastUpdateForEvent = lastUpdatedEvent[eventName]
         val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
         val attendeesForEvent = attendeesForEventAndTime.first
-        saveAttendees(eventName, attendeesForEvent.map { Attendee(eventName, it.key, it.value, lastUpdateForEvent) })
+        saveAttendees(eventName, attendeesForEvent.map { Attendee(eventName, it.key, it.value, attendeesForEventAndTime.second) })
     }
 
     open fun saveAttendees(eventName: String, attendeesForEvent: List<Attendee>) {
