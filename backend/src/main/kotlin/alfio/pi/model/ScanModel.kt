@@ -84,7 +84,7 @@ data class UserAndPrinter(@Column("username") private val username: String,
 }
 
 open class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) {
-    val layout: LabelLayout? = GsonContainer.GSON!!.fromJson(json, LabelLayout::class.java)
+    val layout: LabelLayout? = GsonContainer.GSON?.fromJson(json, LabelLayout::class.java)
 }
 
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
@@ -93,7 +93,7 @@ open class Ticket(val uuid: String,
                   val firstName: String,
                   val lastName: String,
                   val email: String?,
-                  val additionalInfo: Map<String, String>,
+                  val additionalInfo: Map<String, String>?,
                   val fullName: String = "$firstName $lastName",
                   val hmac: String? = null,
                   val category: String? = null)
@@ -134,7 +134,8 @@ data class TicketData(val firstName: String, val lastName: String, val email: St
             "TO_BE_PAID" -> CheckInStatus.MUST_PAY
             else -> CheckInStatus.INVALID_TICKET_STATE
         }
-    val additionalInfo: Map<String, String> = GsonContainer.GSON?.fromJson(additionalInfoJson, object : TypeToken<Map<String, String>>() {}.type) ?: emptyMap()
+    val additionalInfo: Map<String, String>
+        get() = GsonContainer.GSON?.fromJson(additionalInfoJson, object : TypeToken<Map<String, String>>() {}.type) ?: emptyMap()
 }
 
 class RemoteEvent {

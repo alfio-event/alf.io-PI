@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter
  */
 buildscript {
     ext {
-        kotlinVersion = '1.1.4-2'
+        kotlinVersion = '1.1.4-3'
         springBootVersion = '1.5.6.RELEASE'
     }
     repositories {

@@ -150,20 +150,8 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>): P
     })
 
     private fun doPrint(labelTemplate: LabelTemplate, name: String, ticket: Ticket, labelConfiguration: LabelConfiguration?): Boolean {
-        val configurableContent = if(labelConfiguration?.layout != null) {
-            val layout: LabelLayout = labelConfiguration.layout
-            val row = layout.content.thirdRow.map { ticket.additionalInfo[it].orEmpty() }.filter(String::isNotEmpty).joinToString(separator = " ")
-            val qrContent = layout.qrCode.additionalInfo.map { ticket.additionalInfo[it].orEmpty() }.filter(String::isNotEmpty).joinToString(separator = layout.qrCode.infoSeparator)
-            val partialID = if(layout.general.printPartialID) {
-                ticket.uuid.substringBefore('-').toUpperCase()
-            } else {
-                ""
-            }
-            Triple(row , qrContent, partialID)
-        } else {
-            Triple("", ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
-        }
-        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, configurableContent.first, ticket.uuid, configurableContent.second, configurableContent.third).invoke(labelTemplate)
+        val configurableContent = buildConfigurableLabelContent(labelConfiguration?.layout, ticket)
+        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, configurableContent.thirdRow, ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace(cmd)
         val print = Runtime.getRuntime().exec(cmd)
@@ -171,6 +159,21 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>): P
             it.write(pdf)
         }
         return print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
+    }
+
+    internal fun buildConfigurableLabelContent(layout: LabelLayout?, ticket: Ticket): ConfigurableLabelContent {
+        return if (layout != null) {
+            val row = layout.content.thirdRow.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty).joinToString(separator = " ")
+            val qrContent = listOf(ticket.uuid).plus(layout.qrCode.additionalInfo.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty)).joinToString(separator = layout.qrCode.infoSeparator)
+            val partialID = if (layout.general.printPartialID) {
+                ticket.uuid.substringBefore('-').toUpperCase()
+            } else {
+                ""
+            }
+            ConfigurableLabelContent(row, qrContent, partialID)
+        } else {
+            ConfigurableLabelContent(ticket.additionalInfo?.get("company").orEmpty(), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
+        }
     }
 }
 
@@ -218,7 +221,7 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
 
     private fun remotePrint(printerName: String, ticket: Ticket): Boolean {
         logger.trace("remote print $printerName for ticket $ticket")
-        val remotePrinter = remotePrinters.filter { it.name == printerName }.firstOrNull()
+        val remotePrinter = remotePrinters.firstOrNull { it.name == printerName }
         logger.trace("remote print $printerName for ticket $ticket: remote printer is $remotePrinter")
         return if(remotePrinter != null) {
             val httpClient = httpClientBuilderWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
@@ -261,4 +264,6 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     this.hostnameVerifier { _, _ -> true }//FIXME does it make sense to validate the hostname if we share the same certificate across all devices?
     return this
 }
+
+data class ConfigurableLabelContent(val thirdRow: String, val qrContent: String, val partialID: String)
 
