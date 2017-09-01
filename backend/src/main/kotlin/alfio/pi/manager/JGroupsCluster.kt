@@ -30,10 +30,10 @@ import org.jgroups.blocks.RpcDispatcher
 
 @Component
 @Profile("server", "full")
-open class JGroupsCluster(jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
+open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
     val channel: JChannel = JChannel()
-    var dispatcher : RpcDispatcher;
+    var dispatcher : RpcDispatcher
 
     init {
         channel.connect("alf.io-PI")
@@ -52,9 +52,21 @@ open class JGroupsCluster(jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
     open fun remoteCheckInToMaster(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
-        val method = javaClass.getMethod("remoteCheckIn", String::class.java, String::class.java, String::class.java, String::class.java)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("remoteCheckIn", String::class.java, String::class.java, String::class.java, String::class.java)
         val remoteCheckInCall = MethodCall(method)
         remoteCheckInCall.setArgs(eventKey, uuid, hmac, username)
         return dispatcher.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
     }
+
+    open fun leaderHasPerformSyncDone() : Boolean {
+        val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("isFirstSyncDone")
+        val remoteCheckInCall = MethodCall(method)
+        return dispatcher.callRemoteMethod<Boolean>(getLeaderAddress(), remoteCheckInCall, opts)
+    }
+
+    open fun setHasPerformSyncDone(status: Boolean) {
+        jGroupsClusterRpcApi.firstSyncDone = status
+    }
+
 }

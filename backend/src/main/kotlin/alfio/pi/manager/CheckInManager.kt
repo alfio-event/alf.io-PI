@@ -386,7 +386,17 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        performSync()
+
+        if(jGroupsCluster.isLeader()) {
+            performSync()
+            jGroupsCluster.setHasPerformSyncDone(true)
+        } else {
+            while(!jGroupsCluster.leaderHasPerformSyncDone()) {
+                Thread.sleep(2000L)
+                logger.info("Leader is still working")
+            }
+            logger.info("Leader has finished loading")
+        }
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)

@@ -9,8 +9,14 @@ import org.springframework.stereotype.Component
 @Profile("server", "full")
 open class JGroupsClusterRpcApi(private val appContext: ApplicationContext) {
 
+    open var firstSyncDone: Boolean = false
+
     //lazy loading as we have a circular dep...
     open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse {
-        return appContext.getBean(CheckInDataManager::class.java).remoteCheckIn(eventKey, uuid, hmac, username);
+        return appContext.getBean(CheckInDataManager::class.java).remoteCheckIn(eventKey, uuid, hmac, username)
+    }
+
+    open fun isFirstSyncDone() : Boolean {
+        return firstSyncDone
     }
 }
