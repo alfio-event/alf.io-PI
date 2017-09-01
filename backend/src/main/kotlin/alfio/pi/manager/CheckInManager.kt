@@ -386,22 +386,14 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        if(jGroupsCluster.isLeader()) {
-            performSync()
-        } else {
-            //FIXME call leader
-        }
+        performSync()
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
-        if(jGroupsCluster.isLeader()) {
-            logger.trace("downloading attendees data")
-            val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
-            onDemandSync(remoteEvents)
-        } else {
-            //FIXME call leader
-        }
+        logger.trace("downloading attendees data")
+        val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
+        onDemandSync(remoteEvents)
     }
 
     open fun onDemandSync(events: List<RemoteEvent>) {

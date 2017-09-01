@@ -30,7 +30,7 @@ import org.jgroups.blocks.RpcDispatcher
 
 @Component
 @Profile("server", "full")
-open class JGroupsCluster(private val jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
+open class JGroupsCluster(jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
     val channel: JChannel = JChannel()
     var dispatcher : RpcDispatcher;
