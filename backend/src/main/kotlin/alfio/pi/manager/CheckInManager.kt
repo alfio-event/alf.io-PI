@@ -315,12 +315,16 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val lastUpdateForEvent = lastUpdatedEvent[eventName]
         val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
         val attendeesForEvent = attendeesForEventAndTime.first
+        saveAttendees(eventName, lastUpdateForEvent, attendeesForEvent)
+    }
+
+    open fun saveAttendees(eventName: String, lastUpdateForEvent: Long?, attendeesForEvent: Map<String, String>) {
         val batchedUpdate = attendeesForEvent.map {
             MapSqlParameterSource()
                 .addValue("event", eventName)
                 .addValue("identifier", it.key)
                 .addValue("data", it.value)
-                .addValue("last_update", attendeesForEventAndTime.second)
+                .addValue("last_update", lastUpdateForEvent)
         }.toTypedArray()
         jdbc.batchUpdate(attendeeDataRepository.mergeTemplate(), batchedUpdate)
     }
@@ -389,13 +393,14 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
 
         if(jGroupsCluster.isLeader()) {
             performSync()
-            jGroupsCluster.setHasPerformSyncDone(true)
+            jGroupsCluster.hasPerformSyncDone(true)
         } else {
             while(!jGroupsCluster.leaderHasPerformSyncDone()) {
                 Thread.sleep(2000L)
                 logger.info("Leader is still working")
             }
             logger.info("Leader has finished loading")
+            performSync()
         }
     }
 
@@ -413,7 +418,11 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
                 checkInDataManager.syncAttendees(it.key!!)
             }
         } else {
-            //FIXME call leader
+            events.filter { it.key != null }.map {
+                //FIXME call leader -> save
+
+            }
+
         }
     }
 }

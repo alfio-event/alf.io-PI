@@ -65,7 +65,7 @@ open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
         return dispatcher.callRemoteMethod<Boolean>(getLeaderAddress(), remoteCheckInCall, opts)
     }
 
-    open fun setHasPerformSyncDone(status: Boolean) {
+    open fun hasPerformSyncDone(status: Boolean) {
         jGroupsClusterRpcApi.firstSyncDone = status
     }
 
