@@ -17,6 +17,7 @@
 
 package alfio.pi.manager
 
+import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
 import org.jgroups.Address
 import org.springframework.context.annotation.Profile
@@ -61,8 +62,24 @@ open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
     open fun leaderHasPerformSyncDone() : Boolean {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
         val method = jGroupsClusterRpcApi.javaClass.getMethod("isFirstSyncDone")
-        val remoteCheckInCall = MethodCall(method)
-        return dispatcher.callRemoteMethod<Boolean>(getLeaderAddress(), remoteCheckInCall, opts)
+        val remoteCall = MethodCall(method)
+        return dispatcher.callRemoteMethod<Boolean>(getLeaderAddress(), remoteCall, opts)
+    }
+
+    open fun getIdentifiersForEvent(eventName: String, lastModified: Long) : List<String> {
+        val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("getIdentifiersForEvent", String::class.java, Long::class.java)
+        val remoteCall = MethodCall(method)
+        remoteCall.setArgs(eventName, lastModified+1)
+        return dispatcher.callRemoteMethod<List<String>>(getLeaderAddress(), remoteCall, opts)
+    }
+
+    open fun loadAttendeesWithIdentifier(partitionedIds: List<String>) : List<Attendee> {
+        val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("getAttendeeData", List::class.java)
+        val remoteCall = MethodCall(method)
+        remoteCall.setArgs(partitionedIds)
+        return dispatcher.callRemoteMethod<List<Attendee>>(getLeaderAddress(), remoteCall, opts)
     }
 
     open fun hasPerformSyncDone(status: Boolean) {

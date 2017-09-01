@@ -22,7 +22,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.springframework.context.ApplicationEvent
 import org.springframework.stereotype.Component
-import java.io.Serializable
 import java.math.BigDecimal
 import java.time.ZonedDateTime
 

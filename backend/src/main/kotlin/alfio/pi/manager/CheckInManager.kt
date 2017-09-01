@@ -188,18 +188,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         }
     }
 
-    // imported from https://stackoverflow.com/a/40723106
-    private fun <T> Iterable<T>.partition(size: Int): List<List<T>> = with(iterator()) {
-        check(size > 0)
-        val partitions = mutableListOf<List<T>>()
-        while (hasNext()) {
-            val partition = mutableListOf<T>()
-            do partition.add(next()) while (hasNext() && partition.size < size)
-            partitions += partition
-        }
-        return partitions
-    }
-
     private fun loadCachedAttendees(eventName: String, since: Long?) : Pair<Map<String, String>, Long> {
 
         val idsAndTime = loadIds(eventName, since)
@@ -216,7 +204,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
                 }
             }
-            ids.partition(200).forEach { partitionedIds ->
+            ids.partitionWithSize(200).forEach { partitionedIds ->
                 logger.info("loading ${partitionedIds.size}")
                 res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
                 logger.info("finished loading ${partitionedIds.size}")
@@ -315,18 +303,22 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val lastUpdateForEvent = lastUpdatedEvent[eventName]
         val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
         val attendeesForEvent = attendeesForEventAndTime.first
-        saveAttendees(eventName, lastUpdateForEvent, attendeesForEvent)
+        saveAttendees(eventName, attendeesForEvent.map { Attendee(eventName, it.key, it.value, lastUpdateForEvent) })
     }
 
-    open fun saveAttendees(eventName: String, lastUpdateForEvent: Long?, attendeesForEvent: Map<String, String>) {
+    open fun saveAttendees(eventName: String, attendeesForEvent: List<Attendee>) {
         val batchedUpdate = attendeesForEvent.map {
             MapSqlParameterSource()
-                .addValue("event", eventName)
-                .addValue("identifier", it.key)
-                .addValue("data", it.value)
-                .addValue("last_update", lastUpdateForEvent)
+                .addValue("event", it.event)
+                .addValue("identifier", it.identifier)
+                .addValue("data", it.data)
+                .addValue("last_update", it.lastUpdate?:0)
         }.toTypedArray()
         jdbc.batchUpdate(attendeeDataRepository.mergeTemplate(), batchedUpdate)
+    }
+
+    fun findLastModifiedTimeForAttendeeInEvent(event: String): Long {
+        return attendeeDataRepository.findLastModifiedTimeForAttendeeInEvent(event)
     }
 }
 
@@ -413,16 +405,35 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
 
     open fun onDemandSync(events: List<RemoteEvent>) {
         if(jGroupsCluster.isLeader()) {
-            logger.debug("on-demand synchronization")
+            logger.debug("Leader begin onDemandSync")
             events.filter { it.key != null }.map {
                 checkInDataManager.syncAttendees(it.key!!)
             }
+            logger.debug("Leader end onDemandSync")
         } else {
+            logger.info("Follower begin onDemandSync")
             events.filter { it.key != null }.map {
-                //FIXME call leader -> save
-
+                val eventName = it.key!!
+                val lastModified = checkInDataManager.findLastModifiedTimeForAttendeeInEvent(eventName)
+                jGroupsCluster.getIdentifiersForEvent(eventName, lastModified).partitionWithSize(200).forEach { partitionedIds ->
+                    logger.info("Fetching ${partitionedIds.size}")
+                    val attendees = jGroupsCluster.loadAttendeesWithIdentifier(partitionedIds)
+                    checkInDataManager.saveAttendees(eventName, attendees)
+                }
             }
-
+            logger.info("Follower end onDemandSync")
         }
     }
+}
+
+// imported from https://stackoverflow.com/a/40723106
+private fun <T> Iterable<T>.partitionWithSize(size: Int): List<List<T>> = with(iterator()) {
+    check(size > 0)
+    val partitions = mutableListOf<List<T>>()
+    while (hasNext()) {
+        val partition = mutableListOf<T>()
+        do partition.add(next()) while (hasNext() && partition.size < size)
+        partitions += partition
+    }
+    return partitions
 }

@@ -17,12 +17,8 @@
 
 package alfio.pi.repository
 
-import alfio.pi.model.Authority
-import alfio.pi.model.Event
-import alfio.pi.model.Role
-import alfio.pi.model.User
+import alfio.pi.model.*
 import ch.digitalfondue.npjt.*
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
@@ -125,4 +121,13 @@ interface AttendeeDataRepository {
 
     @Query("select data from attendee_data  where event = :event and identifier = :identifier limit 1")
     fun getData(@Bind("event") event: String, @Bind("identifier") identifier: String) : String
+
+    @Query("select identifier from attendee_data where event = :event and coalesce(last_update,0) >= :lastModified")
+    fun getIdentifiersForEvent(@Bind("event") event: String, @Bind("lastModified") lastModified: Long) : List<String>
+
+    @Query("select event, identifier, data, last_update from attendee_data where identifier in (:identifiers)")
+    fun getAttendeeData(@Bind("identifiers") identifiers: List<String>) : List<Attendee>
+
+    @Query("select coalesce(max(last_update), -1) from attendee_data where event = :event")
+    fun findLastModifiedTimeForAttendeeInEvent(@Bind("event") event: String): Long
 }
