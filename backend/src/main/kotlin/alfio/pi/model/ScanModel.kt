@@ -22,6 +22,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.springframework.context.ApplicationEvent
 import org.springframework.stereotype.Component
+import java.io.Serializable
 import java.math.BigDecimal
 import java.time.ZonedDateTime
 
@@ -95,22 +96,22 @@ open class Ticket(val uuid: String,
                   val additionalInfo: Map<String, String>?,
                   val fullName: String = "$firstName $lastName",
                   val hmac: String? = null,
-                  val category: String? = null)
+                  val category: String? = null) : Serializable
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", emptyMap())
 
-abstract class CheckInResponse(val result: CheckInResult, val ticket: Ticket?) {
+abstract class CheckInResponse(val result: CheckInResult, val ticket: Ticket?) : Serializable {
     fun isSuccessful(): Boolean = result.status.successful
     fun isSuccessfulOrRetry(): Boolean = result.status.successful || result.status == CheckInStatus.RETRY
 }
 
-class TicketAndCheckInResult(ticket: Ticket, result: CheckInResult) : CheckInResponse(result, ticket)
+class TicketAndCheckInResult(ticket: Ticket, result: CheckInResult) : CheckInResponse(result, ticket), Serializable
 
-class EmptyTicketResult(result: CheckInResult = CheckInResult()) : CheckInResponse(result, null)
+class EmptyTicketResult(result: CheckInResult = CheckInResult()) : CheckInResponse(result, null), Serializable
 
-class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN), val originalScanLog: ScanLog) : CheckInResponse(result, null)
+class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN), val originalScanLog: ScanLog) : CheckInResponse(result, null), Serializable
 
-data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = "")
+data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = ""): Serializable
 
 enum class CheckInStatus(val successful: Boolean = false) {
     RETRY(),
