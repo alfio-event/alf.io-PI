@@ -26,17 +26,18 @@ import org.jgroups.blocks.MethodCall
 import org.jgroups.blocks.ResponseMode
 import org.jgroups.blocks.RequestOptions
 import org.jgroups.blocks.RpcDispatcher
-import java.lang.reflect.Method
 
 
 @Component
 @Profile("server", "full")
-open class JGroupsCluster {
+open class JGroupsCluster(private val jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
     val channel: JChannel = JChannel()
+    var dispatcher : RpcDispatcher;
 
     init {
         channel.connect("alf.io-PI")
+        dispatcher = RpcDispatcher(channel, jGroupsClusterRpcApi)
     }
 
     open fun isLeader(): Boolean {
@@ -49,13 +50,11 @@ open class JGroupsCluster {
         return channel.view.members[0]
     }
 
-    open fun remoteCheckInToMaster(checkInDataManager: CheckInDataManager, method: Method, eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse {
+    open fun remoteCheckInToMaster(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
-        val disp = RpcDispatcher(channel, checkInDataManager)
-
+        val method = javaClass.getMethod("remoteCheckIn", String::class.java, String::class.java, String::class.java, String::class.java)
         val remoteCheckInCall = MethodCall(method)
         remoteCheckInCall.setArgs(eventKey, uuid, hmac, username)
-
-        return disp.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
+        return dispatcher.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
     }
 }

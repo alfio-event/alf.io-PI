@@ -259,8 +259,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
 
         if(!cluster.isLeader()) {
-            val method = javaClass.getMethod("remoteCheckIn", String::class.java, String::class.java, String::class.java, String::class.java)
-            cluster.remoteCheckInToMaster(this, method, eventKey, uuid, hmac, username)
+            cluster.remoteCheckInToMaster(eventKey, uuid, hmac, username)
         } else {
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
             val request = Request.Builder()
@@ -379,26 +378,40 @@ internal fun calcHash256(hmac: String) : String {
 
 @Component
 @Profile("server", "full")
-open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager, private val remoteResourceManager: RemoteResourceManager) {
+open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
+                                   private val remoteResourceManager: RemoteResourceManager,
+                                   private val jGroupsCluster: JGroupsCluster) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        performSync()
+        if(jGroupsCluster.isLeader()) {
+            performSync()
+        } else {
+            //FIXME call leader
+        }
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
-        logger.trace("downloading attendees data")
-        val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
-        onDemandSync(remoteEvents)
+        if(jGroupsCluster.isLeader()) {
+            logger.trace("downloading attendees data")
+            val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
+            onDemandSync(remoteEvents)
+        } else {
+            //FIXME call leader
+        }
     }
 
     open fun onDemandSync(events: List<RemoteEvent>) {
-        logger.debug("on-demand synchronization")
-        events.filter { it.key != null }.map {
-            checkInDataManager.syncAttendees(it.key!!)
+        if(jGroupsCluster.isLeader()) {
+            logger.debug("on-demand synchronization")
+            events.filter { it.key != null }.map {
+                checkInDataManager.syncAttendees(it.key!!)
+            }
+        } else {
+            //FIXME call leader
         }
     }
 }
