@@ -58,6 +58,9 @@ interface ScanLogRepository {
     @Query("select * from scan_log where id = :id")
     fun findById(@Bind("id") id: Int): ScanLog
 
+    @Query("select * from scan_log where id = :id and event_id_fk = :eventId")
+    fun findOptionalByIdAndEventId(@Bind("id") id: Int, @Bind("eventId") eventId: Int): Optional<ScanLog>
+
     @Query("select * from scan_log where remote_result = 'RETRY'")
     fun findRemoteFailures(): List<ScanLog>
 

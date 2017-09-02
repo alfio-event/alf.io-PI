@@ -26,7 +26,7 @@
       </thead>
       <tr *ngFor="let ee of entries | filter:term">
         <td>
-            <div ngbDropdown>
+            <div ngbDropdown class="hidden-md-down">
               <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
               <div class="dropdown-menu" aria-labelledby="dropdownMenu1">
                 <div *ngFor="let printer of printers; last as isLast">
@@ -34,6 +34,9 @@
                   <div class="dropdown-divider" *ngIf="!isLast"></div>
                 </div>
               </div>
+            </div>
+            <div class="hidden-lg-up">
+              <a class="btn btn-outline-warning" [routerLink]="['/scan-log/event/',ee.entry.eventId,'entry', ee.entry.id, 'reprint']"><i class="fa fa-print"></i> <span class="sr-only">Print</span></a>
             </div>
         </td>
         <td class="hidden-md-down">{{ee.event.name}}</td>

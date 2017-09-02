@@ -62,7 +62,7 @@ export class ScanLogEntriesComponent implements OnInit {
   }
 
   reprint(entry: ScanLogEntry, printer: Printer): void {
-    this.progressManager.monitorCall(() => this.scanLogService.reprint(entry, printer))
+    this.progressManager.monitorCall(() => this.scanLogService.reprint(entry.id, null, printer))
       .subscribe(res => console.log("printed", res));
   }
 

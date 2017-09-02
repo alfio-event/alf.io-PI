@@ -133,7 +133,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val ticket = localDataResult.ticket!!
                             val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
-                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, configuration)
+                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                             val keyContainer = scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
@@ -196,7 +196,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val idsAndTime = loadIds(eventName, since)
         val ids = idsAndTime.first
 
-        logger.info("found ${ids.size} for event $eventName")
+        logger.debug("found ${ids.size} for event $eventName")
 
         val res = HashMap<String, String>()
         if(!ids.isEmpty()) {
@@ -208,12 +208,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 }
             }
             ids.partitionWithSize(200).forEach { partitionedIds ->
-                logger.info("loading ${partitionedIds.size}")
+                logger.debug("loading ${partitionedIds.size}")
                 res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
-                logger.info("finished loading ${partitionedIds.size}")
+                logger.debug("finished loading ${partitionedIds.size}")
             }
         }
-        logger.info("finished loading")
+        logger.info("finished loading attendees for event $eventName")
 
         return Pair(res, idsAndTime.second)
     }

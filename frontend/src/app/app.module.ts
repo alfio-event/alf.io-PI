@@ -36,6 +36,8 @@ import { ConfirmPowerOffComponent } from './components/confirm-power-off/confirm
 import { CheckInComponent } from './components/check-in/check-in.component';
 import {ScanListenerDirective} from "./components/check-in/scan-listener.directive";
 import {ScanService} from "./scan-module/scan/scan.service";
+import {ScanLogEntryReprintComponent} from "app/components/scan-log-entries/reprint/scan-log-entry-reprint.component";
+import { QRCodeModule } from 'angular2-qrcode';
 
 @NgModule({
   declarations: [
@@ -53,6 +55,7 @@ import {ScanService} from "./scan-module/scan/scan.service";
     ScanLogEntriesComponent,
     HomeComponent,
     ScanLogComponent,
+    ScanLogEntryReprintComponent,
     SidebarComponent,
     UserPrinterComponent,
     ResponsiveLayoutComponent,
@@ -70,12 +73,17 @@ import {ScanService} from "./scan-module/scan/scan.service";
     DragulaModule,
     NoopAnimationsModule,
     NgVirtualKeyboardModule,
+    QRCodeModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, children: [
         { path: 'user/new', component: UserEditComponent },
         { path: 'user/edit/:userId', component: UserEditComponent }
       ] },
-      { path: 'scan-log/view', component: ScanLogComponent },
+      { path: 'scan-log', children: [
+        { path: '', redirectTo: 'view', pathMatch: 'full' },
+        { path: 'view', component: ScanLogComponent },
+        { path: 'event/:eventId/entry/:entryId/reprint', component: ScanLogEntryReprintComponent }
+      ]},
       { path: 'users-printers', component: UserPrinterComponent, children: [
         { path: 'user/new', component: UserEditComponent },
         { path: 'user/edit/:userId', component: UserEditComponent }
