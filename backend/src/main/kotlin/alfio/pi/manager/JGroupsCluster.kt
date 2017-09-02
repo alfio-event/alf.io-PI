@@ -19,6 +19,7 @@ package alfio.pi.manager
 
 import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
+import alfio.pi.model.CheckInStatus
 import org.jgroups.Address
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
@@ -27,6 +28,7 @@ import org.jgroups.blocks.MethodCall
 import org.jgroups.blocks.ResponseMode
 import org.jgroups.blocks.RequestOptions
 import org.jgroups.blocks.RpcDispatcher
+import java.time.ZonedDateTime
 
 
 @Component
@@ -43,6 +45,10 @@ open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
     open fun isLeader(): Boolean {
         return getLeaderAddress() == channel.address
+    }
+
+    private fun everybodyElseAddresses() : Collection<Address> {
+        return channel.view.members.filter { it != channel.address }
     }
 
     open fun getLeaderAddress(): Address {
@@ -80,6 +86,14 @@ open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
         val remoteCall = MethodCall(method)
         remoteCall.setArgs(partitionedIds)
         return dispatcher.callRemoteMethod<List<Attendee>>(getLeaderAddress(), remoteCall, opts)
+    }
+
+    open fun insertInScanLog(now: ZonedDateTime, eventId: Int, uuid: String, id: Int, localResult: CheckInStatus, status: CheckInStatus, labelPrinted: Boolean, jsonPayload: String?) {
+        val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("insertInScanLog", List::class.java)
+        val remoteCall = MethodCall(method)
+        remoteCall.setArgs(now, eventId, uuid, id, localResult, status, labelPrinted, jsonPayload)
+        dispatcher.callRemoteMethodsWithFuture<Any>(everybodyElseAddresses(), remoteCall, opts)
     }
 
     open fun hasPerformSyncDone(status: Boolean) {

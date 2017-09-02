@@ -134,7 +134,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, configuration)
-                            val keyContainer = scanLogRepository.insert(ZonedDateTime.now(), eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac)))
+                            val now = ZonedDateTime.now()
+                            val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
+                            val keyContainer = scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            cluster.insertInScanLog(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             publisher.publishEvent(SystemEvent(SystemEventType.NEW_SCAN, NewScan(scanLogRepository.findById(keyContainer.key), event)))
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
