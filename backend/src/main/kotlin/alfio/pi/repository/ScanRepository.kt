@@ -79,8 +79,8 @@ interface PrinterRepository {
     @Query("insert into printer(name, description, active) values(:name, :description, :active)")
     fun insert(@Bind("name") name: String, @Bind("description") description: String?, @Bind("active") active: Boolean): AffectedRowCountAndKey<Int>
 
-    @Query("select printer.id as id, printer.name as name, printer.description as description from printer, user_printer where user_printer.user_id_fk = :userId and user_printer.event_id_fk = :eventId and user_printer.printer_id_fk = printer.id")
-    fun findByUserIdAndEvent(@Bind("userId") userId: Int, @Bind("eventId") eventId: Int): Optional<Printer>
+    @Query("select printer.id as id, printer.name as name, printer.description as description from printer, user_printer where user_printer.user_id_fk = :userId and user_printer.printer_id_fk = printer.id")
+    fun findByUserId(@Bind("userId") userId: Int): Optional<Printer>
 
     @Query("select * from printer where id = :id")
     fun findById(@Bind("id") printerId: Int): Printer

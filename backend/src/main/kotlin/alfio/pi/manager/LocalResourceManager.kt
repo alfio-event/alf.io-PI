@@ -31,7 +31,6 @@ import java.nio.file.*
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.properties.Delegates
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
 
@@ -137,15 +136,24 @@ fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Co
     })
 }
 
-fun reprintBadge(scanLogId: Int, printerId: Int?, username: String, content: ConfigurableLabelContent?): (PrintManager, PrinterRepository, ScanLogRepository, LabelConfigurationRepository, UserRepository) -> Boolean = { printManager, printerRepository, scanLogRepository, labelConfigRepository, userRepository ->
+fun reprintBadge(scanLogId: Int, printerId: Int?, username: String, content: ConfigurableLabelContent?, desk: Boolean): (PrintManager, PrinterRepository, ScanLogRepository, LabelConfigurationRepository, UserRepository) -> Boolean = { printManager, printerRepository, scanLogRepository, labelConfigRepository, userRepository ->
     tryOrDefault<Boolean>().invoke({
         scanLogRepository.findOptionalById(scanLogId)
             .filter { it.ticket != null }
             .flatMap { scanLog ->
-                if(printerId != null) {
+                val optionalPrinter = if(printerId != null) {
                     printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
                 } else {
-                    userRepository.findByUsername(username).map { (id) -> Triple(printerRepository.findByUserIdAndEvent(id, scanLog.eventId).orElse(null), scanLog.ticket!!, scanLog.eventId) }
+                    userRepository.findByUsername(username)
+                        .flatMap { (id) -> printerRepository.findByUserId(id) }
+                        .map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
+                }
+                when {
+                    optionalPrinter.isPresent -> optionalPrinter
+                    desk -> Optional.ofNullable(printManager.getAvailablePrinters().firstOrNull())
+                        .map { Printer(-1, it.name, null, true) }
+                        .map { Triple(it, scanLog.ticket!!, scanLog.eventId) }
+                    else -> Optional.empty()
                 }
             }.map { (printer, ticket, eventId) ->
                 val labelConfiguration = labelConfigRepository.loadForEvent(eventId).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))

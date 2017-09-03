@@ -63,8 +63,6 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
-import org.springframework.security.core.Authentication
-import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -99,11 +97,9 @@ import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
-import javax.servlet.http.HttpServletRequest
 import javax.sql.DataSource
 
 private val logger = LoggerFactory.getLogger(Application::class.java)!!
-private val deskUsername = "desk-user"
 
 @SpringBootApplication
 @EnableTransactionManagement
@@ -253,6 +249,7 @@ open class Application {
         @Bean
         @Profile("server", "full")
         fun queryRepositoryScanner(queryFactory: QueryFactory): QueryRepositoryScanner = QueryRepositoryScanner(queryFactory, "alfio.pi.repository")
+        val deskUsername = "desk-user"
     }
 }
 
@@ -288,7 +285,7 @@ open class DeskWebSecurity : WebSecurityConfigurerAdapter() {
         http.requestMatcher { isLocalAddress(it.remoteAddr) }
             .anonymous()
             .authorities("ROLE_${Role.OPERATOR.name}")
-            .principal(Principal { deskUsername })
+            .principal(Principal { Application.deskUsername })
             .and()
             .csrf().csrfTokenRepository(csrfTokenRepository())
             .and()
