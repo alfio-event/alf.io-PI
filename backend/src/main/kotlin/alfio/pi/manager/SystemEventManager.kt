@@ -35,17 +35,29 @@ import java.util.*
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicReference
 
+interface SystemEventHandler {
+    open fun notifyAllSessions(event: SystemEvent)
+}
+
+@Component
+@Profile("printer")
+open class SystemEventHandlerDummy : SystemEventHandler {
+    override fun notifyAllSessions(event: SystemEvent) {
+    }
+}
+
+
 @Component
 @Profile("server", "full")
-open class SystemEventHandler(private val gson: Gson,
+open class SystemEventHandlerImpl(private val gson: Gson,
                               private val scanLogRepository: ScanLogRepository,
-                              private val eventRepository: EventRepository): TextWebSocketHandler() {
+                              private val eventRepository: EventRepository): SystemEventHandler, TextWebSocketHandler() {
     private val logger = LoggerFactory.getLogger(SystemEventHandler::class.java)
     private val sessions = CopyOnWriteArraySet<WebSocketSession>()
     private val lastCheckTimestamp = AtomicReference<Date>(Date())
 
     @Async
-    internal open fun notifyAllSessions(event: SystemEvent) {
+    override fun notifyAllSessions(event: SystemEvent) {
         val payload = gson.toJson(event)
         sessions.filter { it.isOpen }.forEach { it.sendMessage(TextMessage(payload)) }
     }

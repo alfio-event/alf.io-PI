@@ -18,6 +18,7 @@
 package alfio.pi.manager
 
 import alfio.pi.model.*
+import alfio.pi.repository.ConfigurationRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
@@ -109,7 +110,7 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
 
 @Component
 @Profile("printer")
-open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>): PrintManager {
+open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, private val configurationRepository: ConfigurationRepository, private val publisher : SystemEventHandler): PrintManager {
 
     override fun getLabelContent(ticket: Ticket, labelConfiguration: LabelConfiguration?): ConfigurableLabelContent = buildConfigurableLabelContent(labelConfiguration?.layout, ticket)
 
@@ -165,7 +166,17 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>): P
         print.outputStream.use {
             it.write(pdf)
         }
-        return print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
+        val res = print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
+
+        if(res) {
+            configurationRepository.getData(ConfigurationRepository.PRINTER_REMAINING_LABEL_COUNTER).ifPresent({counter ->
+                val updatedCount = Integer.parseInt(counter) - 1
+                configurationRepository.insertOrUpdate(ConfigurationRepository.PRINTER_REMAINING_LABEL_COUNTER, Integer.toString(updatedCount))
+                publisher.notifyAllSessions(SystemEvent(SystemEventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER, UpdatePrinterRemainingLabelCounter(updatedCount)))
+            })
+        }
+
+        return res
     }
 
     internal fun buildConfigurableLabelContent(layout: LabelLayout?, ticket: Ticket): ConfigurableLabelContent {
@@ -195,7 +206,9 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
                             private val userPrinterRepository: UserPrinterRepository,
                             private val printerRepository: PrinterRepository,
                             private val gson: Gson,
-                            private val trustManager: X509TrustManager): LocalPrintManager(labelTemplates) {
+                            private val trustManager: X509TrustManager,
+                            configurationRepository: ConfigurationRepository,
+                            publisher : SystemEventHandler): LocalPrintManager(labelTemplates, configurationRepository, publisher) {
 
     private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 

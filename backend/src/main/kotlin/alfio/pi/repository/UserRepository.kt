@@ -131,3 +131,19 @@ interface AttendeeDataRepository {
     @Query("select coalesce(max(last_update), -1) from attendee_data where event = :event")
     fun findLastModifiedTimeForAttendeeInEvent(@Bind("event") event: String): Long
 }
+
+@QueryRepository
+interface ConfigurationRepository {
+
+    companion object {
+        const val PRINTER_REMAINING_LABEL_COUNTER = "PRINTER_REMAINING_LABEL_COUNTER"
+    }
+
+    @Query("""merge into configuration using (values (:key, :value)) as vals(key, value) on configuration.key = vals.key
+        when matched then update set configuration.value = vals.value
+        when not matched then insert values vals.key, vals.value""")
+    fun insertOrUpdate(@Bind("key") key : String, @Bind("value") value: String) : Int
+
+    @Query("select value from configuration where key = :key")
+    fun getData(@Bind("key") key : String) : Optional<String>
+}

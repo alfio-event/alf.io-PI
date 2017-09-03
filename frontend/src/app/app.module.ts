@@ -38,6 +38,7 @@ import {ScanListenerDirective} from "./components/check-in/scan-listener.directi
 import {ScanService} from "./scan-module/scan/scan.service";
 import {ScanLogEntryReprintComponent} from "app/components/scan-log-entries/reprint/scan-log-entry-reprint.component";
 import { QRCodeModule } from 'angular2-qrcode';
+import {SettingsComponent} from "./components/settings/settings.component";
 
 @NgModule({
   declarations: [
@@ -61,6 +62,7 @@ import { QRCodeModule } from 'angular2-qrcode';
     ResponsiveLayoutComponent,
     EventListPageComponent,
     ConfirmPowerOffComponent,
+    SettingsComponent,
     CheckInComponent,
     ScanListenerDirective
   ],
@@ -90,6 +92,7 @@ import { QRCodeModule } from 'angular2-qrcode';
       ]},
       { path: 'check-in', component: CheckInComponent},
       { path: 'events', component: EventListPageComponent},
+      { path: 'settings', component: SettingsComponent},
       { path: 'power-off', component: ConfirmPowerOffComponent}
 
     ])

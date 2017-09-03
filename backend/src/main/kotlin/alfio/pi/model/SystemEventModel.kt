@@ -24,10 +24,12 @@ data class SystemEvent(val type: SystemEventType, val data: SystemEventData)
 
 enum class SystemEventType {
     NEW_SCAN,
-    EVENT_UPDATED
+    EVENT_UPDATED,
+    UPDATE_PRINTER_REMAINING_LABEL_COUNTER
 }
 
 data class EventUpdated(val key: String, val timestamp: ZonedDateTime): SystemEventData
 data class NewScan(val scanData: List<ScanLog>, val event: Event): SystemEventData
 
 data class PrintersRegistered(val printers: List<RemotePrinter>, val remoteHost: String)
+data class UpdatePrinterRemainingLabelCounter(val count: Int): SystemEventData

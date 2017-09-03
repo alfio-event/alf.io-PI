@@ -18,6 +18,7 @@ package alfio.pi
 
 import alfio.pi.Constants.*
 import alfio.pi.manager.SystemEventHandler
+import alfio.pi.manager.SystemEventHandlerImpl
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
@@ -380,7 +381,7 @@ open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String
 @Configuration
 @EnableWebSocket
 @Profile("server", "full")
-open class WebSocketConfiguration(private val systemEventHandler: SystemEventHandler): WebSocketConfigurer {
+open class WebSocketConfiguration(private val systemEventHandler: SystemEventHandlerImpl): WebSocketConfigurer {
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
         registry.addHandler(systemEventHandler, "/api/internal/ws/stream")
     }

@@ -18,18 +18,17 @@
 package alfio.pi.controller
 
 import alfio.pi.isLocalAddress
+import alfio.pi.repository.ConfigurationRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import javax.servlet.http.HttpServletRequest
 
 @RestController
 @RequestMapping("/api/internal/system")
 @Profile("desk")
-open class SystemApi {
+open class SystemApi(private val configurationRepository: ConfigurationRepository) {
     @RequestMapping(value = "/power-off", method = arrayOf(RequestMethod.PUT))
     open fun powerOff(servletRequest: HttpServletRequest): ResponseEntity<String> {
         if(!isLocalAddress(servletRequest.remoteAddr)) {
@@ -41,5 +40,15 @@ open class SystemApi {
         } else {
             ResponseEntity(HttpStatus.NOT_MODIFIED)
         }
+    }
+
+    @RequestMapping(value = "configuration/{key}", method = arrayOf(RequestMethod.POST))
+    open fun insertOrUpdateConfiguration(@PathVariable("key") key : String, @RequestBody value : String) {
+        configurationRepository.insertOrUpdate(key, value)
+    }
+
+    @RequestMapping(value = "configuration/{key}", method = arrayOf(RequestMethod.GET))
+    open fun getConfigurationValue(@PathVariable("key") key : String) : String? {
+        return configurationRepository.getData(key).orElse(null)
     }
 }

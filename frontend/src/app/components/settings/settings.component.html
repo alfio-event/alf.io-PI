@@ -1,0 +1,20 @@
+<alfio-responsive-layout>
+  <div class="d-flex mt-3 h-100">
+    <div class="card w-100">
+      <div class="card-header d-flex justify-content-between">
+        <h3>Settings</h3>
+      </div>
+      <div class="card-block">
+        <ul class="option-list">
+          <li class="form-inline padding-bottom-20">
+            <div class="form-group">
+              <label class="label">Remaining label:</label> <input type="number" class="form-control" [(ngModel)]="labelCounter">
+              <button class="btn btn-default" (click)="saveLabel()"><i class="fa fa-save"></i></button>
+            </div>
+          </li>
+          <li><h4><a routerLink="/power-off"><i class="fa fa-power-off"></i> Power off</a></h4></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</alfio-responsive-layout>
