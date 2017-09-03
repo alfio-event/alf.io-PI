@@ -20,16 +20,14 @@ package alfio.pi.controller
 import alfio.pi.manager.*
 import alfio.pi.model.Event
 import alfio.pi.model.ScanLog
-import alfio.pi.repository.EventRepository
-import alfio.pi.repository.LabelConfigurationRepository
-import alfio.pi.repository.PrinterRepository
-import alfio.pi.repository.ScanLogRepository
+import alfio.pi.repository.*
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.*
+import java.security.Principal
 
 @RestController
 @RequestMapping("/api/internal/scan-log")
@@ -37,7 +35,8 @@ import org.springframework.web.bind.annotation.*
 open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
                        private val printManager: PrintManager,
                        private val printerRepository: PrinterRepository,
-                       private val labelConfigurationRepository: LabelConfigurationRepository) {
+                       private val labelConfigurationRepository: LabelConfigurationRepository,
+                       private val userRepository: UserRepository) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
@@ -45,12 +44,21 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
     @RequestMapping("/event/{eventId}")
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
 
+    @RequestMapping(value = "/event/{eventId}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
+    open fun getReprintPreview(@PathVariable("eventId") eventId: Int, @PathVariable("entryId") entryId: Int): ResponseEntity<ConfigurableLabelContent> =
+        reprintPreview(eventId, entryId).invoke(printManager, scanLogRepository, labelConfigurationRepository)
+            .map { ResponseEntity.ok(it) }
+            .orElseGet { ResponseEntity.notFound().build() }
+
+
     @RequestMapping(value = "/{entryId}/reprint", method = arrayOf(RequestMethod.PUT))
     open fun reprint(@PathVariable("entryId") entryId: Int,
-                     @RequestBody form: ReprintForm): ResponseEntity<Boolean> {
+                     @RequestBody form: ReprintForm,
+                     principal: Principal): ResponseEntity<Boolean> {
         val printerId = form.printer
-        return if(printerId != null) {
-            ResponseEntity.ok(reprintBadge(entryId, printerId).invoke(printManager, printerRepository, scanLogRepository, labelConfigurationRepository))
+        val content = form.content
+        return if(printerId != null || content != null) {
+            ResponseEntity.ok(reprintBadge(entryId, printerId, principal.name, content).invoke(printManager, printerRepository, scanLogRepository, labelConfigurationRepository, userRepository))
         } else {
             ResponseEntity(HttpStatus.BAD_REQUEST)
         }
@@ -59,6 +67,7 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
 
 class ReprintForm {
     var printer: Int?=null
+    var content: ConfigurableLabelContent?=null
 }
 
 

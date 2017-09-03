@@ -137,14 +137,19 @@ fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Co
     })
 }
 
-fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterRepository, ScanLogRepository, LabelConfigurationRepository) -> Boolean = { printManager, printerRepository, scanLogRepository, labelConfigRepository ->
+fun reprintBadge(scanLogId: Int, printerId: Int?, username: String, content: ConfigurableLabelContent?): (PrintManager, PrinterRepository, ScanLogRepository, LabelConfigurationRepository, UserRepository) -> Boolean = { printManager, printerRepository, scanLogRepository, labelConfigRepository, userRepository ->
     tryOrDefault<Boolean>().invoke({
         scanLogRepository.findOptionalById(scanLogId)
             .filter { it.ticket != null }
             .flatMap { scanLog ->
-                printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
-            }.map {
-                printManager.printLabel(it.first, it.second, labelConfigRepository.loadForEvent(it.third).orElse(null))
+                if(printerId != null) {
+                    printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
+                } else {
+                    userRepository.findByUsername(username).map { (id) -> Triple(printerRepository.findByUserIdAndEvent(id, scanLog.eventId).orElse(null), scanLog.ticket!!, scanLog.eventId) }
+                }
+            }.map { (printer, ticket, eventId) ->
+                val labelConfiguration = labelConfigRepository.loadForEvent(eventId).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))
+                printManager.printLabel(printer, ticket, labelConfiguration)
             }.orElse(false)
     }, {
         logger.error("cannot re-print label. ",it)
@@ -152,14 +157,20 @@ fun reprintBadge(scanLogId: Int, printerId: Int): (PrintManager, PrinterReposito
     })
 }
 
-fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean = { printManager: PrintManager, printerRepository: PrinterRepository ->
+fun reprintPreview(eventId: Int, scanLogId: Int): (PrintManager, ScanLogRepository, LabelConfigurationRepository) -> Optional<ConfigurableLabelContent> = { printManager, scanLogRepository, labelConfigurationRepository ->
+    scanLogRepository.findOptionalByIdAndEventId(scanLogId, eventId)
+        .filter {it.ticket != null}
+        .map { printManager.getLabelContent(it.ticket!!, labelConfigurationRepository.loadForEvent(eventId).orElse(null)) }
+}
+
+fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean = { printManager, printerRepository ->
     printerRepository.findOptionalById(printerId)
         .map { printManager.printTestLabel(it) }
         .orElse(false)
 }
 
-fun printOnLocalPrinter(printerName: String, ticket: Ticket, labelConfiguration: LabelConfiguration?): (PrintManager) -> Boolean = { printManager ->
-    val printer = printManager.getAvailablePrinters().filter { it.name.equals(printerName, true) }.firstOrNull()
+fun printOnLocalPrinter(printerName: String, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): (PrintManager) -> Boolean = { printManager ->
+    val printer = printManager.getAvailablePrinters().firstOrNull { it.name.equals(printerName, true) }
     if(printer != null) {
         printManager.printLabel(Printer(-1, printer.name, null, true), ticket, labelConfiguration)
     } else {
@@ -182,7 +193,7 @@ open class PrinterSynchronizer(private val printerRepository: PrinterRepository,
 }
 
 @Component
-open class LocalPrinterMonitor(val printManager: PrintManager) {
+open class LocalPrinterMonitor(private val printManager: PrintManager) {
 
     private val monitorInitialized = AtomicBoolean(false)
     private val watcher = FileSystems.getDefault().newWatchService()

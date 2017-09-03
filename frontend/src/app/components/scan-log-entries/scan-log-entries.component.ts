@@ -1,11 +1,11 @@
-import {Component, OnInit, Input} from "@angular/core";
-import {ScanLogService, ScanLogEntry, Ticket, CheckInStatus} from "./scan-log.service";
+import {Component, Input, OnInit} from "@angular/core";
+import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
 import {Observable} from "rxjs";
-import {EventService, Event} from "../../shared/event/event.service";
+import {Event, EventService} from "../../shared/event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
-import {ServerEventsService, EventType, NewScan} from "../../server-events.service";
+import {EventType, NewScan, ServerEventsService} from "../../server-events.service";
 import {isNullOrUndefined} from "util";
 
 @Component({
@@ -38,7 +38,7 @@ export class ScanLogEntriesComponent implements OnInit {
         if(!isNullOrUndefined(this.maxEntries) && this.maxEntries > 0 && this.entries.length >= this.maxEntries) {
           this.entries.splice(this.maxEntries - 1, 1);
         }
-        this.entries.unshift(new ScanLogEntryWithEvent(newScan.scanData, newScan.event));
+        this.entries.unshift(...newScan.scanData.map(scan => new ScanLogEntryWithEvent(scan, newScan.event)));
       }
     })
   }
@@ -62,7 +62,7 @@ export class ScanLogEntriesComponent implements OnInit {
   }
 
   reprint(entry: ScanLogEntry, printer: Printer): void {
-    this.progressManager.monitorCall(() => this.scanLogService.reprint(entry, printer))
+    this.progressManager.monitorCall(() => this.scanLogService.reprint(entry.id, null, printer))
       .subscribe(res => console.log("printed", res));
   }
 

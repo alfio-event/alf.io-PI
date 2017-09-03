@@ -66,9 +66,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val jdbc: NamedParameterJdbcTemplate,
                               private val httpClient: OkHttpClient,
                               private val printManager: PrintManager,
-                              private val publisher: SystemEventManager,
                               private val cluster: JGroupsCluster,
-                              private val labelConfigurationRepository: LabelConfigurationRepository) {
+                              private val labelConfigurationRepository: LabelConfigurationRepository,
+                              private val publisher: SystemEventHandler) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -133,12 +133,11 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val ticket = localDataResult.ticket!!
                             val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
-                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, configuration)
+                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
-                            val keyContainer = scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             cluster.insertInScanLog(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
-                            publisher.publishEvent(SystemEvent(SystemEventType.NEW_SCAN, NewScan(scanLogRepository.findById(keyContainer.key), event)))
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
@@ -196,7 +195,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val idsAndTime = loadIds(eventName, since)
         val ids = idsAndTime.first
 
-        logger.info("found ${ids.size} for event $eventName")
+        logger.debug("found ${ids.size} for event $eventName")
 
         val res = HashMap<String, String>()
         if(!ids.isEmpty()) {
@@ -208,12 +207,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 }
             }
             ids.partitionWithSize(200).forEach { partitionedIds ->
-                logger.info("loading ${partitionedIds.size}")
+                logger.debug("loading ${partitionedIds.size}")
                 res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
-                logger.info("finished loading ${partitionedIds.size}")
+                logger.debug("finished loading ${partitionedIds.size}")
             }
         }
-        logger.info("finished loading")
+        logger.info("finished loading attendees for event $eventName")
 
         return Pair(res, idsAndTime.second)
     }
@@ -307,6 +306,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
         val attendeesForEvent = attendeesForEventAndTime.first
         saveAttendees(eventName, attendeesForEvent.map { Attendee(eventName, it.key, it.value, attendeesForEventAndTime.second) })
+        publisher.notifyAllSessions(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventName, ZonedDateTime.now())))
     }
 
     open fun saveAttendees(eventName: String, attendeesForEvent: List<Attendee>) {

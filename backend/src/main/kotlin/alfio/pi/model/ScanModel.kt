@@ -17,6 +17,7 @@
 
 package alfio.pi.model
 
+import alfio.pi.manager.ConfigurableLabelContent
 import ch.digitalfondue.npjt.ConstructorAnnotationRowMapper.Column
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -83,9 +84,11 @@ data class UserAndPrinter(@Column("username") private val username: String,
     val printer = Printer(printerId, printerName, printerDescription, printerActive)
 }
 
-open class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) {
+data class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) {
     val layout: LabelLayout? = GsonContainer.GSON?.fromJson(json, LabelLayout::class.java)
 }
+
+data class LabelConfigurationAndContent(val configuration: LabelConfiguration?, val content: ConfigurableLabelContent?)
 
 class CheckInEvent(source: Any, val scanLog: ScanLog) : ApplicationEvent(source)
 

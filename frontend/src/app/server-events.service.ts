@@ -29,7 +29,7 @@ export class ServerEventsService {
   constructor(private windowRef: WindowRef) {
     let $window = windowRef.nativeWindow;
     let wsProtocol = $window.location.protocol.includes('https') ? 'wss' : 'ws';
-    this.events = Observable.webSocket(`${wsProtocol}://${$window.location.host}/api/internal/ws/stream`).asObservable();
+    this.events = Observable.webSocket(`${wsProtocol}://${$window.location.host}/api/internal/ws/stream`).asObservable() as Observable<ServerEvent>;
   }
 }
 
@@ -49,6 +49,6 @@ export class EventUpdated {
 }
 
 export class NewScan {
-  constructor(public scanData: ScanLogEntry, public event: Event) {}
+  constructor(public scanData: ScanLogEntry[], public event: Event) {}
 }
 

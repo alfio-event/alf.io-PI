@@ -33,6 +33,9 @@ interface ScanLogRepository {
     @Query("select * from scan_log order by scan_ts desc")
     fun loadAll():List<ScanLog>
 
+    @Query("select * from scan_log where scan_ts > :ts order by scan_ts desc")
+    fun loadNew(@Bind("ts") timestamp: Date): List<ScanLog>
+
     @Query("select * from scan_log order by scan_ts desc limit :n")
     fun loadLastN(@Bind("n") n: Int): List<ScanLog>
 
@@ -57,6 +60,9 @@ interface ScanLogRepository {
 
     @Query("select * from scan_log where id = :id")
     fun findById(@Bind("id") id: Int): ScanLog
+
+    @Query("select * from scan_log where id = :id and event_id_fk = :eventId")
+    fun findOptionalByIdAndEventId(@Bind("id") id: Int, @Bind("eventId") eventId: Int): Optional<ScanLog>
 
     @Query("select * from scan_log where remote_result = 'RETRY'")
     fun findRemoteFailures(): List<ScanLog>

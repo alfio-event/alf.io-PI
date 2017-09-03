@@ -30,14 +30,20 @@ export class ScanLogService {
       .map(res => res.json())
   }
 
+  getReprintPreview(entryId: number, eventId: number): Observable<ConfigurableLabelContent> {
+    return this.http.get(`/api/internal/scan-log/event/${eventId}/entry/${entryId}/reprint-preview`)
+      .map(res => res.json())
+  }
+
   getEntries(max: number): Observable<Array<ScanLogEntry>> {
     let maxItems = max || -1;
     return this.http.get(`/api/internal/scan-log?max=${maxItems}`)
       .map(res => res.json())
   }
 
-  reprint(entry: ScanLogEntry, printer: Printer): Observable<boolean> {
-    return this.http.put(`/api/internal/scan-log/${entry.id}/reprint`, {printer: printer.id})
+  reprint(entryId: number, content: ConfigurableLabelContent, printer?: Printer): Observable<boolean> {
+    let printerId = printer ? printer.id : null;
+    return this.http.put(`/api/internal/scan-log/${entryId}/reprint`, {printer: printerId, content: content})
       .map(res => res.json());
   }
 
@@ -61,6 +67,14 @@ export class Ticket {
               public lastName: string,
               public email: string,
               public company?: string) {}
+}
+
+export class ConfigurableLabelContent {
+  constructor(public firstRow: String,
+              public secondRow: String,
+              public thirdRow: String,
+              public qrContent: String,
+              public partialID: String) {}
 }
 
 
