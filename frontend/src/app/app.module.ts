@@ -38,6 +38,7 @@ import {ScanLogEntryReprintComponent} from "app/components/scan-log-entries/repr
 import { QRCodeModule } from 'angular2-qrcode';
 import {SettingsComponent} from "./components/settings/settings.component";
 import { VirtualKeyboardDirective } from './virtual-keyboard.directive';
+import {ConfigurationService} from "./shared/configuration/configuration.service";
 
 @NgModule({
   declarations: [
@@ -95,7 +96,7 @@ import { VirtualKeyboardDirective } from './virtual-keyboard.directive';
 
     ])
   ],
-  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService, ScanService],
+  providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService, ScanService, ConfigurationService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

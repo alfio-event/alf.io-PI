@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {Http} from "@angular/http";
+import {ConfigurationService, PRINTER_REMAINING_LABEL_COUNTER} from "../../shared/configuration/configuration.service";
 
 @Component({
   selector: 'alfio-settings',
@@ -8,18 +8,17 @@ import {Http} from "@angular/http";
 })
 export class SettingsComponent implements OnInit {
 
-  constructor(private http: Http) { }
+  constructor(private configurationService: ConfigurationService) { }
 
   labelCounter: any
 
   ngOnInit() {
-    this.http.get('/api/internal/system/configuration/PRINTER_REMAINING_LABEL_COUNTER')
-      .map(res => res.json())
+    this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_COUNTER)
       .subscribe(res => this.labelCounter = res);
   }
 
   saveLabel() {
-    this.http.post('/api/internal/system/configuration/PRINTER_REMAINING_LABEL_COUNTER', this.labelCounter).subscribe(r => {})
+    this.configurationService.save(PRINTER_REMAINING_LABEL_COUNTER, this.labelCounter).subscribe(r => {})
   }
 
 }

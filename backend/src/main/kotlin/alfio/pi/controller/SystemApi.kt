@@ -49,6 +49,6 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
 
     @RequestMapping(value = "configuration/{key}", method = arrayOf(RequestMethod.GET))
     open fun getConfigurationValue(@PathVariable("key") key : String) : String? {
-        return configurationRepository.getData(key).orElse(null)
+        return configurationRepository.getData(key).orElse("")
     }
 }

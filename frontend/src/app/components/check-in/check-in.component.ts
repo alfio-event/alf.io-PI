@@ -5,6 +5,8 @@ import {Account} from "../../scan-module/account/account";
 import {isDefined} from "@ng-bootstrap/ng-bootstrap/util/util";
 import {CheckInStatus, statusDescriptions, Ticket} from "../../scan-module/scan/scan-common";
 import {ProgressManager} from "../../ProgressManager";
+import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
+import {ConfigurationService, PRINTER_REMAINING_LABEL_COUNTER} from "../../shared/configuration/configuration.service";
 
 @Component({
   selector: 'alfio-check-in',
@@ -21,7 +23,12 @@ export class CheckInComponent implements OnInit {
   progressManager: ProgressManager;
   loading: boolean;
 
-  constructor(private eventService: EventService, private scanService: ScanService) {
+  labelCounter: any;
+
+  constructor(private eventService: EventService,
+              private scanService: ScanService,
+              private serverEventsService: ServerEventsService,
+              private configurationService: ConfigurationService) {
     this.account = new Account();
     this.account.url = '';
     this.progressManager = new ProgressManager();
@@ -31,6 +38,15 @@ export class CheckInComponent implements OnInit {
   ngOnInit(): void {
     this.progressManager.monitorCall(() => this.eventService.getAllEvents().map(l => l.filter(e => e.active)))
       .subscribe(list => this.events = list);
+
+    this.serverEventsService.events.subscribe(e => {
+      if(e.type == EventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER) {
+        let update = <UpdatePrinterRemainingLabelCounter> e.data;
+        this.labelCounter = update.count;
+      }
+    });
+
+    this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_COUNTER).subscribe(res => this.labelCounter = res);
   }
 
   onScan(scan: string): void {

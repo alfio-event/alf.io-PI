@@ -36,5 +36,8 @@
         <loading-indicator [observable]="progressManager.observable" [big]="true"></loading-indicator>
       </div>
     </div>
+    <div *ngIf="labelCounter != null && labelCounter != ''" class="position-fixed-bottom">
+      <h4>Remaining labels: {{labelCounter}}</h4>
+    </div>
   </div>
 </alfio-responsive-layout>

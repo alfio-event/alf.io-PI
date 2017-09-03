@@ -37,11 +37,12 @@ export class ServerEvent {
   constructor(public type: string, public data: any) {}
 }
 
-export type EventType = "NEW_SCAN" | "EVENT_UPDATED";
+export type EventType = "NEW_SCAN" | "EVENT_UPDATED" | "UPDATE_PRINTER_REMAINING_LABEL_COUNTER";
 
 export const EventType = {
   NEW_SCAN: "NEW_SCAN" as EventType,
-  EVENT_UPDATED: "EVENT_UPDATED" as EventType
+  EVENT_UPDATED: "EVENT_UPDATED" as EventType,
+  UPDATE_PRINTER_REMAINING_LABEL_COUNTER: "UPDATE_PRINTER_REMAINING_LABEL_COUNTER" as EventType
 };
 
 export class EventUpdated {
@@ -50,5 +51,9 @@ export class EventUpdated {
 
 export class NewScan {
   constructor(public scanData: ScanLogEntry[], public event: Event) {}
+}
+
+export class UpdatePrinterRemainingLabelCounter {
+  constructor(public count: number) {}
 }
 
