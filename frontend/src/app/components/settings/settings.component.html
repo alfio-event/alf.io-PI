@@ -8,7 +8,7 @@
         <ul class="option-list">
           <li class="form-inline padding-bottom-20">
             <div class="form-group">
-              <label class="label">Remaining label:</label> <input type="number" class="form-control" [(ngModel)]="labelCounter">
+              <label class="label">Remaining label:</label> <input type="number" virtualKeyboard (acceptedKeyboard)="labelCounter = $event" class="form-control" [(ngModel)]="labelCounter">
               <button class="btn btn-default" (click)="saveLabel()"><i class="fa fa-save"></i></button>
             </div>
           </li>

@@ -3,8 +3,6 @@ import {NgModule} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 import {HttpModule} from "@angular/http";
 import {RouterModule} from "@angular/router";
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {NgVirtualKeyboardModule} from '@protacon/ng-virtual-keyboard';
 import {AppComponent} from "./app.component";
 import {UserEditComponent} from "./components/user/edit/user-edit.component";
 import {UserViewComponent} from "./components/user/view/user-view.component";
@@ -39,6 +37,7 @@ import {ScanService} from "./scan-module/scan/scan.service";
 import {ScanLogEntryReprintComponent} from "app/components/scan-log-entries/reprint/scan-log-entry-reprint.component";
 import { QRCodeModule } from 'angular2-qrcode';
 import {SettingsComponent} from "./components/settings/settings.component";
+import { VirtualKeyboardDirective } from './virtual-keyboard.directive';
 
 @NgModule({
   declarations: [
@@ -64,7 +63,8 @@ import {SettingsComponent} from "./components/settings/settings.component";
     ConfirmPowerOffComponent,
     SettingsComponent,
     CheckInComponent,
-    ScanListenerDirective
+    ScanListenerDirective,
+    VirtualKeyboardDirective
   ],
   imports: [
     NgbModule.forRoot(),
@@ -73,8 +73,6 @@ import {SettingsComponent} from "./components/settings/settings.component";
     ReactiveFormsModule,
     HttpModule,
     DragulaModule,
-    NoopAnimationsModule,
-    NgVirtualKeyboardModule,
     QRCodeModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, children: [

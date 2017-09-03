@@ -2,7 +2,8 @@
 @import "../node_modules/dragula/dist/dragula.css";
 @import "../node_modules/bootstrap/dist/css/bootstrap.css";
 @import "../node_modules/font-awesome/css/font-awesome.css";
-@import "~@angular/material/prebuilt-themes/indigo-pink.css";
+@import "../node_modules/virtual-keyboard/dist/css/keyboard.min.css";
+@import "../node_modules/virtual-keyboard/dist/css/keyboard-basic.min.css";
 
 .draggable {
   cursor: move;
@@ -22,28 +23,4 @@ virtual-keyboard > div > div {
 
 md-dialog-container.mat-dialog-container {
   max-width: inherit;
-}
-
-/* fallback */
-@font-face {
-  font-family: 'Material Icons';
-  font-style: normal;
-  font-weight: 400;
-  src: url('assets/material-icons.woff2') format('woff2');
-}
-
-.material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
 }

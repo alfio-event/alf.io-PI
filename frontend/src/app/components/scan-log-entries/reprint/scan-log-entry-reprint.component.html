@@ -30,10 +30,10 @@
             <div class="row">
                   <div class="col-md-8">
                     <div class="form-group">
-                      <input class="form-control" [(ngModel)]="content.firstRow" name="firstRow" ng-virtual-keyboard ng-virtual-keyboard-layout="alphanumeric">
+                      <input class="form-control" [(ngModel)]="content.firstRow" name="firstRow" virtualKeyboard (acceptedKeyboard)="content.firstRow = $event">
                     </div>
                     <div class="form-group">
-                      <input class="form-control" [(ngModel)]="content.secondRow" name="secondRow" ng-virtual-keyboard ng-virtual-keyboard-layout="alphanumeric">
+                      <input class="form-control" [(ngModel)]="content.secondRow" name="secondRow" virtualKeyboard (acceptedKeyboard)="content.secondRow = $event">
                     </div>
                   </div>
                   <div class="col-md-4">
@@ -44,9 +44,9 @@
                 </div>
                 <div class="row">
                   <div class="col-md-8">
-                    <input class="form-control" [(ngModel)]="content.thirdRow" name="thirdRow" ng-virtual-keyboard ng-virtual-keyboard-layout="alphanumeric">
+                    <input class="form-control" [(ngModel)]="content.thirdRow" name="thirdRow" virtualKeyboard (acceptedKeyboard)="content.thirdRow = $event">
                   </div>
-                  <div class="col-md-4 text-center"><input class="form-control" [(ngModel)]="content.partialID" name="thirdRow" ng-virtual-keyboard ng-virtual-keyboard-layout="alphanumeric"></div>
+                  <div class="col-md-4 text-center"><input class="form-control" [(ngModel)]="content.partialID" name="thirdRow" virtualKeyboard (acceptedKeyboard)="content.partialID = $event"></div>
                 </div>
           </div>
           <div class="col"></div>
