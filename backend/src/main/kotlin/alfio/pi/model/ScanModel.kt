@@ -129,7 +129,12 @@ enum class CheckInStatus(val successful: Boolean = false) {
     SUCCESS(true);
 }
 
-data class TicketData(val firstName: String, val lastName: String, val email: String, private val status: String, private val additionalInfoJson: String?) {
+data class TicketData(val firstName: String,
+                      val lastName: String,
+                      val email: String,
+                      val category: String?,
+                      private val status: String,
+                      private val additionalInfoJson: String?) {
     val checkInStatus: CheckInStatus
         get() = when(status) {
             "ACQUIRED" -> CheckInStatus.SUCCESS

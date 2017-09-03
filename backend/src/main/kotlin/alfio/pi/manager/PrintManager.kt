@@ -27,6 +27,7 @@ import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
+import org.springframework.core.env.Environment
 import org.springframework.stereotype.Component
 import java.net.InetAddress
 import java.util.*
@@ -208,11 +209,19 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
                             private val gson: Gson,
                             private val trustManager: X509TrustManager,
                             configurationRepository: ConfigurationRepository,
-                            publisher : SystemEventHandler): LocalPrintManager(labelTemplates, configurationRepository, publisher) {
+                            publisher : SystemEventHandler,
+                            private val environment: Environment): LocalPrintManager(labelTemplates, configurationRepository, publisher) {
 
     private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 
-    private fun retrieveRegisteredPrinter(user: User): Optional<Printer> = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
+    private fun retrieveRegisteredPrinter(user: User): Optional<Printer> {
+        val printer = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
+        return when {
+            printer.isPresent -> printer
+            environment.acceptsProfiles("desk") -> Optional.ofNullable(super.getAvailablePrinters().firstOrNull()).map { Printer(-1, it.name, null, true) }
+            else -> Optional.empty()
+        }
+    }
 
     override fun printLabel(user: User, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): Boolean {
         logger.trace("entering printLabel")
@@ -286,4 +295,6 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
 }
 
 data class ConfigurableLabelContent(val firstRow: String, val secondRow: String, val thirdRow: String, val qrContent: String, val partialID: String)
+
+
 

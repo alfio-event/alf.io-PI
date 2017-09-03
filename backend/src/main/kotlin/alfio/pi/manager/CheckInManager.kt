@@ -94,7 +94,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return tryOrDefault<CheckInResponse>().invoke({
             if(result != null && result !== ticketDataNotFound) {
                 val ticketData = gson.fromJson(decrypt("$uuid/$hmac", result), TicketData::class.java)
-                TicketAndCheckInResult(Ticket(uuid, ticketData.firstName, ticketData.lastName, ticketData.email, ticketData.additionalInfo), CheckInResult(ticketData.checkInStatus))
+                TicketAndCheckInResult(Ticket(uuid, ticketData.firstName, ticketData.lastName, ticketData.email, ticketData.additionalInfo, category = ticketData.category), CheckInResult(ticketData.checkInStatus))
             } else {
                 logger.warn("no eventData found for $key.")
                 EmptyTicketResult()
@@ -133,6 +133,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val ticket = localDataResult.ticket!!
                             val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
+                            if(!printingEnabled) {
+                                logger.info("label printing disabled for event {}", eventName)
+                            }
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))

@@ -17,11 +17,13 @@
 
 package alfio.pi.controller
 
+import alfio.pi.Application
 import alfio.pi.manager.*
 import alfio.pi.model.Event
 import alfio.pi.model.ScanLog
 import alfio.pi.repository.*
 import org.springframework.context.annotation.Profile
+import org.springframework.core.env.Environment
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -36,7 +38,8 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
                        private val printManager: PrintManager,
                        private val printerRepository: PrinterRepository,
                        private val labelConfigurationRepository: LabelConfigurationRepository,
-                       private val userRepository: UserRepository) {
+                       private val userRepository: UserRepository,
+                       private val environment: Environment) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
@@ -54,11 +57,17 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
     @RequestMapping(value = "/{entryId}/reprint", method = arrayOf(RequestMethod.PUT))
     open fun reprint(@PathVariable("entryId") entryId: Int,
                      @RequestBody form: ReprintForm,
-                     principal: Principal): ResponseEntity<Boolean> {
+                     principal: Principal?): ResponseEntity<Boolean> {
         val printerId = form.printer
         val content = form.content
-        return if(printerId != null || content != null) {
-            ResponseEntity.ok(reprintBadge(entryId, printerId, principal.name, content).invoke(printManager, printerRepository, scanLogRepository, labelConfigurationRepository, userRepository))
+        val desk = environment.acceptsProfiles("desk")
+        val username = when {
+            principal != null -> principal.name
+            desk -> Application.deskUsername
+            else -> null
+        }
+        return if(username != null && (printerId != null || content != null)) {
+            ResponseEntity.ok(reprintBadge(entryId, printerId, username, content, desk).invoke(printManager, printerRepository, scanLogRepository, labelConfigurationRepository, userRepository))
         } else {
             ResponseEntity(HttpStatus.BAD_REQUEST)
         }
