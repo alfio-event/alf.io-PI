@@ -33,6 +33,9 @@ interface ScanLogRepository {
     @Query("select * from scan_log order by scan_ts desc")
     fun loadAll():List<ScanLog>
 
+    @Query("select * from scan_log where scan_ts > :ts order by scan_ts desc")
+    fun loadNew(@Bind("ts") timestamp: Date): List<ScanLog>
+
     @Query("select * from scan_log order by scan_ts desc limit :n")
     fun loadLastN(@Bind("n") n: Int): List<ScanLog>
 

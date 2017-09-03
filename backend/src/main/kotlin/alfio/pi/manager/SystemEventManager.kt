@@ -17,7 +17,11 @@
 
 package alfio.pi.manager
 
+import alfio.pi.model.NewScan
 import alfio.pi.model.SystemEvent
+import alfio.pi.model.SystemEventType
+import alfio.pi.repository.EventRepository
+import alfio.pi.repository.ScanLogRepository
 import com.google.gson.Gson
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
@@ -27,25 +31,21 @@ import org.springframework.stereotype.Component
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.util.*
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicReference
 
 @Component
 @Profile("server", "full")
-open class SystemEventManager(val eventHandler: SystemEventHandler) {
-
-    @Async
-    fun publishEvent(event: SystemEvent) {
-        eventHandler.notifyAllSessions(event)
-    }
-}
-
-@Component
-@Profile("server", "full")
-open class SystemEventHandler(val gson: Gson): TextWebSocketHandler() {
+open class SystemEventHandler(private val gson: Gson,
+                              private val scanLogRepository: ScanLogRepository,
+                              private val eventRepository: EventRepository): TextWebSocketHandler() {
     private val logger = LoggerFactory.getLogger(SystemEventHandler::class.java)
     private val sessions = CopyOnWriteArraySet<WebSocketSession>()
+    private val lastCheckTimestamp = AtomicReference<Date>(Date())
 
-    internal fun notifyAllSessions(event: SystemEvent) {
+    @Async
+    internal open fun notifyAllSessions(event: SystemEvent) {
         val payload = gson.toJson(event)
         sessions.filter { it.isOpen }.forEach { it.sendMessage(TextMessage(payload)) }
     }
@@ -55,13 +55,23 @@ open class SystemEventHandler(val gson: Gson): TextWebSocketHandler() {
         sessions.add(session)
     }
 
-    @Scheduled(fixedDelay = 10L)
+    @Scheduled(fixedDelay = 100L)
     open fun checkSessions() {
         sessions.filter { !it.isOpen }.forEach {
             logger.debug("removing closed session with ID {}", it.id)
             sessions.remove(it)
         }
     }
+
+    @Scheduled(fixedDelay = 1000L)
+    open fun fetchAndSendNewScans() {
+        scanLogRepository.loadNew(lastCheckTimestamp.getAndSet(Date()))
+            .groupBy { it.eventId }
+            .map({(key, value) -> SystemEvent(SystemEventType.NEW_SCAN, NewScan(value, eventRepository.loadSingle(key).get()))})
+            .forEach(this::notifyAllSessions)
+    }
+
+
 }
 
 

@@ -380,7 +380,7 @@ open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String
 @Configuration
 @EnableWebSocket
 @Profile("server", "full")
-open class WebSocketConfiguration(val systemEventHandler: SystemEventHandler): WebSocketConfigurer {
+open class WebSocketConfiguration(private val systemEventHandler: SystemEventHandler): WebSocketConfigurer {
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
         registry.addHandler(systemEventHandler, "/api/internal/ws/stream")
     }
