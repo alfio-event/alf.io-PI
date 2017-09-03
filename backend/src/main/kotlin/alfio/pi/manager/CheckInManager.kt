@@ -42,7 +42,6 @@ import java.security.GeneralSecurityException
 import java.security.MessageDigest
 import java.time.ZonedDateTime
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import javax.crypto.Cipher
@@ -51,8 +50,6 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
-
-private val lastUpdatedEvent: ConcurrentHashMap<String, Long> = ConcurrentHashMap()
 
 @Component
 @Profile("server", "full")
@@ -171,7 +168,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             if (resp.isSuccessful) {
                 val body = resp.body().string()
                 val serverTime = resp.header("Alfio-TIME").toLong()
-                lastUpdatedEvent.put(eventName, serverTime)
                 Pair(parseIdsResponse(body).invoke(gson), serverTime)
             } else {
                 Pair(listOf(), 0)
@@ -303,7 +299,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 
     fun syncAttendees(eventName: String) {
-        val lastUpdateForEvent = lastUpdatedEvent[eventName]
+        val lastUpdateForEvent = findLastModifiedTimeForAttendeeInEvent(eventName)
         syncAttendeesForEvent(eventName, lastUpdateForEvent)
         publisher.notifyAllSessions(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventName, ZonedDateTime.now())))
     }
