@@ -19,10 +19,12 @@ package alfio.pi.manager
 
 import alfio.pi.model.LabelLayout
 import alfio.pi.model.Ticket
+import alfio.pi.repository.ConfigurationRepository
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.Mockito
 
 class LabelManagerTest {
     private val maxLengthForSize = arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F)
@@ -51,7 +53,7 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabelWitLayoutNull() {
-        val localPrintManager = LocalPrintManager(emptyList())
+        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
         val ticket1 = ticket()
         val result = localPrintManager.buildConfigurableLabelContent(null, ticket1)
         assertEquals(ticket1.firstName, result.firstRow)
@@ -71,7 +73,7 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabelWithLayoutNotNull() {
-        val localPrintManager = LocalPrintManager(emptyList())
+        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
         val jsonString = """
             {
               "qrCode": {
