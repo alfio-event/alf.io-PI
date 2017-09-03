@@ -190,14 +190,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         }
     }
 
-    private fun loadCachedAttendees(eventName: String, since: Long?) : Pair<Map<String, String>, Long> {
+    private fun syncAttendeesForEvent(eventName: String, since: Long?) {
 
         val idsAndTime = loadIds(eventName, since)
         val ids = idsAndTime.first
 
         logger.debug("found ${ids.size} for event $eventName")
 
-        val res = HashMap<String, String>()
         if(!ids.isEmpty()) {
             //fetch label config, if any
             val labelConfiguration = loadLabelConfiguration(eventName)
@@ -208,13 +207,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             }
             ids.partitionWithSize(200).forEach { partitionedIds ->
                 logger.debug("loading ${partitionedIds.size}")
-                res.putAll(fetchPartitionedAttendees(eventName, partitionedIds))
+                val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map { Attendee(eventName, it.key, it.value, idsAndTime.second) }
+                saveAttendees(eventName, attendees)
                 logger.debug("finished loading ${partitionedIds.size}")
             }
         }
         logger.info("finished loading attendees for event $eventName")
-
-        return Pair(res, idsAndTime.second)
     }
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
@@ -303,9 +301,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     fun syncAttendees(eventName: String) {
         val lastUpdateForEvent = lastUpdatedEvent[eventName]
-        val attendeesForEventAndTime = loadCachedAttendees(eventName, lastUpdateForEvent)
-        val attendeesForEvent = attendeesForEventAndTime.first
-        saveAttendees(eventName, attendeesForEvent.map { Attendee(eventName, it.key, it.value, attendeesForEventAndTime.second) })
+        syncAttendeesForEvent(eventName, lastUpdateForEvent)
         publisher.notifyAllSessions(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventName, ZonedDateTime.now())))
     }
 
