@@ -90,7 +90,10 @@ open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
     open fun insertInScanLog(now: ZonedDateTime, eventId: Int, uuid: String, id: Int, localResult: CheckInStatus, status: CheckInStatus, labelPrinted: Boolean, jsonPayload: String?) {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
-        val method = jGroupsClusterRpcApi.javaClass.getMethod("insertInScanLog", List::class.java)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("insertInScanLog",
+            ZonedDateTime::class.java, Int::class.java, String::class.java,
+            Int::class.java, CheckInStatus::class.java, CheckInStatus::class.java,
+            Boolean::class.java, String::class.java)
         val remoteCall = MethodCall(method)
         remoteCall.setArgs(now, eventId, uuid, id, localResult, status, labelPrinted, jsonPayload)
         dispatcher.callRemoteMethodsWithFuture<Any>(everybodyElseAddresses(), remoteCall, opts)
