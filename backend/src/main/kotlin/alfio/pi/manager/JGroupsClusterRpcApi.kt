@@ -4,6 +4,7 @@ import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.CheckInStatus
 import alfio.pi.repository.AttendeeDataRepository
+import alfio.pi.repository.EventRepository
 import alfio.pi.repository.ScanLogRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext
@@ -35,8 +36,13 @@ open class JGroupsClusterRpcApi(private val appContext: ApplicationContext) {
         return appContext.getBean(AttendeeDataRepository::class.java).getAttendeeData(identifiers)
     }
 
-    open fun insertInScanLog(now: ZonedDateTime, eventId: Int, uuid: String, id: Int, localResult: CheckInStatus, status: CheckInStatus, labelPrinted: Boolean, jsonPayload: String?) {
-        appContext.getBean(ScanLogRepository::class.java).insert(now, eventId, uuid, id, localResult, status, labelPrinted, jsonPayload)
+    open fun insertInScanLog(now: ZonedDateTime, eventName: String, uuid: String, id: Int, localResult: CheckInStatus, status: CheckInStatus, labelPrinted: Boolean, jsonPayload: String?) {
+        appContext.getBean(EventRepository::class.java).loadSingle(eventName).ifPresent { (eventId) ->
+            val scanLogRepository = appContext.getBean(ScanLogRepository::class.java)
+            if(!scanLogRepository.existByEventAndTicketId(eventId, uuid)) {
+                scanLogRepository.insert(now, eventId, uuid, id, localResult, status, labelPrinted, jsonPayload)
+            }
+        }
     }
 
     open fun isFirstSyncDone() : Boolean {

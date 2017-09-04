@@ -137,7 +137,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                             scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
-                            cluster.insertInScanLog(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            cluster.insertInScanLog(now, eventName, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
