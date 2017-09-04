@@ -26,9 +26,9 @@ open class JGroupsClusterRpcApi(private val appContext: ApplicationContext) {
     }
 
     open fun getIdentifiersForEvent(eventName: String, lastModified: Long) : List<String> {
-        logger.info("getIdentifiersForEvent ${eventName} with lastModified ${lastModified} called")
+        logger.info("getIdentifiersForEvent $eventName with lastModified $lastModified called")
         val res = appContext.getBean(AttendeeDataRepository::class.java).getIdentifiersForEvent(eventName, lastModified)
-        logger.info("for ${eventName} found ${res.size}")
+        logger.info("for $eventName found ${res.size}")
         return res
     }
 

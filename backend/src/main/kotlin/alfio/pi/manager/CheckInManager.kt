@@ -246,7 +246,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
 
         if(!cluster.isLeader()) {
-            cluster.remoteCheckInToMaster(eventKey, uuid, hmac, username)
+            val result = cluster.remoteCheckInToMaster(eventKey, uuid, hmac, username)
+            result ?: EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
         } else {
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
             val request = Request.Builder()
@@ -274,13 +275,15 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
-        val failures = scanLogRepository.findRemoteFailures()
-        logger.trace("found ${failures.size} pending scan to upload")
-        failures
-            .groupBy { it.eventId }
-            .mapKeys { eventRepository.loadSingle(it.key) }
-            .filter { it.key.isPresent }
-            .forEach { entry -> uploadEntriesForEvent(entry) }
+        if(cluster.isLeader()) {
+            val failures = scanLogRepository.findRemoteFailures()
+            logger.trace("found ${failures.size} pending scan to upload")
+            failures
+                .groupBy { it.eventId }
+                .mapKeys { eventRepository.loadSingle(it.key) }
+                .filter { it.key.isPresent }
+                .forEach { entry -> uploadEntriesForEvent(entry) }
+        }
     }
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {

@@ -57,7 +57,7 @@ open class JGroupsCluster(private var jGroupsClusterRpcApi : JGroupsClusterRpcAp
         return channel.view.members[0]
     }
 
-    open fun remoteCheckInToMaster(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse {
+    open fun remoteCheckInToMaster(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse? {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
         val method = jGroupsClusterRpcApi.javaClass.getMethod("remoteCheckIn", String::class.java, String::class.java, String::class.java, String::class.java)
         val remoteCheckInCall = MethodCall(method)
