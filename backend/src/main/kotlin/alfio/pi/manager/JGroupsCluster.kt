@@ -20,6 +20,7 @@ package alfio.pi.manager
 import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.CheckInStatus
+import alfio.pi.wrapper.tryOrDefault
 import org.jgroups.Address
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
@@ -65,12 +66,12 @@ open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
         return dispatcher.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
     }
 
-    open fun leaderHasPerformSyncDone() : Boolean {
+    open fun leaderHasPerformSyncDone() : Boolean = tryOrDefault<Boolean>().invoke({
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
         val method = jGroupsClusterRpcApi.javaClass.getMethod("isFirstSyncDone")
         val remoteCall = MethodCall(method)
-        return dispatcher.callRemoteMethod<Boolean>(getLeaderAddress(), remoteCall, opts)
-    }
+        dispatcher.callRemoteMethod<Boolean>(getLeaderAddress(), remoteCall, opts)
+    }, {false})
 
     open fun getIdentifiersForEvent(eventName: String, lastModified: Long) : List<String> {
         val opts = RequestOptions(ResponseMode.GET_ALL, 5000)
