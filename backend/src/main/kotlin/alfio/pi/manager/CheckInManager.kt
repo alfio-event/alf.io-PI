@@ -389,9 +389,10 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
             } else {
                 result = jGroupsCluster.leaderHasPerformSyncDone()
                 if(!result) {
-                    logger.info("Leader is still working")
+                    logger.info("Leader ${jGroupsCluster.getLeaderAddress()} is still working")
                 } else {
                     logger.info("Leader has finished loading")
+                    jGroupsCluster.hasPerformSyncDone(true)
                     performSync()
                 }
             }

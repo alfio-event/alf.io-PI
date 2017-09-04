@@ -21,10 +21,9 @@ import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.CheckInStatus
 import alfio.pi.wrapper.tryOrDefault
-import org.jgroups.Address
+import org.jgroups.*
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
-import org.jgroups.JChannel
 import org.jgroups.blocks.MethodCall
 import org.jgroups.blocks.ResponseMode
 import org.jgroups.blocks.RequestOptions
@@ -34,9 +33,9 @@ import java.time.ZonedDateTime
 
 @Component
 @Profile("server", "full")
-open class JGroupsCluster(var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
+open class JGroupsCluster(private var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
 
-    val channel: JChannel = JChannel()
+    private val channel: JChannel = JChannel()
     var dispatcher : RpcDispatcher
 
     init {
