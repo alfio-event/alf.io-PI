@@ -36,7 +36,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicReference
 
 interface SystemEventHandler {
-    open fun notifyAllSessions(event: SystemEvent)
+    fun notifyAllSessions(event: SystemEvent)
 }
 
 @Component

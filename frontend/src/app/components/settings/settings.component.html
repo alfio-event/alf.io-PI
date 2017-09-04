@@ -3,17 +3,23 @@
     <div class="card w-100">
       <div class="card-header d-flex justify-content-between">
         <h3>Settings</h3>
+        <loading-indicator [observable]="progressManager.observable" [big]="false"></loading-indicator>
       </div>
       <div class="card-block">
-        <ul class="option-list">
-          <li class="form-inline padding-bottom-20">
-            <div class="form-group">
-              <label class="label">Remaining label:</label> <input type="number" virtualKeyboard (acceptedKeyboard)="labelCounter = $event" class="form-control" [(ngModel)]="labelCounter">
-              <button class="btn btn-default" (click)="saveLabel()"><i class="fa fa-save"></i></button>
-            </div>
-          </li>
-          <li><h4><a routerLink="/power-off"><i class="fa fa-power-off"></i> Power off</a></h4></li>
-        </ul>
+        <h4 class="card-title">Label Printing</h4>
+        <p class="card-text">Define how many labels are available to the printer in the current roll</p>
+        <div class="form-inline">
+          <label>
+            <span class="sr-only">Remaining labels</span>
+            <input type="number" virtualKeyboard (acceptedKeyboard)="labelCounter = $event" class="form-control" [(ngModel)]="labelCounter">
+          </label>
+          <button class="btn btn-success ml-2" (click)="saveLabel()"><i class="fa fa-save"></i> Save</button>
+        </div>
+      </div>
+      <div class="card-block">
+        <h4 class="card-title">System Actions</h4>
+        <p class="card-text">Perform actions on the device</p>
+        <a routerLink="/power-off" class="btn btn-danger"><i class="fa fa-power-off"></i> Power off</a>
       </div>
     </div>
   </div>

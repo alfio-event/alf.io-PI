@@ -37,7 +37,7 @@
       </div>
     </div>
     <div *ngIf="labelCounter != null && labelCounter != ''" class="position-fixed-bottom">
-      <h4>Remaining labels: {{labelCounter}}</h4>
+      <h4 [ngClass]="{'text-danger': labelCounter < 20}">Remaining labels: {{labelCounter}}</h4>
     </div>
   </div>
 </alfio-responsive-layout>
