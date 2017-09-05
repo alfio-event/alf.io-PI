@@ -11,7 +11,7 @@
         <div class="form-inline">
           <label>
             <span class="sr-only">Remaining labels</span>
-            <input type="number" virtualKeyboard (acceptedKeyboard)="labelCounter = $event" class="form-control" [(ngModel)]="labelCounter">
+            <input type="number" virtualKeyboard class="form-control" [(ngModel)]="labelCounter">
           </label>
           <button class="btn btn-success ml-2" (click)="saveLabel()"><i class="fa fa-save"></i> Save</button>
         </div>

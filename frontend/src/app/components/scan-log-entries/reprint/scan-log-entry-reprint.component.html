@@ -30,10 +30,10 @@
             <div class="row">
                   <div class="col-md-8">
                     <div class="form-group">
-                      <input class="form-control" [(ngModel)]="content.firstRow" name="firstRow" virtualKeyboard (acceptedKeyboard)="content.firstRow = $event">
+                      <input class="form-control" [(ngModel)]="content.firstRow" name="firstRow" virtualKeyboard>
                     </div>
                     <div class="form-group">
-                      <input class="form-control" [(ngModel)]="content.secondRow" name="secondRow" virtualKeyboard (acceptedKeyboard)="content.secondRow = $event">
+                      <input class="form-control" [(ngModel)]="content.secondRow" name="secondRow" virtualKeyboard>
                     </div>
                   </div>
                   <div class="col-md-4">
@@ -44,9 +44,9 @@
                 </div>
                 <div class="row">
                   <div class="col-md-8">
-                    <input class="form-control" [(ngModel)]="content.thirdRow" name="thirdRow" virtualKeyboard (acceptedKeyboard)="content.thirdRow = $event">
+                    <input class="form-control" [(ngModel)]="content.thirdRow" name="thirdRow" virtualKeyboard>
                   </div>
-                  <div class="col-md-4 text-center"><input class="form-control" [(ngModel)]="content.partialID" name="thirdRow" virtualKeyboard (acceptedKeyboard)="content.partialID = $event"></div>
+                  <div class="col-md-4 text-center"><input class="form-control" [(ngModel)]="content.partialID" name="thirdRow" virtualKeyboard></div>
                 </div>
           </div>
           <div class="col"></div>
