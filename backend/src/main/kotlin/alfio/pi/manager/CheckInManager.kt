@@ -377,6 +377,8 @@ internal fun calcHash256(hmac: String) : String {
 @Profile("server", "full")
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
                                    private val remoteResourceManager: RemoteResourceManager,
+                                   private val labelConfigurationRepository: LabelConfigurationRepository,
+                                   private val eventRepository: EventRepository,
                                    private val jGroupsCluster: JGroupsCluster) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
@@ -426,6 +428,12 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
                     logger.info("Fetching ${partitionedIds.size}")
                     val attendees = jGroupsCluster.loadAttendeesWithIdentifier(partitionedIds)
                     checkInDataManager.saveAttendees(eventName, attendees)
+                }
+                val labelConfiguration = jGroupsCluster.loadLabelConfigurationFromMaster(eventName)
+                if(labelConfiguration != null) {
+                    eventRepository.loadSingle(eventName).ifPresent { (id) ->
+                        labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
+                    }
                 }
             }
             logger.info("Follower end onDemandSync")

@@ -20,6 +20,7 @@ package alfio.pi.manager
 import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.CheckInStatus
+import alfio.pi.model.LabelConfiguration
 import alfio.pi.wrapper.tryOrDefault
 import org.jgroups.*
 import org.springframework.context.annotation.Profile
@@ -63,6 +64,14 @@ open class JGroupsCluster(private var jGroupsClusterRpcApi : JGroupsClusterRpcAp
         val remoteCheckInCall = MethodCall(method)
         remoteCheckInCall.setArgs(eventKey, uuid, hmac, username)
         return dispatcher.callRemoteMethod<CheckInResponse>(getLeaderAddress(), remoteCheckInCall, opts)
+    }
+
+    open fun loadLabelConfigurationFromMaster(eventKey: String): LabelConfiguration? {
+        val opts = RequestOptions(ResponseMode.GET_ALL, 200)
+        val method = jGroupsClusterRpcApi.javaClass.getMethod("loadLabelConfigurationForEventName", String::class.java)
+        val getLabelConfiguration = MethodCall(method)
+        getLabelConfiguration.setArgs(eventKey)
+        return dispatcher.callRemoteMethod(getLeaderAddress(), getLabelConfiguration, opts)
     }
 
     open fun leaderHasPerformSyncDone() : Boolean = tryOrDefault<Boolean>().invoke({

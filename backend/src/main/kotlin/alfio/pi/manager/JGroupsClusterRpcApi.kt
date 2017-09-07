@@ -3,8 +3,10 @@ package alfio.pi.manager
 import alfio.pi.model.Attendee
 import alfio.pi.model.CheckInResponse
 import alfio.pi.model.CheckInStatus
+import alfio.pi.model.LabelConfiguration
 import alfio.pi.repository.AttendeeDataRepository
 import alfio.pi.repository.EventRepository
+import alfio.pi.repository.LabelConfigurationRepository
 import alfio.pi.repository.ScanLogRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationContext
@@ -35,6 +37,14 @@ open class JGroupsClusterRpcApi(private val appContext: ApplicationContext) {
     open fun getAttendeeData(identifiers : List<String>) : List<Attendee> {
         return appContext.getBean(AttendeeDataRepository::class.java).getAttendeeData(identifiers)
     }
+
+    open fun loadLabelConfigurationForEventName(eventName: String) =
+        appContext.getBean(EventRepository::class.java)
+            .loadSingle(eventName)
+            .flatMap { (id) ->
+                appContext.getBean(LabelConfigurationRepository::class.java)
+                    .loadForEvent(id)
+            }.orElse(null)
 
     open fun insertInScanLog(now: ZonedDateTime, eventName: String, uuid: String, id: Int, localResult: CheckInStatus, status: CheckInStatus, labelPrinted: Boolean, jsonPayload: String?) {
         appContext.getBean(EventRepository::class.java).loadSingle(eventName).ifPresent { (eventId) ->

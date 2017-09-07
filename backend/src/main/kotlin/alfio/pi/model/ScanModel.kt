@@ -84,7 +84,7 @@ data class UserAndPrinter(@Column("username") private val username: String,
     val printer = Printer(printerId, printerName, printerDescription, printerActive)
 }
 
-data class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) {
+data class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) : Serializable {
     val layout: LabelLayout? = GsonContainer.GSON?.fromJson(json, LabelLayout::class.java)
 }
 
@@ -178,7 +178,7 @@ data class SystemPrinter(val name: String)
 
 data class RemotePrinter(val name: String, val remoteHost: String)
 
-data class LabelLayout(val qrCode: QRCode, val content: Content, val general: General)
-data class QRCode(val additionalInfo: List<String>, val infoSeparator: String)
-data class Content(val thirdRow: List<String>)
-data class General(val printPartialID: Boolean)
+data class LabelLayout(val qrCode: QRCode, val content: Content, val general: General) : Serializable
+data class QRCode(val additionalInfo: List<String>, val infoSeparator: String) : Serializable
+data class Content(val thirdRow: List<String>) : Serializable
+data class General(val printPartialID: Boolean) : Serializable
