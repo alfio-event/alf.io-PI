@@ -160,7 +160,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, pr
         } else {
             buildConfigurableLabelContent(labelConfiguration?.configuration?.layout, ticket)
         }
-        val pdf = generatePDFLabel(ticket.firstName, ticket.lastName, configurableContent.thirdRow, ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
+        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.thirdRow, ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace(cmd)
         val print = Runtime.getRuntime().exec(cmd)
