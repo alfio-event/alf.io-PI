@@ -116,7 +116,7 @@ interface AttendeeDataRepository {
         when not matched then insert values vals.event, vals.identifier, vals.data, vals.last_update""")
     fun mergeTemplate(): String
 
-    @Query("select true from attendee_data  where event = :event and identifier = :identifier limit 1")
+    @Query("select count(*) > 0 from attendee_data  where event = :event and identifier = :identifier limit 1")
     fun isPresent(@Bind("event") event: String, @Bind("identifier") identifier: String) : Boolean
 
     @Query("select data from attendee_data  where event = :event and identifier = :identifier limit 1")
