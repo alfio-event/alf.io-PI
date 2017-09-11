@@ -36,7 +36,7 @@ interface ScanLogRepository {
     @Query("select * from scan_log where scan_ts > :ts order by scan_ts desc")
     fun loadNew(@Bind("ts") timestamp: Date): List<ScanLog>
 
-    @Query("select * from scan_log order by scan_ts, id desc limit :pageSize offset :offset")
+    @Query("select * from scan_log order by scan_ts desc, id  limit :pageSize offset :offset")
     fun loadPage(@Bind("offset") offset: Int, @Bind("pageSize") pageSize: Int): List<ScanLog>
 
     @Query("select count(*) from scan_log")

@@ -25,18 +25,14 @@ export class ScanLogService {
 
   constructor(private http: Http) { }
 
-  getEntry(entryId: number): Observable<ScanLogEntry> {
-    return this.http.get(`/api/internal/scan-log/${entryId}`)
-      .map(res => res.json())
-  }
-
   getReprintPreview(entryId: number, eventId: number): Observable<ConfigurableLabelContent> {
     return this.http.get(`/api/internal/scan-log/event/${eventId}/entry/${entryId}/reprint-preview`)
       .map(res => res.json())
   }
 
   getEntries(page: number, pageSize: number, term: string): Observable<PaginatedResult> {
-    return this.http.get(`/api/internal/scan-log?page=${page}&pageSize=${pageSize}`)
+    let opt = {params: {page : page, pageSize : pageSize, search : term}};
+    return this.http.get(`/api/internal/scan-log`, opt)
       .map(res => res.json())
   }
 
