@@ -1,4 +1,4 @@
-import {Component, Input, OnInit} from "@angular/core";
+import {Component, Input, OnChanges, OnInit, SimpleChanges} from "@angular/core";
 import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
 import {Observable} from "rxjs";
@@ -12,6 +12,7 @@ import {EventType, ServerEventsService} from "../../server-events.service";
   templateUrl: './scan-log-entries.component.html'
 })
 export class ScanLogEntriesComponent implements OnInit {
+
 
   @Input()
   maxEntries?: number;
@@ -33,6 +34,11 @@ export class ScanLogEntriesComponent implements OnInit {
   }
 
   ngOnInit() {
+
+    if(this.maxEntries != null) {
+      this.pageSize = this.maxEntries;
+    }
+
     this.loadData();
     this.serverEventsService.events.subscribe(e => {
       if(e.type == EventType.NEW_SCAN) {
@@ -70,6 +76,9 @@ export class ScanLogEntriesComponent implements OnInit {
     this.loadData();
   }
 
+  search(): void {
+    this.loadData();
+  }
 }
 
 export class ScanLogEntryWithEvent {

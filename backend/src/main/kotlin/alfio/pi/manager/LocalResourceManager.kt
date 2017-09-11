@@ -41,9 +41,9 @@ fun findAllEntriesForEvent(eventId: Int) : (ScanLogRepository) -> List<ScanLog> 
     })
 }
 
-fun findAllEntries(page: Int, pageSize: Int) : (ScanLogRepository) -> List<ScanLog> = {
+fun findAllEntries(page: Int, pageSize: Int, search: String?) : (ScanLogRepository) -> List<ScanLog> = {
     tryOrDefault<List<ScanLog>>().invoke({
-        it.loadPage(page * pageSize, pageSize)
+        it.loadPage(page * pageSize, pageSize, search)
     }, {
         logger.error("unexpected error while loading all entries", it)
         emptyList()

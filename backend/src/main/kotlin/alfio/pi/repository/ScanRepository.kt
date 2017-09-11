@@ -36,11 +36,11 @@ interface ScanLogRepository {
     @Query("select * from scan_log where scan_ts > :ts order by scan_ts desc")
     fun loadNew(@Bind("ts") timestamp: Date): List<ScanLog>
 
-    @Query("select * from scan_log order by scan_ts desc, id  limit :pageSize offset :offset")
-    fun loadPage(@Bind("offset") offset: Int, @Bind("pageSize") pageSize: Int): List<ScanLog>
+    @Query("select * from scan_log where (:search is null or LOWER(ticket_data) like LOWER(:search)) order by scan_ts desc, id  limit :pageSize offset :offset")
+    fun loadPage(@Bind("offset") offset: Int, @Bind("pageSize") pageSize: Int, @Bind("search") search: String?): List<ScanLog>
 
-    @Query("select count(*) from scan_log")
-    fun count(): Int
+    @Query("select count(*) from scan_log where (:search is null or LOWER(ticket_data) like LOWER(:search))")
+    fun count(@Bind("search") search: String?): Int
 
     @Query("select * from scan_log where event_id_fk = :eventId")
     fun loadAllForEvent(@Bind("eventId") eventId: Int):List<ScanLog>

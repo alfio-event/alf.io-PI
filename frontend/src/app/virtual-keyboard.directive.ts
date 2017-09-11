@@ -7,15 +7,15 @@ import {NgModel} from "@angular/forms";
 export class VirtualKeyboardDirective {
 
   @Output()
-  acceptedKeyboard: EventEmitter<String> = new EventEmitter();
+  change: EventEmitter<String> = new EventEmitter();
 
   constructor(el: ElementRef, @Optional() ngModel: NgModel) {
-    let _a = this.acceptedKeyboard;
+    let _a = this.change;
     jQuery(el.nativeElement).keyboard({type:'', layout: 'international', accepted: (event, keyboard) => {
-      _a.emit(el.nativeElement.value);
       if(ngModel) {
         ngModel.control.setValue(el.nativeElement.value)
       }
+      _a.emit(el.nativeElement.value);
     }});
 
   }

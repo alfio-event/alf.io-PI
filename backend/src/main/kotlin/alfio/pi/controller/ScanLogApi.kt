@@ -42,9 +42,12 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
                        private val environment: Environment) {
 
     @RequestMapping("")
-    open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int, @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int) : PaginatedResult<List<ScanLog>> {
-        val l = findAllEntries(page, pageSize).invoke(scanLogRepository)
-        return PaginatedResult(page, l, scanLogRepository.count())
+    open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
+                     @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
+                     @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLog>> {
+        val searchTrimmed = if (search.trim().length == 0) null else ('%' + search.trim() + '%')
+        val l = findAllEntries(page, pageSize, searchTrimmed).invoke(scanLogRepository)
+        return PaginatedResult(page, l, scanLogRepository.count(searchTrimmed))
     }
 
     @RequestMapping("/event/{eventId}")
