@@ -5,8 +5,7 @@ import {Observable} from "rxjs";
 import {Event, EventService} from "../../shared/event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
-import {EventType, NewScan, ServerEventsService} from "../../server-events.service";
-import {isNullOrUndefined} from "util";
+import {EventType, ServerEventsService} from "../../server-events.service";
 
 @Component({
   selector: 'scan-log-entries',
@@ -23,6 +22,9 @@ export class ScanLogEntriesComponent implements OnInit {
   entries: Array<ScanLogEntryWithEvent> = [];
   term: string;
   printers: Array<Printer> = [];
+  currentPage = 1;
+  pageSize = 3;
+  found = 0;
 
   constructor(private scanLogService: ScanLogService,
               private eventService: EventService,
@@ -34,11 +36,7 @@ export class ScanLogEntriesComponent implements OnInit {
     this.loadData();
     this.serverEventsService.events.subscribe(e => {
       if(e.type == EventType.NEW_SCAN) {
-        let newScan = <NewScan>e.data;
-        if(!isNullOrUndefined(this.maxEntries) && this.maxEntries > 0 && this.entries.length >= this.maxEntries) {
-          this.entries.splice(this.maxEntries - 1, 1);
-        }
-        this.entries.unshift(...newScan.scanData.map(scan => new ScanLogEntryWithEvent(scan, newScan.event)));
+        this.loadData()
       }
     })
   }
@@ -46,7 +44,7 @@ export class ScanLogEntriesComponent implements OnInit {
   private loadData() {
     this.progressManager
       .monitorCall(() => {
-        return Observable.forkJoin(this.scanLogService.getEntries(this.maxEntries),
+        return Observable.forkJoin(this.scanLogService.getEntries(this.currentPage - 1, this.pageSize, this.term),
           this.eventService.getAllEvents(),
           this.printerService.loadAllPrinters()
         );
@@ -54,7 +52,8 @@ export class ScanLogEntriesComponent implements OnInit {
       .map(res => {
         let [entries, events, printers] = res;
         this.printers = printers.filter(p => p.active);
-        return entries.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.id === entry.eventId)))
+        this.found = entries.found;
+        return entries.values.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.id === entry.eventId)))
       })
       .subscribe(entries => {
         this.entries = entries
@@ -64,6 +63,11 @@ export class ScanLogEntriesComponent implements OnInit {
   reprint(entry: ScanLogEntry, printer: Printer): void {
     this.progressManager.monitorCall(() => this.scanLogService.reprint(entry.id, null, printer))
       .subscribe(res => console.log("printed", res));
+  }
+
+  changePage(newPage: number) {
+    this.currentPage = newPage;
+    this.loadData();
   }
 
 }

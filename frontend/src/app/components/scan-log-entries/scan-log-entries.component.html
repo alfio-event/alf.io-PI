@@ -24,7 +24,7 @@
           <th><i class="fa fa-print" title="Badge printed"></i></th>
         </tr>
       </thead>
-      <tr *ngFor="let ee of entries | filter:term">
+      <tr *ngFor="let ee of entries">
         <td>
             <div ngbDropdown class="hidden-md-down">
               <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
@@ -49,6 +49,7 @@
         <td><i class="fa" [ngClass]="{'fa-check-circle text-success': ee.entry.badgePrinted, 'fa-times-circle text-danger': !ee.entry.badgePrinted}"></i></td>
       </tr>
     </table>
+    <ngb-pagination (pageChange)="changePage($event)" *ngIf="enableFilter" [collectionSize]="found" [page]="currentPage" [pageSize]="pageSize" [maxSize]="5" [rotate]="true" [ellipses]="false" [boundaryLinks]="true"></ngb-pagination>
   </div>
   <div class="d-flex justify-content-end" *ngIf="maxEntries > 0 && entries.length > 0">
     <a class="mr-2 mb-2 btn btn-sm btn-outline-warning" [routerLink]="['/scan-log/view']">More &gt;&gt;</a>

@@ -35,9 +35,8 @@ export class ScanLogService {
       .map(res => res.json())
   }
 
-  getEntries(max: number): Observable<Array<ScanLogEntry>> {
-    let maxItems = max || -1;
-    return this.http.get(`/api/internal/scan-log?max=${maxItems}`)
+  getEntries(page: number, pageSize: number, term: string): Observable<PaginatedResult> {
+    return this.http.get(`/api/internal/scan-log?page=${page}&pageSize=${pageSize}`)
       .map(res => res.json())
   }
 
@@ -47,6 +46,13 @@ export class ScanLogService {
       .map(res => res.json());
   }
 
+}
+
+export class PaginatedResult {
+  constructor(public page: number,
+              public values: Array<ScanLogEntry>,
+              public found: number) {
+  }
 }
 
 export class ScanLogEntry {

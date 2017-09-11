@@ -42,7 +42,10 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
                        private val environment: Environment) {
 
     @RequestMapping("")
-    open fun loadAll(@RequestParam(value = "max", defaultValue = "-1") max: Int) : List<ScanLog> = findAllEntries(max).invoke(scanLogRepository)
+    open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int, @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int) : PaginatedResult<List<ScanLog>> {
+        val l = findAllEntries(page, pageSize).invoke(scanLogRepository)
+        return PaginatedResult(page, l, scanLogRepository.count())
+    }
 
     @RequestMapping("/event/{eventId}")
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
@@ -74,10 +77,13 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
     }
 }
 
+
 class ReprintForm {
     var printer: Int?=null
     var content: ConfigurableLabelContent?=null
 }
+
+data class PaginatedResult<T>(val page: Int, val values : T, val found: Int)
 
 
 
