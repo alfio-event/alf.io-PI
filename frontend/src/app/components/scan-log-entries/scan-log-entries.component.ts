@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges, OnInit, SimpleChanges} from "@angular/core";
+import {Component, Input, OnInit} from "@angular/core";
 import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
 import {Observable} from "rxjs";

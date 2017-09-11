@@ -22,6 +22,9 @@ export class CheckInComponent implements OnInit {
   ticket: Ticket;
   progressManager: ProgressManager;
   loading: boolean;
+  toScan: string;
+
+  testMode = false;
 
   labelCounter: any;
 
