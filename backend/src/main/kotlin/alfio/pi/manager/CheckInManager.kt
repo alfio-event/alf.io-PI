@@ -221,12 +221,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
         logger.info("Will call remote url {}", url)
         return tryOrDefault<Map<String, String>>().invoke({
+            val begin = System.currentTimeMillis()
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
                 .url(url)
                 .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
                 .build()
-            httpClient.newCall(request)
+            val res = httpClient.newCall(request)
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
@@ -237,6 +238,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         mapOf()
                     }
                 }
+            val end = System.currentTimeMillis()
+            logger.info("Fetched from remote {} attendees in {}ms", res.size, end - begin)
+            res
         }, {
             if (logger.isTraceEnabled) {
                 logger.trace("Got exception while trying to load the attendees", it)
@@ -321,7 +325,11 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .addValue("data", it.data)
                 .addValue("last_update", it.lastUpdate?:0)
         }.toTypedArray()
+        val begin = System.currentTimeMillis()
+        logger.info("Saving {} attendees", batchedUpdate.size)
         jdbc.batchUpdate(attendeeDataRepository.mergeTemplate(), batchedUpdate)
+        val end = System.currentTimeMillis()
+        logger.info("Done saving {} attendees in {}ms", batchedUpdate.size, end - begin)
     }
 
     fun findLastModifiedTimeForAttendeeInEvent(event: String): Long {

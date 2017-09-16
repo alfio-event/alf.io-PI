@@ -29,12 +29,15 @@ import org.jgroups.blocks.MethodCall
 import org.jgroups.blocks.ResponseMode
 import org.jgroups.blocks.RequestOptions
 import org.jgroups.blocks.RpcDispatcher
+import org.slf4j.LoggerFactory
 import java.time.ZonedDateTime
 
 
 @Component
 @Profile("server", "full")
 open class JGroupsCluster(private var jGroupsClusterRpcApi : JGroupsClusterRpcApi) {
+
+    private val logger = LoggerFactory.getLogger(JGroupsCluster::class.java)
 
     private val channel: JChannel = JChannel()
     var dispatcher : RpcDispatcher
@@ -94,7 +97,12 @@ open class JGroupsCluster(private var jGroupsClusterRpcApi : JGroupsClusterRpcAp
         val method = jGroupsClusterRpcApi.javaClass.getMethod("getAttendeeData", List::class.java)
         val remoteCall = MethodCall(method)
         remoteCall.setArgs(partitionedIds)
-        return dispatcher.callRemoteMethod<List<Attendee>>(getLeaderAddress(), remoteCall, opts)
+        logger.info("Loading {} attendees from master", partitionedIds.size)
+        val begin = System.currentTimeMillis()
+        var res = dispatcher.callRemoteMethod<List<Attendee>>(getLeaderAddress(), remoteCall, opts)
+        val end = System.currentTimeMillis()
+        logger.info("Finished loading {} attendes from master in {}ms", partitionedIds.size, end - begin)
+        return res
     }
 
     open fun insertInScanLog(now: ZonedDateTime, eventName: String, uuid: String, userId: Int, localResult: CheckInStatus, status: CheckInStatus, labelPrinted: Boolean, jsonPayload: String?) {
