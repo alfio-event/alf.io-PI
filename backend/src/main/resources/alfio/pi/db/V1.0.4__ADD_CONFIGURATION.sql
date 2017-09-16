@@ -15,7 +15,7 @@
 -- along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
 --
 
-create table configuration (
+create cached table configuration (
     key varchar(256),
     value clob
 );

@@ -16,7 +16,7 @@
 --
 
 
-create table label_configuration (
+create cached table label_configuration (
     event_id_fk int not null,
     json clob,
     enabled boolean

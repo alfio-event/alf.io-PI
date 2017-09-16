@@ -16,7 +16,7 @@
 --
 
 
-create table attendee_data (
+create cached table attendee_data (
     event varchar(2048) not null,
     identifier varchar(2048) not null,
     data clob not null,

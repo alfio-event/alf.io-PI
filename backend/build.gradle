@@ -108,6 +108,9 @@ bootRun {
     properties[ 'alfio.version' ] = project.version
     properties[ 'alfio.build-ts' ] = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     systemProperties properties
+    //jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" ]
+
+
 }
 
 springBoot {

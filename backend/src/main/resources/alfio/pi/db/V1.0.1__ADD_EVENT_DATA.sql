@@ -16,7 +16,7 @@
 --
 
 
-create table event_data (
+create cached table event_data (
     key varchar(2048) not null,
     data blob not null,
     last_update DATETIME

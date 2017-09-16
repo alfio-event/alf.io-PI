@@ -16,7 +16,7 @@
 --
 
 --entities
-create table event (
+create cached table event (
     id integer identity not null,
     key varchar(2048) not null,
     name varchar(2048) not null,
@@ -30,20 +30,20 @@ create table event (
     last_update DATETIME
 );
 
-create table printer (
+create cached table printer (
     id integer identity not null,
     name varchar(1024) not null,
     description varchar(2048),
     active boolean default false not null
 );
 
-create table user (
+create cached table user (
     id integer identity not null,
     username varchar(255) not null,
     password varchar(2048) not null
 );
 
-create table scan_log (
+create cached table scan_log (
     id integer identity not null,
     scan_ts DATETIME not null,
     event_id_fk integer not null,
@@ -58,12 +58,12 @@ create table scan_log (
 alter table scan_log add foreign key(user_id_fk) references user(id);
 alter table scan_log add foreign key(event_id_fk) references event(id);
 
-create table authority(
+create cached table authority(
     username varchar(255) not null,
     role varchar(255) not null
 );
 
-create table user_printer (
+create cached table user_printer (
     user_id_fk integer not null,
     printer_id_fk integer not null
 );
