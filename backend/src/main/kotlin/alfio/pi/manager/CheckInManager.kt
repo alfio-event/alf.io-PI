@@ -159,6 +159,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val changedSinceParam = if (since == null) "" else "?changedSince=$since"
 
         val idsUrl = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
+        logger.info("Will call remote url " + idsUrl)
 
         val request = Request.Builder()
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
@@ -176,10 +177,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 
     private fun loadLabelConfiguration(eventName: String): LabelConfiguration? {
+        val url = "${master.url}/admin/api/check-in/$eventName/label-layout"
         val request = Request.Builder()
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
-            .url("${master.url}/admin/api/check-in/$eventName/label-layout")
+            .url(url)
             .build()
+        logger.info("Will call remote url " + url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
                 resp.isSuccessful -> LabelConfiguration(-1, resp.body().string(), true)
@@ -216,6 +219,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
+        logger.info("Will call remote url " + url)
         return tryOrDefault<Map<String, String>>().invoke({
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
@@ -250,11 +254,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             result ?: EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
         } else {
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
+            val url = "${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username"
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
                 .post(requestBody)
-                .url("${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username")
+                .url(url)
                 .build()
+            logger.info("Will call remote url " + url)
             httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
                 .newCall(request)
