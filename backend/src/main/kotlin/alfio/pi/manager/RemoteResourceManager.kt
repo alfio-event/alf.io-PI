@@ -36,7 +36,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
-import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -59,9 +58,11 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val
 
     internal fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
         .invoke({
+            val url = "${configuration.url}$resource";
+            logger.info("Will call remote url {}", url)
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(configuration.username, configuration.password))
-                .url("${configuration.url}$resource")
+                .url(url)
                 .build()
             val client = if(timeoutMillis > -1L) {
                 httpClientWithCustomTimeout(timeoutMillis, TimeUnit.MILLISECONDS).invoke(httpClient)
@@ -83,11 +84,15 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val
             logger.error("error while fetching remote resource $resource", it)
             false to emptyResult.invoke()
         })
+
+
+
+    fun getRemoteEventList(): List<RemoteEvent> {
+        return getRemoteResource("/admin/api/events", object : TypeToken<List<RemoteEvent>>() {}, { emptyList() }).second
+    }
 }
 
-fun getRemoteEventList(): (RemoteResourceManager) -> List<RemoteEvent> = {
-    it.getRemoteResource("/admin/api/events", object : TypeToken<List<RemoteEvent>>() {}, { emptyList() }).second
-}
+
 
 @Component
 @Profile("server", "full")
@@ -101,7 +106,7 @@ open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
     open fun sync() {
         doInTransaction<Unit>().invoke(transactionManager, {
             val localEvents = eventRepository.loadAll()
-            val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
+            val remoteEvents = remoteResourceManager.getRemoteEventList()
             val (existing, notExisting) = remoteEvents.partition { r -> localEvents.any { l -> r.key == l.key } }
             updateExisting(existing, localEvents)
             insertNew(notExisting)

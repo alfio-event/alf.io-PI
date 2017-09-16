@@ -158,12 +158,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     private fun loadIds(eventName: String, since: Long?) : Pair<List<Int>, Long> {
         val changedSinceParam = if (since == null) "" else "?changedSince=$since"
 
-        val idsUrl = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
-        logger.info("Will call remote url " + idsUrl)
+        val url = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
+        logger.info("Will call remote url {}", url)
 
         val request = Request.Builder()
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
-            .url(idsUrl)
+            .url(url)
             .build()
         return httpClient.newCall(request).execute().use { resp ->
             if (resp.isSuccessful) {
@@ -182,7 +182,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
             .url(url)
             .build()
-        logger.info("Will call remote url " + url)
+        logger.info("Will call remote url {}", url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
                 resp.isSuccessful -> LabelConfiguration(-1, resp.body().string(), true)
@@ -219,7 +219,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
-        logger.info("Will call remote url " + url)
+        logger.info("Will call remote url {}", url)
         return tryOrDefault<Map<String, String>>().invoke({
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic(master.username, master.password))
@@ -260,7 +260,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .post(requestBody)
                 .url(url)
                 .build()
-            logger.info("Will call remote url " + url)
+            logger.info("Will call remote url {}", url)
             httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
                 .newCall(request)
@@ -414,7 +414,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
         logger.trace("downloading attendees data")
-        val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
+        val remoteEvents = remoteResourceManager.getRemoteEventList()
         onDemandSync(remoteEvents)
     }
 
@@ -430,7 +430,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
             events.filter { it.key != null }.map {
                 val eventName = it.key!!
                 val lastModified = checkInDataManager.findLastModifiedTimeForAttendeeInEvent(eventName)
-                jGroupsCluster.getIdentifiersForEvent(eventName, lastModified).partitionWithSize(200).forEach { partitionedIds ->
+                jGroupsCluster.getIdentifiersForEvent(eventName, lastModified).partitionWithSize(1000).forEach { partitionedIds ->
                     logger.info("Fetching ${partitionedIds.size}")
                     val attendees = jGroupsCluster.loadAttendeesWithIdentifier(partitionedIds)
                     checkInDataManager.saveAttendees(eventName, attendees)
