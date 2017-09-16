@@ -103,8 +103,8 @@ open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
             val localEvents = eventRepository.loadAll()
             val remoteEvents = getRemoteEventList().invoke(remoteResourceManager)
             val (existing, notExisting) = remoteEvents.partition { r -> localEvents.any { l -> r.key == l.key } }
-            updateExisting(existing, localEvents).invoke(jdbc, eventRepository)
-            insertNew(notExisting).invoke(jdbc, eventRepository)
+            updateExisting(existing, localEvents)
+            insertNew(notExisting)
             checkInDataSynchronizer.onDemandSync(remoteEvents)
         }, {
             logger.error("cannot load events", it)
@@ -112,7 +112,7 @@ open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
 
     }
 
-    private fun updateExisting(remoteExisting: List<RemoteEvent>, local: List<Event>): (NamedParameterJdbcTemplate, EventRepository) -> Unit = {jdbc, eventRepository ->
+    private fun updateExisting(remoteExisting: List<RemoteEvent>, local: List<Event>) {
         val toBeUpdated = remoteExisting.map { r ->
             val l = local.find { l -> r.key == l.key }!!
             MapSqlParameterSource().addValues(mutableMapOf("id" to l.id,
@@ -131,7 +131,7 @@ open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
         }
     }
 
-    private fun insertNew(remote: List<RemoteEvent>): (NamedParameterJdbcTemplate, EventRepository) -> Unit = {jdbc, eventRepository ->
+    private fun insertNew(remote: List<RemoteEvent>) {
         val toBeCreated = remote.map { r ->
             MapSqlParameterSource().addValues(mutableMapOf(
                 "key" to r.key,
