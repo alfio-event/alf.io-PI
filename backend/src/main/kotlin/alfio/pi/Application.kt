@@ -390,6 +390,9 @@ fun main(args: Array<String>) {
     val address = retrieveIPAddress()
     System.setProperty("alfio.server.address", address)
     generateSslKeyPair(address)
+    if("true" == System.getProperty("openDBConsole")) {
+        openDBConsole()
+    }
     SpringApplication.run(Application::class.java, *args)
 }
 
@@ -447,7 +450,7 @@ private fun openDBConsole() {
     val methodInvoker = MethodInvoker()
     methodInvoker.targetClass = cls
     methodInvoker.setStaticMethod("org.hsqldb.util.DatabaseManagerSwing.main")
-    methodInvoker.arguments = arrayOf(arrayOf("--url", "jdbc:hsqldb:mem:alfio", "--noexit"))
+    methodInvoker.arguments = arrayOf(arrayOf("--url", "jdbc:hsqldb:file:alfio", "--noexit"))
     methodInvoker.prepare()
     methodInvoker.invoke()
 }

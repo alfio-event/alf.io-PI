@@ -25,4 +25,6 @@ create cached table attendee_data (
 
 alter table attendee_data add PRIMARY key(event, identifier);
 
+create index attendee_data_identifier_idx on attendee_data(identifier);
+
 drop table event_data;
