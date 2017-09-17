@@ -37,6 +37,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.TransactionCallbackWithoutResult
+import org.springframework.transaction.support.TransactionTemplate
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
@@ -193,28 +196,31 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 
     private fun syncAttendeesForEvent(eventName: String, since: Long?) {
+        TransactionTemplate(transactionManager).execute(object: TransactionCallbackWithoutResult() {
+            override fun doInTransactionWithoutResult(status: TransactionStatus?) {
+                val idsAndTime = loadIds(eventName, since)
+                val ids = idsAndTime.first
 
-        val idsAndTime = loadIds(eventName, since)
-        val ids = idsAndTime.first
+                logger.debug("found ${ids.size} for event $eventName")
 
-        logger.debug("found ${ids.size} for event $eventName")
-
-        if(!ids.isEmpty()) {
-            //fetch label config, if any
-            val labelConfiguration = loadLabelConfiguration(eventName)
-            eventRepository.loadSingle(eventName).ifPresent { (id) ->
-                if(labelConfiguration != null) {
-                    labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
+                if(!ids.isEmpty()) {
+                    //fetch label config, if any
+                    val labelConfiguration = loadLabelConfiguration(eventName)
+                    eventRepository.loadSingle(eventName).ifPresent { (id) ->
+                        if(labelConfiguration != null) {
+                            labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
+                        }
+                    }
+                    ids.partitionWithSize(200).forEach { partitionedIds ->
+                        logger.debug("loading ${partitionedIds.size}")
+                        val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map { Attendee(eventName, it.key, it.value, idsAndTime.second) }
+                        saveAttendees(eventName, attendees)
+                        logger.debug("finished loading ${partitionedIds.size}")
+                    }
                 }
+                logger.info("finished loading attendees for event $eventName")
             }
-            ids.partitionWithSize(200).forEach { partitionedIds ->
-                logger.debug("loading ${partitionedIds.size}")
-                val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map { Attendee(eventName, it.key, it.value, idsAndTime.second) }
-                saveAttendees(eventName, attendees)
-                logger.debug("finished loading ${partitionedIds.size}")
-            }
-        }
-        logger.info("finished loading attendees for event $eventName")
+        })
     }
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
