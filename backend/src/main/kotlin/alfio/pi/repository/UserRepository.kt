@@ -35,9 +35,6 @@ interface UserRepository {
     @Query("select id, username from user where id = :userId")
     fun findById(@Bind("userId") id: Int): Optional<User>
 
-    @Query("select id, username from user")
-    fun findAll(): List<User>
-
     @Query("select user.id, user.username from user, authority where user.username = authority.username and authority.role <> 'ADMIN'")
     fun findAllOperators(): List<User>
 
@@ -50,9 +47,6 @@ interface UserRepository {
 interface AuthorityRepository {
     @Query("insert into authority(username, role) values(:username, :role)")
     fun insert(@Bind("username") username: String, @Bind("role") role: Role): Int
-
-    @Query("select * from authority where username = :username")
-    fun findByUsername(@Bind("username") username: String): List<Authority>
 }
 
 @QueryRepository
@@ -67,45 +61,15 @@ interface EventRepository {
     @Query("select * from event where key = :key")
     fun loadSingle(@Bind("key") eventName: String): Optional<Event>
 
-    @Query(INSERT_QUERY)
-    fun insert(@Bind("key") key: String,
-               @Bind("name") name: String,
-               @Bind("imageUrl") imageUrl: String?,
-               @Bind("begin") begin: LocalDateTime,
-               @Bind("end") end: LocalDateTime,
-               @Bind("location") location: String?,
-               @Bind("apiVersion") apiVersion: Int,
-               @Bind("oneDay") oneDay: Boolean,
-               @Bind("active") active: Boolean): AffectedRowCountAndKey<Int>
-
-    @Query("update event set last_update = :timestamp where key = :key")
-    fun updateTimestamp(@Bind("key") key: String, @Bind("timestamp") lastUpdate: ZonedDateTime): Int
-
-    @Query(UPDATE_QUERY)
-    fun update(@Bind("key") key: String,
-               @Bind("name") name: String,
-               @Bind("imageUrl") imageUrl: String?,
-               @Bind("begin") begin: LocalDateTime,
-               @Bind("end") end: LocalDateTime,
-               @Bind("location") location: String?,
-               @Bind("apiVersion") apiVersion: Int,
-               @Bind("oneDay") oneDay: Boolean,
-               @Bind("active") active: Boolean,
-               @Bind("id") id: Int)
-
-    @Query(type = QueryType.TEMPLATE, value = INSERT_QUERY)
+    @Query(type = QueryType.TEMPLATE, value = "insert into event(key, name, image_url, begin_ts, end_ts, location, api_version, one_day, active) values(:key, :name, :imageUrl, :begin, :end, :location, :apiVersion, :oneDay, :active)")
     fun bulkInsert(): String
 
-    @Query(type = QueryType.TEMPLATE, value = UPDATE_QUERY)
+    @Query(type = QueryType.TEMPLATE, value = "update event set key = :key, name = :name, image_url = :imageUrl, begin_ts = :begin, end_ts = :end, location = :location, api_version = :apiVersion, one_day = :oneDay where id = :id")
     fun bulkUpdate(): String
 
     @Query("update event set active = :state where id = :id")
     fun toggleActivation(@Bind("id") id: Int, @Bind("state") state: Boolean): Int
 
-    companion object {
-        private const val INSERT_QUERY = "insert into event(key, name, image_url, begin_ts, end_ts, location, api_version, one_day, active) values(:key, :name, :imageUrl, :begin, :end, :location, :apiVersion, :oneDay, :active)"
-        private const val UPDATE_QUERY = "update event set key = :key, name = :name, image_url = :imageUrl, begin_ts = :begin, end_ts = :end, location = :location, api_version = :apiVersion, one_day = :oneDay where id = :id"
-    }
 }
 
 @QueryRepository
