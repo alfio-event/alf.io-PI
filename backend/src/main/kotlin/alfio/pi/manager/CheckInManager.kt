@@ -125,7 +125,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         if (localDataResult.isSuccessful()) {
                             localDataResult as TicketAndCheckInResult
                             val remoteResult = remoteCheckIn(event.key, uuid, hmac, username)
-                            val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE).contains(remoteResult.result.status)) {
+                            val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE, INVALID_TICKET_CATEGORY_CHECK_IN_DATE).contains(remoteResult.result.status)) {
                                 remoteResult.result.status
                             } else {
                                 CheckInStatus.SUCCESS

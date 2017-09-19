@@ -55,7 +55,7 @@ interface ScanLogRepository {
                @Bind("badgePrinted") badgePrinted: Boolean,
                @Bind("ticketData") ticketData: String?): AffectedRowCountAndKey<Int>
 
-    @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid")
+    @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid and local_result = 'SUCCESS'") //TODO: check others status?
     fun loadSuccessfulScanForTicket(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String) : Optional<ScanLog>
 
     @Query("select * from scan_log where id = :id")
