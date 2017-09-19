@@ -126,7 +126,8 @@ enum class CheckInStatus(val successful: Boolean = false) {
     ALREADY_CHECK_IN(),
     MUST_PAY(),
     OK_READY_TO_BE_CHECKED_IN(true),
-    SUCCESS(true);
+    SUCCESS(true),
+    INVALID_TICKET_CATEGORY_CHECK_IN_DATE();
 }
 
 data class TicketData(val firstName: String,

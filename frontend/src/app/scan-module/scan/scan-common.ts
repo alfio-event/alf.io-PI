@@ -46,7 +46,7 @@ export class CheckInResult {
 }
 
 export type CheckInStatus = "EVENT_NOT_FOUND" | "TICKET_NOT_FOUND" | "EMPTY_TICKET_CODE"
-  | "INVALID_TICKET_CODE" | "INVALID_TICKET_STATE" | "ALREADY_CHECK_IN" | "MUST_PAY" | "OK_READY_TO_BE_CHECKED_IN" | "SUCCESS" | "ERROR";
+  | "INVALID_TICKET_CODE" | "INVALID_TICKET_STATE" | "ALREADY_CHECK_IN" | "MUST_PAY" | "OK_READY_TO_BE_CHECKED_IN" | "SUCCESS" | "ERROR" | "INVALID_TICKET_CATEGORY_CHECK_IN_DATE";
 
 export const CheckInStatus = {
   SUCCESS: "SUCCESS" as CheckInStatus,
@@ -58,7 +58,8 @@ export const CheckInStatus = {
   EMPTY_TICKET_CODE: "EMPTY_TICKET_CODE" as CheckInStatus,
   INVALID_TICKET_CODE: "INVALID_TICKET_CODE" as CheckInStatus,
   INVALID_TICKET_STATE: "INVALID_TICKET_STATE" as CheckInStatus,
-  OK_READY_TO_BE_CHECKED_IN: "OK_READY_TO_BE_CHECKED_IN" as CheckInStatus
+  OK_READY_TO_BE_CHECKED_IN: "OK_READY_TO_BE_CHECKED_IN" as CheckInStatus,
+  INVALID_TICKET_CATEGORY_CHECK_IN_DATE: "INVALID_TICKET_CATEGORY_CHECK_IN_DATE" as CheckInStatus
 };
 
 
@@ -72,6 +73,7 @@ export const statusDescriptions: {[status: string] : string} = {
     "EMPTY_TICKET_CODE": "Invalid ticket code. Please scan the QR-Code again.",
     "INVALID_TICKET_CODE": "Invalid ticket code. Please report the issue to the organizers.",
     "INVALID_TICKET_STATE": "This ticket cannot be checked in. Please report the issue to the organizers.",
-    "OK_READY_TO_BE_CHECKED_IN": "OK_READY_TO_BE_CHECKED_IN"
+    "OK_READY_TO_BE_CHECKED_IN": "OK_READY_TO_BE_CHECKED_IN",
+    "INVALID_TICKET_CATEGORY_CHECK_IN_DATE" : "This Ticket cannot be checked in. Invalid check in time for this ticket category."
 };
 
