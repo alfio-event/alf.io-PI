@@ -94,7 +94,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return tryOrDefault<CheckInResponse>().invoke({
             if(result != null && result !== ticketDataNotFound) {
                 val ticketData = gson.fromJson(decrypt("$uuid/$hmac", result), TicketData::class.java)
-                TicketAndCheckInResult(Ticket(uuid, ticketData.firstName, ticketData.lastName, ticketData.email, ticketData.additionalInfo, category = ticketData.category), CheckInResult(ticketData.checkInStatus))
+                TicketAndCheckInResult(Ticket(uuid,
+                    ticketData.firstName, ticketData.lastName,
+                    ticketData.email, ticketData.additionalInfo,
+                    category = ticketData.category,
+                    validCheckInFrom = ticketData.validCheckInFrom,
+                    validCheckInTo = ticketData.validCheckInTo), CheckInResult(ticketData.checkInStatus))
             } else {
                 logger.warn("no eventData found for $key.")
                 EmptyTicketResult()
@@ -128,7 +133,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE, INVALID_TICKET_CATEGORY_CHECK_IN_DATE).contains(remoteResult.result.status)) {
                                 remoteResult.result.status
                             } else {
-                                CheckInStatus.SUCCESS
+                                CheckInStatus.SUCCESS //FIXME: add validFrom/validTo check here
                             }
                             val ticket = localDataResult.ticket!!
                             val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)

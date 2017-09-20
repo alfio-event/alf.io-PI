@@ -99,7 +99,9 @@ open class Ticket(val uuid: String,
                   val additionalInfo: Map<String, String>?,
                   val fullName: String = "$firstName $lastName",
                   val hmac: String? = null,
-                  val category: String? = null) : Serializable
+                  val category: String? = null,
+                  val validCheckInFrom: String? = null,
+                  val validCheckInTo: String? = null) : Serializable
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", emptyMap())
 
@@ -135,7 +137,9 @@ data class TicketData(val firstName: String,
                       val email: String,
                       val category: String?,
                       private val status: String,
-                      private val additionalInfoJson: String?) {
+                      private val additionalInfoJson: String?,
+                      val validCheckInFrom: String?,
+                      val validCheckInTo: String?) {
     val checkInStatus: CheckInStatus
         get() = when(status) {
             "ACQUIRED" -> CheckInStatus.SUCCESS
