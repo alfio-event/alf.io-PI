@@ -133,7 +133,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE, INVALID_TICKET_CATEGORY_CHECK_IN_DATE).contains(remoteResult.result.status)) {
                                 remoteResult.result.status
                             } else {
-                                CheckInStatus.SUCCESS //FIXME: add validFrom/validTo check here
+                                checkValidity(localDataResult)
                             }
                             val ticket = localDataResult.ticket!!
                             val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
@@ -153,6 +153,21 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         }
                     }
             }.orElseGet{ EmptyTicketResult() }
+    }
+
+    private fun checkValidity(localDataResult: CheckInResponse): CheckInStatus {
+
+        if(localDataResult.ticket != null) {
+            val ticket = localDataResult.ticket;
+
+            val now = ZonedDateTime.now().toEpochSecond();
+
+            if((ticket.validCheckInFrom != null && ticket.validCheckInFrom.toLong() > now) || (ticket.validCheckInTo != null && ticket.validCheckInTo.toLong() < now)) {
+                return INVALID_TICKET_CATEGORY_CHECK_IN_DATE
+            }
+        }
+
+        return CheckInStatus.SUCCESS
     }
 
     private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
