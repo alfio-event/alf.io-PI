@@ -21,7 +21,6 @@ import alfio.pi.model.NewScan
 import alfio.pi.model.SystemEvent
 import alfio.pi.model.SystemEventType
 import alfio.pi.repository.EventRepository
-import alfio.pi.repository.ScanLogRepository
 import com.google.gson.Gson
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
@@ -50,7 +49,7 @@ open class SystemEventHandlerDummy : SystemEventHandler {
 @Component
 @Profile("server", "full")
 open class SystemEventHandlerImpl(private val gson: Gson,
-                              private val scanLogRepository: ScanLogRepository,
+                              private val kvStore: KVStore,
                               private val eventRepository: EventRepository): SystemEventHandler, TextWebSocketHandler() {
     private val logger = LoggerFactory.getLogger(SystemEventHandler::class.java)
     private val sessions = CopyOnWriteArraySet<WebSocketSession>()
@@ -77,7 +76,7 @@ open class SystemEventHandlerImpl(private val gson: Gson,
 
     @Scheduled(fixedDelay = 1000L)
     open fun fetchAndSendNewScans() {
-        scanLogRepository.loadNew(lastCheckTimestamp.getAndSet(Date()))
+        kvStore.loadNew(lastCheckTimestamp.getAndSet(Date()))
             .groupBy { it.eventId }
             .map({(key, value) -> SystemEvent(SystemEventType.NEW_SCAN, NewScan(value, eventRepository.loadSingle(key).get()))})
             .forEach(this::notifyAllSessions)
