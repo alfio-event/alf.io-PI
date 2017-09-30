@@ -59,11 +59,10 @@ import javax.crypto.spec.SecretKeySpec
 open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: ConnectionDescriptor,
                               private val scanLogRepository: ScanLogRepository,
                               private val eventRepository: EventRepository,
-                              private val attendeeDataRepository: AttendeeDataRepository,
+                              private val kvStore: KVStore,
                               private val userRepository: UserRepository,
                               private val transactionManager: PlatformTransactionManager,
                               private val gson: Gson,
-                              private val jdbc: NamedParameterJdbcTemplate,
                               private val httpClient: OkHttpClient,
                               private val printManager: PrintManager,
                               private val labelConfigurationRepository: LabelConfigurationRepository,
@@ -76,12 +75,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     private fun getAttendeeData(event: Event, key: String) : String? {
 
-        if(!attendeeDataRepository.isPresent(event.key, key)) {
+        if(!kvStore.isAttendeeDataPresent(event.key, key)) {
             syncAttendees(event.key) //ensure our copy is up to date
         }
 
-        return if(attendeeDataRepository.isPresent(event.key, key)) {
-            attendeeDataRepository.getData(event.key, key)
+        return if(kvStore.isAttendeeDataPresent(event.key, key)) {
+            kvStore.getAttendeeData(event.key, key)
         } else {
             null
         }
@@ -344,22 +343,20 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 
     open fun saveAttendees(eventName: String, attendeesForEvent: List<Attendee>) {
-        val batchedUpdate = attendeesForEvent.map {
-            MapSqlParameterSource()
-                .addValue("event", it.event)
-                .addValue("identifier", it.identifier)
-                .addValue("data", it.data)
-                .addValue("last_update", it.lastUpdate?:0)
-        }.toTypedArray()
         val begin = System.currentTimeMillis()
-        logger.info("Saving {} attendees", batchedUpdate.size)
-        jdbc.batchUpdate(attendeeDataRepository.mergeTemplate(), batchedUpdate)
+        logger.info("Saving {} attendees", attendeesForEvent.size)
+        var maxLastUpdate = 0L
+        attendeesForEvent.forEach({ attendee ->
+            kvStore.putAttendeeData(eventName, attendee.identifier, attendee.data)
+            maxLastUpdate = maxOf(maxLastUpdate, attendee.lastUpdate?:0)
+        })
+        kvStore.putLastUpdated(eventName, maxLastUpdate)
         val end = System.currentTimeMillis()
-        logger.info("Done saving {} attendees in {}ms", batchedUpdate.size, end - begin)
+        logger.info("Done saving {} attendees in {}ms", attendeesForEvent.size, end - begin)
     }
 
     fun findLastModifiedTimeForAttendeeInEvent(event: String): Long {
-        return attendeeDataRepository.findLastModifiedTimeForAttendeeInEvent(event)
+        return kvStore.getLatestUpdate(event)
     }
 }
 

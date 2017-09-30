@@ -73,30 +73,6 @@ interface EventRepository {
 }
 
 @QueryRepository
-interface AttendeeDataRepository {
-    @Query(type = QueryType.TEMPLATE, value ="""merge into attendee_data using (values (:event, :identifier, :data, :last_update))
-        as vals(event, identifier, data, last_update) on attendee_data.event = vals.event and attendee_data.identifier = vals.identifier
-        when matched then update set attendee_data.data = vals.data, attendee_data.last_update = vals.last_update
-        when not matched then insert values vals.event, vals.identifier, vals.data, vals.last_update""")
-    fun mergeTemplate(): String
-
-    @Query("select count(*) > 0 from attendee_data  where event = :event and identifier = :identifier limit 1")
-    fun isPresent(@Bind("event") event: String, @Bind("identifier") identifier: String) : Boolean
-
-    @Query("select data from attendee_data  where event = :event and identifier = :identifier limit 1")
-    fun getData(@Bind("event") event: String, @Bind("identifier") identifier: String) : String
-
-    @Query("select identifier from attendee_data where event = :event and coalesce(last_update,0) >= :lastModified")
-    fun getIdentifiersForEvent(@Bind("event") event: String, @Bind("lastModified") lastModified: Long) : List<String>
-
-    @Query("select event, identifier, data, last_update from attendee_data where identifier in (:identifiers)")
-    fun getAttendeeData(@Bind("identifiers") identifiers: List<String>) : List<Attendee>
-
-    @Query("select coalesce(max(last_update), -1) from attendee_data where event = :event")
-    fun findLastModifiedTimeForAttendeeInEvent(@Bind("event") event: String): Long
-}
-
-@QueryRepository
 interface ConfigurationRepository {
 
     companion object {
