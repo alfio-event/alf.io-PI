@@ -66,7 +66,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val jdbc: NamedParameterJdbcTemplate,
                               private val httpClient: OkHttpClient,
                               private val printManager: PrintManager,
-                              private val cluster: JGroupsCluster,
                               private val labelConfigurationRepository: LabelConfigurationRepository,
                               private val publisher: SystemEventHandler) {
 
@@ -145,7 +144,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                             scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
-                            cluster.insertInScanLog(now, eventName, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            //FIXME handle cluster call
+                            //cluster.insertInScanLog(now, eventName, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
@@ -279,10 +279,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
 
-        if(!cluster.isLeader()) {
+        /*if(!cluster.isLeader()) {
             val result = cluster.remoteCheckInToMaster(eventKey, uuid, hmac, username)
             result ?: EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
-        } else {
+        } else {*/
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
             val url = "${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username"
             val request = Request.Builder()
@@ -302,7 +302,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
                     }
                 }
-        }
+        /*}*/
     }, {
         logger.warn("got Exception while performing remote check-in")
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
@@ -311,7 +311,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
-        if(cluster.isLeader()) {
+        /*if(cluster.isLeader()) {*/
             val failures = scanLogRepository.findRemoteFailures()
             logger.trace("found ${failures.size} pending scan to upload")
             failures
@@ -319,7 +319,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .mapKeys { eventRepository.loadSingle(it.key) }
                 .filter { it.key.isPresent }
                 .forEach { entry -> uploadEntriesForEvent(entry) }
-        }
+        /*}*/
     }
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
@@ -418,15 +418,15 @@ internal fun calcHash256(hmac: String) : String {
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
                                    private val remoteResourceManager: RemoteResourceManager,
                                    private val labelConfigurationRepository: LabelConfigurationRepository,
-                                   private val eventRepository: EventRepository,
-                                   private val jGroupsCluster: JGroupsCluster) {
+                                   private val eventRepository: EventRepository) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
         var result = false
-        while(!result) {
+        performSync()
+        /*while(!result) {
             if(jGroupsCluster.isLeader()) {
                 performSync()
                 jGroupsCluster.hasPerformSyncDone(true)
@@ -442,7 +442,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
                 }
             }
             Thread.sleep(2000L)
-        }
+        }*/
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
@@ -453,13 +453,13 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
     }
 
     open fun onDemandSync(events: List<RemoteEvent>) {
-        if(jGroupsCluster.isLeader()) {
+        /*if(jGroupsCluster.isLeader()) {*/
             logger.debug("Leader begin onDemandSync")
             events.filter { it.key != null }.map {
                 checkInDataManager.syncAttendees(it.key!!)
             }
             logger.debug("Leader end onDemandSync")
-        } else {
+        /*} else {
             logger.info("Follower begin onDemandSync")
             events.filter { it.key != null }.map {
                 val eventName = it.key!!
@@ -477,7 +477,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
                 }
             }
             logger.info("Follower end onDemandSync")
-        }
+        }*/
     }
 }
 
