@@ -55,7 +55,6 @@ import javax.crypto.spec.SecretKeySpec
 @Component
 @Profile("server", "full")
 open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: ConnectionDescriptor,
-                              private val scanLogRepository: ScanLogRepository,
                               private val eventRepository: EventRepository,
                               private val kvStore: KVStore,
                               private val userRepository: UserRepository,
@@ -119,7 +118,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             .flatMap { event -> userRepository.findByUsername(username).map { user -> event to user } }
             .map { (event, user) ->
                 val eventId = event.id
-                scanLogRepository.loadSuccessfulScanForTicket(eventId, uuid)
+                kvStore.loadSuccessfulScanForTicket(eventId, uuid)
                     .map(fun(existing: ScanLog) : CheckInResponse = DuplicateScanResult(originalScanLog = existing))
                     .orElseGet {
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
@@ -140,9 +139,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
-                            scanLogRepository.insert(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
-                            //FIXME handle cluster call
-                            //cluster.insertInScanLog(now, eventName, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            kvStore.insertScanLog(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
@@ -308,7 +305,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
-        val failures = scanLogRepository.findRemoteFailures()
+        val failures = kvStore.findRemoteFailures()
         logger.trace("found ${failures.size} pending scan to upload")
         failures
             .groupBy { it.eventId }
@@ -323,9 +320,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val event = entry.key.get()
             entry.value.filter { it.ticket != null }.forEach {
                 val ticket = it.ticket!!
+                val scanLogId = it.id
                 userRepository.findById(it.userId).map {
                     val response = remoteCheckIn(event.key, ticket.uuid, ticket.hmac!!, it.username)
-                    scanLogRepository.updateRemoteResult(response.result.status, it.id)
+                    kvStore.updateRemoteResult(response.result.status, scanLogId)
                 }
             }
         }, { logger.error("unable to upload pending check-in", it)})

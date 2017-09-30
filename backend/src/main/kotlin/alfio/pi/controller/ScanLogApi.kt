@@ -34,7 +34,7 @@ import java.security.Principal
 @RestController
 @RequestMapping("/api/internal/scan-log")
 @Profile("server", "full")
-open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
+open class ScanLogApi (private val scanLogRepository: KVStore,
                        private val printManager: PrintManager,
                        private val printerRepository: PrinterRepository,
                        private val labelConfigurationRepository: LabelConfigurationRepository,
@@ -45,7 +45,7 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
     open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
                      @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
                      @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLog>> {
-        val searchTrimmed = if (search.trim().length == 0) null else ('%' + search.trim() + '%')
+        val searchTrimmed = if (search.trim().length == 0) null else (search.trim())
         val l = findAllEntries(page, pageSize, searchTrimmed).invoke(scanLogRepository)
         return PaginatedResult(page, l, scanLogRepository.count(searchTrimmed))
     }
@@ -54,14 +54,14 @@ open class ScanLogApi (private val scanLogRepository: ScanLogRepository,
     open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
 
     @RequestMapping(value = "/event/{eventId}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
-    open fun getReprintPreview(@PathVariable("eventId") eventId: Int, @PathVariable("entryId") entryId: Int): ResponseEntity<ConfigurableLabelContent> =
+    open fun getReprintPreview(@PathVariable("eventId") eventId: Int, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
         reprintPreview(eventId, entryId).invoke(printManager, scanLogRepository, labelConfigurationRepository)
             .map { ResponseEntity.ok(it) }
             .orElseGet { ResponseEntity.notFound().build() }
 
 
     @RequestMapping(value = "/{entryId}/reprint", method = arrayOf(RequestMethod.PUT))
-    open fun reprint(@PathVariable("entryId") entryId: Int,
+    open fun reprint(@PathVariable("entryId") entryId: String,
                      @RequestBody form: ReprintForm,
                      principal: Principal?): ResponseEntity<Boolean> {
         val printerId = form.printer

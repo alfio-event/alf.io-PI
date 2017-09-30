@@ -29,47 +29,6 @@ import java.util.*
 private val logger = LoggerFactory.getLogger("ScanRepository")
 
 @QueryRepository
-interface ScanLogRepository {
-
-    @Query("select * from scan_log where scan_ts > :ts order by scan_ts desc")
-    fun loadNew(@Bind("ts") timestamp: Date): List<ScanLog>
-
-    @Query("select * from scan_log where (:search is null or LOWER(ticket_data) like LOWER(:search)) order by scan_ts desc, id  limit :pageSize offset :offset")
-    fun loadPage(@Bind("offset") offset: Int, @Bind("pageSize") pageSize: Int, @Bind("search") search: String?): List<ScanLog>
-
-    @Query("select count(*) from scan_log where (:search is null or LOWER(ticket_data) like LOWER(:search))")
-    fun count(@Bind("search") search: String?): Int
-
-    @Query("select * from scan_log where event_id_fk = :eventId")
-    fun loadAllForEvent(@Bind("eventId") eventId: Int):List<ScanLog>
-
-    @Query("insert into scan_log (scan_ts, event_id_fk, ticket_uuid, user_id_fk, local_result, remote_result, badge_printed, ticket_data) values(:scanTs, :eventId, :ticketUuid, :userId, :localResult, :remoteResult, :badgePrinted, :ticketData)")
-    fun insert(@Bind("scanTs") scanTs: ZonedDateTime,
-               @Bind("eventId") eventId: Int,
-               @Bind("ticketUuid") ticketUuid: String,
-               @Bind("userId") userId: Int,
-               @Bind("localResult") localResult: CheckInStatus,
-               @Bind("remoteResult") remoteResult: CheckInStatus,
-               @Bind("badgePrinted") badgePrinted: Boolean,
-               @Bind("ticketData") ticketData: String?): AffectedRowCountAndKey<Int>
-
-    @Query("select * from scan_log where event_id_fk = :eventId and ticket_uuid = :ticketUuid and local_result = 'SUCCESS'") //TODO: check others status?
-    fun loadSuccessfulScanForTicket(@Bind("eventId") eventId: Int, @Bind("ticketUuid") ticketUuid: String) : Optional<ScanLog>
-
-    @Query("select * from scan_log where id = :id")
-    fun findOptionalById(@Bind("id") id: Int): Optional<ScanLog>
-
-    @Query("select * from scan_log where id = :id and event_id_fk = :eventId")
-    fun findOptionalByIdAndEventId(@Bind("id") id: Int, @Bind("eventId") eventId: Int): Optional<ScanLog>
-
-    @Query("select * from scan_log where remote_result = 'RETRY'")
-    fun findRemoteFailures(): List<ScanLog>
-
-    @Query("update scan_log set remote_result = :remoteResult where id = :id")
-    fun updateRemoteResult(@Bind("remoteResult") remoteResult: CheckInStatus, @Bind("id") id: Int)
-}
-
-@QueryRepository
 interface PrinterRepository {
     @Query("select * from printer")
     fun loadAll(): List<Printer>

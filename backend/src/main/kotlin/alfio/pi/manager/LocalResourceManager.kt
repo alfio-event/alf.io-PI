@@ -34,14 +34,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
 
-fun findAllEntriesForEvent(eventId: Int) : (ScanLogRepository) -> List<ScanLog> = {
+fun findAllEntriesForEvent(eventId: Int) : (KVStore) -> List<ScanLog> = {
     tryOrDefault<List<ScanLog>>().invoke({it.loadAllForEvent(eventId)}, {
         logger.error("unexpected error while loading entries for event $eventId", it)
         emptyList()
     })
 }
 
-fun findAllEntries(page: Int, pageSize: Int, search: String?) : (ScanLogRepository) -> List<ScanLog> = {
+fun findAllEntries(page: Int, pageSize: Int, search: String?) : (KVStore) -> List<ScanLog> = {
     tryOrDefault<List<ScanLog>>().invoke({
         it.loadPage(page * pageSize, pageSize, search)
     }, {
@@ -132,9 +132,9 @@ fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Co
     })
 }
 
-fun reprintBadge(scanLogId: Int, printerId: Int?, username: String, content: ConfigurableLabelContent?, desk: Boolean): (PrintManager, PrinterRepository, ScanLogRepository, LabelConfigurationRepository, UserRepository) -> Boolean = { printManager, printerRepository, scanLogRepository, labelConfigRepository, userRepository ->
+fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: ConfigurableLabelContent?, desk: Boolean): (PrintManager, PrinterRepository, KVStore, LabelConfigurationRepository, UserRepository) -> Boolean = { printManager, printerRepository, kvStore, labelConfigRepository, userRepository ->
     tryOrDefault<Boolean>().invoke({
-        scanLogRepository.findOptionalById(scanLogId)
+        kvStore.findOptionalById(scanLogId)
             .filter { it.ticket != null }
             .flatMap { scanLog ->
                 val optionalPrinter = if(printerId != null) {
@@ -161,8 +161,8 @@ fun reprintBadge(scanLogId: Int, printerId: Int?, username: String, content: Con
     })
 }
 
-fun reprintPreview(eventId: Int, scanLogId: Int): (PrintManager, ScanLogRepository, LabelConfigurationRepository) -> Optional<ConfigurableLabelContent> = { printManager, scanLogRepository, labelConfigurationRepository ->
-    scanLogRepository.findOptionalByIdAndEventId(scanLogId, eventId)
+fun reprintPreview(eventId: Int, scanLogId: String): (PrintManager, KVStore, LabelConfigurationRepository) -> Optional<ConfigurableLabelContent> = { printManager, kvStore, labelConfigurationRepository ->
+    kvStore.findOptionalByIdAndEventId(scanLogId, eventId)
         .filter {it.ticket != null}
         .map { printManager.getLabelContent(it.ticket!!, labelConfigurationRepository.loadForEvent(eventId).orElse(null)) }
 }

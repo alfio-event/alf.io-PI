@@ -6,6 +6,7 @@ import ch.digitalfondue.synckv.SyncKV
 import com.google.gson.Gson
 import org.springframework.stereotype.Component
 import java.nio.charset.StandardCharsets
+import java.time.ZonedDateTime
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -79,10 +80,10 @@ open class KVStore(private val gson: Gson) {
         return res
     }
 
-    open fun insertScanLog(scanLog: ScanLog) {
+    fun insertScanLog(timestamp: ZonedDateTime?, eventId: Int, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
         val key = System.nanoTime().toString() + UUID.randomUUID().toString()
-        val scanLogWithKey = ScanLog(key, scanLog.timestamp, scanLog.eventId, scanLog.ticketUuid, scanLog.userId,
-            scanLog.localResult, scanLog.remoteResult, scanLog.badgePrinted, scanLog.ticketData)
+        val scanLogWithKey = ScanLog(key, timestamp!!, eventId, uuid, userId,
+            localResult, remoteResult, badgePrinted, jsonPayload)
         putScanLong(scanLogWithKey)
     }
 
@@ -146,6 +147,18 @@ open class KVStore(private val gson: Gson) {
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
             putScanLong(updatedScanLog)
         })
+    }
+
+    fun loadNew(timestamp: Date): List<ScanLog> {
+        return ArrayList() //TODO IMPLEMENT
+    }
+
+    fun loadPage(offset: Int, pageSize: Int, search: String?): List<ScanLog> {
+        return ArrayList() //TODO IMPLEMENT
+    }
+
+    open fun count(search: String?): Int {
+        return 0 //TODO IMPLEMENT
     }
 }
 
