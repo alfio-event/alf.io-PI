@@ -67,9 +67,6 @@ interface ScanLogRepository {
 
     @Query("update scan_log set remote_result = :remoteResult where id = :id")
     fun updateRemoteResult(@Bind("remoteResult") remoteResult: CheckInStatus, @Bind("id") id: Int)
-
-    @Query("select count(*) > 0 from scan_log where event_id_fk = :eventId and ticket_uuid = :uuid")
-    fun existByEventAndTicketId(@Bind("eventId") eventId: Int, @Bind("uuid") uuid: String): Boolean
 }
 
 @QueryRepository

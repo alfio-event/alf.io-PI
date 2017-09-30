@@ -32,8 +32,6 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
@@ -310,15 +308,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
-        /*if(cluster.isLeader()) {*/
-            val failures = scanLogRepository.findRemoteFailures()
-            logger.trace("found ${failures.size} pending scan to upload")
-            failures
-                .groupBy { it.eventId }
-                .mapKeys { eventRepository.loadSingle(it.key) }
-                .filter { it.key.isPresent }
-                .forEach { entry -> uploadEntriesForEvent(entry) }
-        /*}*/
+        val failures = scanLogRepository.findRemoteFailures()
+        logger.trace("found ${failures.size} pending scan to upload")
+        failures
+            .groupBy { it.eventId }
+            .mapKeys { eventRepository.loadSingle(it.key) }
+            .filter { it.key.isPresent }
+            .forEach { entry -> uploadEntriesForEvent(entry) }
     }
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
