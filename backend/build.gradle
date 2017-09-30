@@ -96,7 +96,8 @@ dependencies {
     compile("com.google.code.gson:gson:2.8.0")
     compile("org.bouncycastle:bcpkix-jdk15on:1.53")
     compile('org.jmdns:jmdns:3.5.1')
-    compile 'org.jgroups:jgroups:4.0.4.Final'
+    compile('org.jgroups:jgroups:4.0.4.Final')
+    compile('ch.digitalfondue.synckv:synckv:0.1.0')
     runtime('org.hsqldb:hsqldb')
     runtime project(':frontend')
     testCompile('org.springframework.boot:spring-boot-starter-test')
@@ -108,6 +109,7 @@ bootRun {
     properties[ 'alfio.version' ] = project.version
     properties[ 'alfio.build-ts' ] = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     systemProperties properties
+    //jvmArgs = ["-DopenDBConsole=true"]
     //jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" ]
 
 
