@@ -5,7 +5,6 @@ import alfio.pi.model.ScanLog
 import ch.digitalfondue.synckv.SyncKV
 import com.google.gson.Gson
 import org.springframework.stereotype.Component
-import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.*
 import kotlin.collections.ArrayList
@@ -40,7 +39,7 @@ open class KVStore(private val gson: Gson) {
     //-----------
 
     open fun putAttendeeData(event: String, identifier: String, payload: String) {
-        attendeeTable.put(attendeeKey(event, identifier), payload.toByteArray(StandardCharsets.UTF_8))
+        attendeeTable.put(attendeeKey(event, identifier), payload)
     }
 
     open fun isAttendeeDataPresent(event: String, identifier: String): Boolean {
@@ -48,24 +47,20 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun getAttendeeData(event: String, identifier: String): String? {
-        val res = attendeeTable.get(attendeeKey(event, identifier))
-        return if (res != null) {
-            String(res, StandardCharsets.UTF_8)
-        } else {
-            null
-        }
+        return attendeeTable.getAsString(attendeeKey(event, identifier))
+
     }
 
     //-----------
 
     open fun putLastUpdated(event: String, lastUpdated: Long) {
-        lastUpdatedTable.put(event, lastUpdated.toString().toByteArray(StandardCharsets.UTF_8))
+        lastUpdatedTable.put(event, lastUpdated.toString())
     }
 
     open fun getLatestUpdate(event: String): Long {
-        val res = lastUpdatedTable.get(event)
+        val res = lastUpdatedTable.getAsString(event)
         return if (res != null) {
-            String(res, StandardCharsets.UTF_8).toLong()
+            res.toLong()
         } else {
             -1
         }
@@ -74,9 +69,9 @@ open class KVStore(private val gson: Gson) {
 
     open fun loadAllForEvent(eventId: Int): List<ScanLog> {
         val res = ArrayList<ScanLog>()
-        val idToSearch = toBA(eventId.toString())
+        val idToSearch = eventId.toString()
         scanLogEventIdSupport.keys().forEach { key ->
-            if (Arrays.equals(idToSearch, scanLogEventIdSupport.get(key))) {
+            if (idToSearch == scanLogEventIdSupport.getAsString(key)) {
                 findOptionalById(key).ifPresent({res.add(it)})
             }
         }
@@ -91,11 +86,11 @@ open class KVStore(private val gson: Gson) {
     }
 
     private fun putScanLong(scanLog: ScanLog) {
-        scanLogTable.put(scanLog.id, toBA(gson.toJson(scanLog)))
-        scanLogRemoteResultSupport.put(scanLog.id, toBA(scanLog.remoteResult.toString()))
-        scanLogLocalResultSupport.put(scanLog.id, toBA(scanLog.localResult.toString()))
-        scanLogTicketUUIDSupport.put(scanLog.id, toBA(scanLog.ticketUuid))
-        scanLogEventIdSupport.put(scanLog.id, toBA(scanLog.eventId.toString()))
+        scanLogTable.put(scanLog.id, gson.toJson(scanLog))
+        scanLogRemoteResultSupport.put(scanLog.id, scanLog.remoteResult.toString())
+        scanLogLocalResultSupport.put(scanLog.id, scanLog.localResult.toString())
+        scanLogTicketUUIDSupport.put(scanLog.id, scanLog.ticketUuid)
+        scanLogEventIdSupport.put(scanLog.id, scanLog.eventId.toString())
     }
 
     open fun findById(key: String): ScanLog? {
@@ -103,8 +98,8 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun findOptionalById(key: String): Optional<ScanLog> {
-        val res = scanLogTable.get(key)
-        return Optional.ofNullable(res).map { gson.fromJson(String(it, StandardCharsets.UTF_8), ScanLog::class.java) }
+        val res = scanLogTable.getAsString(key)
+        return Optional.ofNullable(res).map { gson.fromJson(it, ScanLog::class.java) }
     }
 
     open fun findOptionalByIdAndEventId(key: String, eventId: Int): Optional<ScanLog> {
@@ -113,9 +108,9 @@ open class KVStore(private val gson: Gson) {
 
     open fun findRemoteFailures(): List<ScanLog> {
         val remoteFailures = ArrayList<ScanLog>()
-        val retry = toBA(CheckInStatus.RETRY.toString())
+        val retry = CheckInStatus.RETRY.toString()
         scanLogRemoteResultSupport.keys().forEach { key ->
-            if (Arrays.equals(retry, scanLogRemoteResultSupport.get(key))) {
+            if (retry == scanLogRemoteResultSupport.getAsString(key)) {
                 findOptionalById(key).ifPresent({ scanLog -> remoteFailures.add(scanLog) })
             }
         }
@@ -123,20 +118,19 @@ open class KVStore(private val gson: Gson) {
     }
 
     fun loadSuccessfulScanForTicket(eventId: Int, ticketUuid: String): Optional<ScanLog> {
-        val uuid = toBA(ticketUuid)
-        val success = toBA(CheckInStatus.SUCCESS.toString())
+        val success = CheckInStatus.SUCCESS.toString()
 
         val keys = ArrayList<String>()
         //
         scanLogTicketUUIDSupport.keys().forEach { key ->
-            if (Arrays.equals(scanLogTicketUUIDSupport.get(key), uuid)) {
+            if (ticketUuid == scanLogTicketUUIDSupport.getAsString(key)) {
                 keys.add(key)
             }
         }
         //
 
         return keys.stream()
-            .filter({ key -> Arrays.equals(success, scanLogLocalResultSupport.get(key)) })
+            .filter({ key -> success == scanLogLocalResultSupport.getAsString(key) })
             .map { key -> findById(key) }
             .filter(Objects::nonNull)
             .map { scanLog -> scanLog!! }
@@ -167,8 +161,4 @@ open class KVStore(private val gson: Gson) {
 
 private fun attendeeKey(event: String, identifier: String): String {
     return event + "_" + identifier
-}
-
-private fun toBA(k: String): ByteArray {
-    return k.toByteArray(StandardCharsets.UTF_8)
 }
