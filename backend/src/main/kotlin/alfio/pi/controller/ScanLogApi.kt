@@ -99,10 +99,10 @@ open class EventApi (private val transactionManager: PlatformTransactionManager,
                      private val eventRepository: EventRepository) {
 
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
-    open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)
+    open fun loadAll(): List<Event> = eventRepository.loadAll()
 
     @RequestMapping(value = "/{eventKey}", method = arrayOf(RequestMethod.GET))
-    open fun getSingleEvent(@PathVariable("eventKey") eventKey: String) : ResponseEntity<Event> = findLocalEvent(eventKey).invoke(eventRepository)
+    open fun getSingleEvent(@PathVariable("eventKey") eventKey: String) : ResponseEntity<Event> = eventRepository.loadSingle(eventKey)
         .map{ ResponseEntity.ok(it) }
         .orElseGet { ResponseEntity(HttpStatus.NOT_FOUND) }
 

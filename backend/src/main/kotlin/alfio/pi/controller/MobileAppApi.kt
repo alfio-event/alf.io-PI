@@ -70,7 +70,7 @@ open class AppEventApi(val eventRepository: EventRepository) {
     }
 
     @RequestMapping(value = "/admin/api/events", method = arrayOf(RequestMethod.GET))
-    open fun loadEvents() = findLocalEvents().invoke(eventRepository).filter { it.active }
+    open fun loadEvents() = eventRepository.loadAll().filter { it.active }
 
     @RequestMapping(value = "/admin/api/user-type", method = arrayOf(RequestMethod.GET))
     open fun loadUserType() = "STAFF"//Sponsors should call the central server
