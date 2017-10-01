@@ -117,8 +117,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return eventRepository.loadSingle(eventName)
             .flatMap { event -> userRepository.findByUsername(username).map { user -> event to user } }
             .map { (event, user) ->
-                val eventId = event.id
-                kvStore.loadSuccessfulScanForTicket(eventId, uuid)
+                val eventKey = event.key
+                kvStore.loadSuccessfulScanForTicket(eventKey, uuid)
                     .map(fun(existing: ScanLog) : CheckInResponse = DuplicateScanResult(originalScanLog = existing))
                     .orElseGet {
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
@@ -131,14 +131,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                                 checkValidity(localDataResult)
                             }
                             val ticket = localDataResult.ticket!!
-                            val configuration = labelConfigurationRepository.loadForEvent(eventId).orElse(null)
+                            val configuration = labelConfigurationRepository.loadForEvent(eventKey).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
                             if(!printingEnabled) {
                                 logger.info("label printing disabled for event {}", eventName)
                             }
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
-                            kvStore.insertScanLog(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            kvStore.insertScanLog(eventKey, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {
@@ -201,8 +201,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.info("Will call remote url {}", url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
-                resp.isSuccessful -> LabelConfiguration(-1, resp.body().string(), true)
-                resp.code() == 412 -> LabelConfiguration(-1, null, false)
+                resp.isSuccessful -> LabelConfiguration(eventName, resp.body().string(), true)
+                resp.code() == 412 -> LabelConfiguration(eventName, null, false)
                 else -> null
             }
         }
@@ -308,7 +308,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val failures = kvStore.findRemoteFailures()
             logger.trace("found ${failures.size} pending scan to upload")
             failures
-                .groupBy { it.eventId }
+                .groupBy { it.eventKey }
                 .mapKeys { eventRepository.loadSingle(it.key) }
                 .filter { it.key.isPresent }
                 .forEach { entry -> uploadEntriesForEvent(entry) }

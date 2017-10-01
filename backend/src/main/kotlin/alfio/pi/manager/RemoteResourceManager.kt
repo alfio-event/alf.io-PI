@@ -120,7 +120,7 @@ open class EventSynchronizer(val remoteResourceManager: RemoteResourceManager,
     private fun updateExisting(remoteExisting: List<RemoteEvent>, local: List<Event>) {
         val toBeUpdated = remoteExisting.map { r ->
             val l = local.find { l -> r.key == l.key }!!
-            MapSqlParameterSource().addValues(mutableMapOf("id" to l.id,
+            MapSqlParameterSource().addValues(mutableMapOf(
                 "key" to r.key,
                 "name" to r.name,
                 "imageUrl" to r.imageUrl,

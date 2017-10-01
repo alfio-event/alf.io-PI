@@ -25,8 +25,8 @@ export class ScanLogService {
 
   constructor(private http: Http) { }
 
-  getReprintPreview(entryId: number, eventId: number): Observable<ConfigurableLabelContent> {
-    return this.http.get(`/api/internal/scan-log/event/${eventId}/entry/${entryId}/reprint-preview`)
+  getReprintPreview(entryId: string, eventKey: string): Observable<ConfigurableLabelContent> {
+    return this.http.get(`/api/internal/scan-log/event/${eventKey}/entry/${entryId}/reprint-preview`)
       .map(res => res.json())
   }
 
@@ -36,7 +36,7 @@ export class ScanLogService {
       .map(res => res.json())
   }
 
-  reprint(entryId: number, content: ConfigurableLabelContent, printer?: Printer): Observable<boolean> {
+  reprint(entryId: string, content: ConfigurableLabelContent, printer?: Printer): Observable<boolean> {
     let printerId = printer ? printer.id : null;
     return this.http.put(`/api/internal/scan-log/${entryId}/reprint`, {printer: printerId, content: content})
       .map(res => res.json());
@@ -52,8 +52,8 @@ export class PaginatedResult {
 }
 
 export class ScanLogEntry {
-  constructor(public id: number,
-              public eventId: number,
+  constructor(public id: string,
+              public eventKey: string,
               public timestamp: string,
               public ticketUuid: string,
               public userId: number,

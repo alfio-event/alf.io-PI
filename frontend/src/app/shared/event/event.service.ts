@@ -12,13 +12,13 @@ export class EventService {
       .map(res => res.json())
   }
 
-  getSingleEvent(eventId: number): Observable<Event> {
-    return this.http.get(`/api/internal/events/${eventId}`)
+  getSingleEvent(eventKey: string): Observable<Event> {
+    return this.http.get(`/api/internal/events/${eventKey}`)
       .map(res => res.json())
   }
 
-  toggleActivation(eventId: number, value: boolean): Observable<boolean> {
-    let url = `/api/internal/events/${eventId}/active`;
+  toggleActivation(eventKey: string, value: boolean): Observable<boolean> {
+    let url = `/api/internal/events/${eventKey}/active`;
     let call = value ? this.http.put(url, true) : this.http.delete(url);
     return call.map(res => res.json());
   }
@@ -26,8 +26,7 @@ export class EventService {
 }
 
 export class Event {
-  constructor(public id: number,
-              public key: string,
+  constructor(public key: string,
               public name: string,
               public imageUrl: string,
               public begin: string,

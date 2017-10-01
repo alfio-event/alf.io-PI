@@ -28,8 +28,7 @@ import java.math.BigDecimal
 import java.time.ZonedDateTime
 
 enum class Role {ADMIN, OPERATOR}
-data class Event(@Column("id") val id: Int,
-                 @Column("key") val key: String,
+data class Event(@Column("key") val key: String,
                  @Column("name") val name: String,
                  @Column("image_url") val imageUrl: String?,
                  @Column("begin_ts") val begin: ZonedDateTime,
@@ -38,6 +37,8 @@ data class Event(@Column("id") val id: Int,
                  @Column("api_version") val apiVersion: Int,
                  @Column("active") val active: Boolean,
                  @Column("last_update") val lastUpdate: ZonedDateTime?)
+
+
 data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean) : Comparable<Printer> {
     override fun compareTo(other: Printer): Int = name.compareTo(other.name)
 }
@@ -54,7 +55,7 @@ internal open class GsonContainer(gson: Gson) {
 
 data class ScanLog(val id: String,
                    val timestamp: ZonedDateTime,
-                   val eventId: Int,
+                   val eventKey: String,
                    val ticketUuid: String,
                    val userId: Int,
                    val localResult: CheckInStatus,
@@ -83,7 +84,7 @@ data class UserAndPrinter(@Column("username") private val username: String,
     val printer = Printer(printerId, printerName, printerDescription, printerActive)
 }
 
-data class LabelConfiguration(@Column("event_id_fk") val eventId: Int, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) : Serializable {
+data class LabelConfiguration(@Column("event_key_fk") val eventKey: String, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) : Serializable {
     val layout: LabelLayout? = GsonContainer.GSON?.fromJson(json, LabelLayout::class.java)
 }
 

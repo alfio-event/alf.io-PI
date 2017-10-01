@@ -27,8 +27,8 @@ export class EventConfigurationComponent implements OnInit {
   ngOnInit(): void {
     this.route.params
       .switchMap((params: Params) => {
-        let eventId = params['eventId'];
-        return this.eventService.getSingleEvent(eventId);
+        let eventKey = params['eventKey'];
+        return this.eventService.getSingleEvent(eventKey);
       }).switchMap((event: Event) => {
         this.event = event;
         return Observable.forkJoin(this.printerService.loadPrintersAndUsers(), this.printerService.loadAllPrinters(), this.userService.getUsers());

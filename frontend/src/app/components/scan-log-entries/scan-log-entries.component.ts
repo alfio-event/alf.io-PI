@@ -59,7 +59,7 @@ export class ScanLogEntriesComponent implements OnInit {
         let [entries, events, printers] = res;
         this.printers = printers.filter(p => p.active);
         this.found = entries.found;
-        return entries.values.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.id === entry.eventId)))
+        return entries.values.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.key === entry.eventKey)))
       })
       .subscribe(entries => {
         this.entries = entries

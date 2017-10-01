@@ -17,8 +17,7 @@
 
 --entities
 create cached table event (
-    id integer identity not null,
-    key varchar(2048) not null,
+    key varchar(2048) not null PRIMARY KEY ,
     name varchar(2048) not null,
     image_url varchar(2048),
     begin_ts DATETIME not null,
@@ -43,21 +42,6 @@ create cached table user (
     password varchar(2048) not null
 );
 
-create cached table scan_log (
-    id integer identity not null,
-    scan_ts DATETIME not null,
-    event_id_fk integer not null,
-    ticket_uuid varchar(255) not null,
-    user_id_fk integer not null,
-    local_result varchar(255) not null,
-    remote_result varchar(255) not null,
-    ticket_data CLOB,
-    badge_printed boolean default false not null
-);
-
-alter table scan_log add foreign key(user_id_fk) references user(id);
-alter table scan_log add foreign key(event_id_fk) references event(id);
-
 create cached table authority(
     username varchar(255) not null,
     role varchar(255) not null
@@ -73,3 +57,17 @@ alter table user_printer add foreign key(printer_id_fk) references printer(id);
 alter table user_printer add constraint "unique_user" unique(user_id_fk);
 
 
+create cached table label_configuration (
+    event_key_fk varchar(2048) not null,
+    json clob,
+    enabled boolean
+);
+
+alter table label_configuration add FOREIGN KEY (event_key_fk) REFERENCES event(key);
+
+create cached table configuration (
+    key varchar(256),
+    value clob
+);
+
+alter table configuration add primary key(key);
