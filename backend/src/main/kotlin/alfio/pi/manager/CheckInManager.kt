@@ -62,7 +62,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val gson: Gson,
                               private val httpClient: OkHttpClient,
                               private val printManager: PrintManager,
-                              private val labelConfigurationRepository: LabelConfigurationRepository,
                               private val publisher: SystemEventHandler) {
 
 
@@ -131,7 +130,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                                 checkValidity(localDataResult)
                             }
                             val ticket = localDataResult.ticket!!
-                            val configuration = labelConfigurationRepository.loadForEvent(eventKey).orElse(null)
+                            val configuration = kvStore.loadLabelConfiguration(eventKey).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
                             if(!printingEnabled) {
                                 logger.info("label printing disabled for event {}", eventName)
@@ -221,7 +220,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     val labelConfiguration = loadLabelConfiguration(eventName)
                     eventRepository.loadSingle(eventName).ifPresent { (id) ->
                         if(labelConfiguration != null) {
-                            labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
+                            kvStore.saveLabelConfiguration(id, labelConfiguration.json, labelConfiguration.enabled)
                         }
                     }
                     ids.partitionWithSize(200).forEach { partitionedIds ->
@@ -409,9 +408,7 @@ internal fun calcHash256(hmac: String) : String {
 @Profile("server", "full")
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
                                    private val remoteResourceManager: RemoteResourceManager,
-                                   private val kvStore: KVStore,
-                                   private val labelConfigurationRepository: LabelConfigurationRepository,
-                                   private val eventRepository: EventRepository) {
+                                   private val kvStore: KVStore) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 

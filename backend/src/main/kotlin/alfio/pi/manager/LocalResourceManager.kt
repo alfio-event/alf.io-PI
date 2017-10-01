@@ -96,7 +96,7 @@ fun loadPrinterConfiguration(): (UserPrinterRepository, PrinterRepository) -> Co
     })
 }
 
-fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: ConfigurableLabelContent?, desk: Boolean): (PrintManager, PrinterRepository, KVStore, LabelConfigurationRepository, UserRepository) -> Boolean = { printManager, printerRepository, kvStore, labelConfigRepository, userRepository ->
+fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: ConfigurableLabelContent?, desk: Boolean): (PrintManager, PrinterRepository, KVStore, UserRepository) -> Boolean = { printManager, printerRepository, kvStore, userRepository ->
     tryOrDefault<Boolean>().invoke({
         kvStore.findOptionalById(scanLogId)
             .filter { it.ticket != null }
@@ -116,7 +116,7 @@ fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: 
                     else -> Optional.empty()
                 }
             }.map { (printer, ticket, eventKey) ->
-                val labelConfiguration = labelConfigRepository.loadForEvent(eventKey).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))
+                val labelConfiguration = kvStore.loadLabelConfiguration(eventKey).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))
                 printManager.printLabel(printer, ticket, labelConfiguration)
             }.orElse(false)
     }, {
@@ -125,10 +125,10 @@ fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: 
     })
 }
 
-fun reprintPreview(eventKey: String, scanLogId: String): (PrintManager, KVStore, LabelConfigurationRepository) -> Optional<ConfigurableLabelContent> = { printManager, kvStore, labelConfigurationRepository ->
+fun reprintPreview(eventKey: String, scanLogId: String): (PrintManager, KVStore) -> Optional<ConfigurableLabelContent> = { printManager, kvStore ->
     kvStore.findOptionalByIdAndEventKey(scanLogId, eventKey)
         .filter {it.ticket != null}
-        .map { printManager.getLabelContent(it.ticket!!, labelConfigurationRepository.loadForEvent(eventKey).orElse(null)) }
+        .map { printManager.getLabelContent(it.ticket!!, kvStore.loadLabelConfiguration(eventKey).orElse(null)) }
 }
 
 fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean = { printManager, printerRepository ->
