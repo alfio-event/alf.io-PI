@@ -1,11 +1,15 @@
 package alfio.pi.manager
 
 import alfio.pi.model.CheckInStatus
+import alfio.pi.model.GsonContainer
 import alfio.pi.model.ScanLog
+import alfio.pi.model.Ticket
 import ch.digitalfondue.synckv.SyncKV
 import com.google.gson.Gson
 import org.jgroups.util.Tuple
 import org.springframework.stereotype.Component
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 import kotlin.collections.ArrayList
@@ -30,6 +34,17 @@ open class KVStore(private val gson: Gson) {
         scanLogTableSupport = store.getTable("scan_log_support")
         //
     }
+
+    data class ScanLogToPersist(val id: String,
+                                val timestamp: Long,
+                                val zoneId: String,
+                                val eventId: Int,
+                                val ticketUuid: String,
+                                val userId: Int,
+                                val localResult: CheckInStatus,
+                                val remoteResult: CheckInStatus,
+                                val badgePrinted: Boolean,
+                                val ticketData: String?)
 
     //-----------
 
@@ -73,16 +88,23 @@ open class KVStore(private val gson: Gson) {
 
     fun insertScanLog(timestamp: ZonedDateTime?, eventId: Int, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
         val key = System.nanoTime().toString() + UUID.randomUUID().toString()
-        val scanLogWithKey = ScanLog(key, timestamp!!, eventId, uuid, userId,
+        val scanLogWithKey = ScanLogToPersist(key, timestamp!!.toEpochSecond(), timestamp!!.zone.id, eventId, uuid, userId,
             localResult, remoteResult, badgePrinted, jsonPayload)
         putScanLong(scanLogWithKey)
     }
 
-    private fun putScanLong(scanLog: ScanLog) {
+    private fun putScanLong(scanLog: ScanLogToPersist) {
 
         scanLogTable.put(scanLog.id, gson.toJson(scanLog))
 
-        val toSearch = if(scanLog.ticket == null) {""} else {scanLog.ticket.firstName+" " +scanLog.ticket.lastName + " " + scanLog.ticket.email}
+
+
+        val toSearch = if(scanLog.ticketData == null) {
+            ""
+        } else {
+            val ticket = GsonContainer.GSON?.fromJson(scanLog.ticketData, Ticket::class.java)!!
+            ticket.firstName+" " +ticket.lastName + " " + ticket.email
+        }
 
         scanLogTableSupport.put(scanLog.id,
                 "|||remote_result:" + scanLog.remoteResult.toString() +
@@ -90,7 +112,7 @@ open class KVStore(private val gson: Gson) {
                 "|||ticket_uuid:" + scanLog.ticketUuid +
                 "|||event_id:" + scanLog.eventId.toString() +
                 "|||to_search:" + toSearch +
-                "|||scan_ts:" + scanLog.timestamp.toEpochSecond().toString() + "|||"
+                "|||scan_ts:" + scanLog.timestamp.toString() + "|||"
         )
     }
 
@@ -145,7 +167,11 @@ open class KVStore(private val gson: Gson) {
 
     open fun findOptionalById(key: String): Optional<ScanLog> {
         val res = scanLogTable.getAsString(key)
-        return Optional.ofNullable(res).map { gson.fromJson(it, ScanLog::class.java) }
+        return Optional.ofNullable(res).map { gson.fromJson(it, ScanLogToPersist::class.java) }
+            .map { ScanLog(it.id,
+                ZonedDateTime.ofInstant(Instant.ofEpochMilli(it.timestamp), ZoneId.of(it.zoneId)),
+                it.eventId, it.ticketUuid, it.userId, it.localResult, it.remoteResult, it.badgePrinted, it.ticketData
+                ) }
     }
 
     open fun findOptionalByIdAndEventId(key: String, eventId: Int): Optional<ScanLog> {
@@ -174,7 +200,7 @@ open class KVStore(private val gson: Gson) {
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
         findOptionalById(key).ifPresent({ scanLog ->
-            val updatedScanLog = ScanLog(scanLog.id, scanLog.timestamp, scanLog.eventId, scanLog.ticketUuid,
+            val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toEpochSecond(), scanLog.timestamp.zone.id, scanLog.eventId, scanLog.ticketUuid,
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
             putScanLong(updatedScanLog)
         })
@@ -199,8 +225,9 @@ open class KVStore(private val gson: Gson) {
 
     fun loadPageAndTotalCount(offset: Int, pageSize: Int, search: String?): Pair<List<ScanLog>, Int> {
 
-        val count = searchScanLog(search).size
-        val selectedPage = searchScanLog(search).subList(offset, Math.min(count, offset*pageSize)).map { findById(it)!! }
+        val found = searchScanLog(search)
+        val count = found.size
+        val selectedPage = found.map { findById(it)!! }
 
         return Pair(selectedPage, count)
     }
