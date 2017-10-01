@@ -52,22 +52,21 @@ internal open class GsonContainer(gson: Gson) {
     }
 }
 
-data class ScanLog(@Column("id") val id: String,
-                   @Column("scan_ts") val timestamp: ZonedDateTime,
-                   @Column("event_id_fk") val eventId: Int,
-                   @Column("ticket_uuid") val ticketUuid: String,
-                   @Column("user_id_fk") val userId: Int,
-                   @Column("local_result") val localResult: CheckInStatus,
-                   @Column("remote_result") val remoteResult: CheckInStatus,
-                   @Column("badge_printed") val badgePrinted: Boolean,
-                   @Column("ticket_data") val ticketData: String?) {
+data class ScanLog(val id: String,
+                   val timestamp: ZonedDateTime,
+                   val eventId: Int,
+                   val ticketUuid: String,
+                   val userId: Int,
+                   val localResult: CheckInStatus,
+                   val remoteResult: CheckInStatus,
+                   val badgePrinted: Boolean,
+                   val ticketData: String?) {
 
     val ticket: Ticket? = if(!ticketData.isNullOrEmpty()) {
         GsonContainer.GSON?.fromJson(ticketData, Ticket::class.java)
     } else {
         null
     }
-
 }
 
 data class User(@Column("id") val id: Int, @Column("username") val username: String)
