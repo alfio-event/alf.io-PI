@@ -160,6 +160,10 @@ open class KVStore(private val gson: Gson) {
     open fun count(search: String?): Int {
         return 0 //TODO IMPLEMENT
     }
+
+    fun isLeader(): Boolean {
+        return store.isLeader
+    }
 }
 
 private fun attendeeKey(event: String, identifier: String): String {

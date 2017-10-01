@@ -305,13 +305,15 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
-        val failures = kvStore.findRemoteFailures()
-        logger.trace("found ${failures.size} pending scan to upload")
-        failures
-            .groupBy { it.eventId }
-            .mapKeys { eventRepository.loadSingle(it.key) }
-            .filter { it.key.isPresent }
-            .forEach { entry -> uploadEntriesForEvent(entry) }
+        if(kvStore.isLeader()) {
+            val failures = kvStore.findRemoteFailures()
+            logger.trace("found ${failures.size} pending scan to upload")
+            failures
+                .groupBy { it.eventId }
+                .mapKeys { eventRepository.loadSingle(it.key) }
+                .filter { it.key.isPresent }
+                .forEach { entry -> uploadEntriesForEvent(entry) }
+        }
     }
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
@@ -408,6 +410,7 @@ internal fun calcHash256(hmac: String) : String {
 @Profile("server", "full")
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
                                    private val remoteResourceManager: RemoteResourceManager,
+                                   private val kvStore: KVStore,
                                    private val labelConfigurationRepository: LabelConfigurationRepository,
                                    private val eventRepository: EventRepository) {
 
@@ -415,25 +418,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        var result = false
         performSync()
-        /*while(!result) {
-            if(jGroupsCluster.isLeader()) {
-                performSync()
-                jGroupsCluster.hasPerformSyncDone(true)
-                break
-            } else {
-                result = jGroupsCluster.leaderHasPerformSyncDone()
-                if(!result) {
-                    logger.info("Leader ${jGroupsCluster.getLeaderAddress()} is still working")
-                } else {
-                    logger.info("Leader has finished loading")
-                    jGroupsCluster.hasPerformSyncDone(true)
-                    performSync()
-                }
-            }
-            Thread.sleep(2000L)
-        }*/
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
@@ -444,31 +429,14 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
     }
 
     open fun onDemandSync(events: List<RemoteEvent>) {
-        /*if(jGroupsCluster.isLeader()) {*/
+        if(kvStore.isLeader()) {
             logger.debug("Leader begin onDemandSync")
             events.filter { it.key != null }.map {
                 checkInDataManager.syncAttendees(it.key!!)
             }
             logger.debug("Leader end onDemandSync")
-        /*} else {
-            logger.info("Follower begin onDemandSync")
-            events.filter { it.key != null }.map {
-                val eventName = it.key!!
-                val lastModified = checkInDataManager.findLastModifiedTimeForAttendeeInEvent(eventName)
-                jGroupsCluster.getIdentifiersForEvent(eventName, lastModified).partitionWithSize(1000).forEach { partitionedIds ->
-                    logger.info("Fetching ${partitionedIds.size}")
-                    val attendees = jGroupsCluster.loadAttendeesWithIdentifier(partitionedIds)
-                    checkInDataManager.saveAttendees(eventName, attendees)
-                }
-                val labelConfiguration = jGroupsCluster.loadLabelConfigurationFromMaster(eventName)
-                if(labelConfiguration != null) {
-                    eventRepository.loadSingle(eventName).ifPresent { (id) ->
-                        labelConfigurationRepository.merge(id, labelConfiguration.json, labelConfiguration.enabled)
-                    }
-                }
-            }
-            logger.info("Follower end onDemandSync")
-        }*/
+        }
+        //TODO: handle labelConfigurationRepository replication (move it to kvstore too?)
     }
 }
 

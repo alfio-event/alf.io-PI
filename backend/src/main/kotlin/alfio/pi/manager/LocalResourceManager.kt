@@ -34,22 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
 
-fun findAllEntriesForEvent(eventId: Int) : (KVStore) -> List<ScanLog> = {
-    tryOrDefault<List<ScanLog>>().invoke({it.loadAllForEvent(eventId)}, {
-        logger.error("unexpected error while loading entries for event $eventId", it)
-        emptyList()
-    })
-}
-
-fun findAllEntries(page: Int, pageSize: Int, search: String?) : (KVStore) -> List<ScanLog> = {
-    tryOrDefault<List<ScanLog>>().invoke({
-        it.loadPage(page * pageSize, pageSize, search)
-    }, {
-        logger.error("unexpected error while loading all entries", it)
-        emptyList()
-    })
-}
-
 fun findLocalEvents(): (EventRepository) -> List<Event> = {
     tryOrDefault<List<Event>>().invoke({it.loadAll()}, {
         logger.error("unexpected error while loading events", it)
@@ -57,12 +41,6 @@ fun findLocalEvents(): (EventRepository) -> List<Event> = {
     })
 }
 
-fun findLocalEvent(eventName: String): (EventRepository) -> Optional<Event> = {
-    tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventName)}, {
-        logger.error("error while loading event $eventName", it)
-        Optional.empty()
-    })
-}
 fun findLocalEvent(eventId: Int): (EventRepository) -> Optional<Event> = {
     tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventId)}, {
         logger.error("error while loading event $eventId", it)

@@ -61,10 +61,12 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager, val environmen
 open class AppEventApi(val eventRepository: EventRepository) {
 
     @RequestMapping(value = "/api/events/{eventName}", method = arrayOf(RequestMethod.GET))
-    open fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> = findLocalEvent(eventName).invoke(eventRepository).map {
-        ResponseEntity.ok(it)
-    }.orElseGet {
-        ResponseEntity(HttpStatus.NOT_FOUND)
+    open fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> {
+        return eventRepository.loadSingle(eventName).map {
+            ResponseEntity.ok(it)
+        }.orElseGet {
+            ResponseEntity(HttpStatus.NOT_FOUND)
+        }
     }
 
     @RequestMapping(value = "/admin/api/events", method = arrayOf(RequestMethod.GET))
