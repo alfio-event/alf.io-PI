@@ -18,10 +18,7 @@ open class KVStore(private val gson: Gson) {
     private val lastUpdatedTable: SyncKV.SyncKVTable
     //
     private val scanLogTable: SyncKV.SyncKVTable
-    private val scanLogRemoteResultSupport: SyncKV.SyncKVTable
-    private val scanLogLocalResultSupport: SyncKV.SyncKVTable
-    private val scanLogTicketUUIDSupport: SyncKV.SyncKVTable
-    private val scanLogEventIdSupport: SyncKV.SyncKVTable
+    private val scanLogTableSupport: SyncKV.SyncKVTable
 
     init {
         attendeeTable = store.getTable("attendee")
@@ -29,10 +26,7 @@ open class KVStore(private val gson: Gson) {
 
         //
         scanLogTable = store.getTable("scan_log")
-        scanLogRemoteResultSupport = store.getTable("scan_log_remote_result_support")
-        scanLogLocalResultSupport = store.getTable("scan_log_local_result_support")
-        scanLogTicketUUIDSupport = store.getTable("scan_log_ticket_uuid_support")
-        scanLogEventIdSupport = store.getTable("scan_log_ticket_event_id_support")
+        scanLogTableSupport = store.getTable("scan_log_support")
         //
     }
 
@@ -69,12 +63,10 @@ open class KVStore(private val gson: Gson) {
 
     open fun loadAllForEvent(eventId: Int): List<ScanLog> {
         val res = ArrayList<ScanLog>()
-        val idToSearch = eventId.toString()
-        scanLogEventIdSupport.keys().forEach { key ->
-            if (idToSearch == scanLogEventIdSupport.getAsString(key)) {
-                findOptionalById(key).ifPresent({res.add(it)})
-            }
-        }
+
+        findAllIdsWith("event_id", eventId.toString()).forEach({
+            findOptionalById(it).ifPresent({scanLog -> res.add(scanLog)})
+        })
         return res
     }
 
@@ -87,10 +79,36 @@ open class KVStore(private val gson: Gson) {
 
     private fun putScanLong(scanLog: ScanLog) {
         scanLogTable.put(scanLog.id, gson.toJson(scanLog))
-        scanLogRemoteResultSupport.put(scanLog.id, scanLog.remoteResult.toString())
-        scanLogLocalResultSupport.put(scanLog.id, scanLog.localResult.toString())
-        scanLogTicketUUIDSupport.put(scanLog.id, scanLog.ticketUuid)
-        scanLogEventIdSupport.put(scanLog.id, scanLog.eventId.toString())
+        scanLogTableSupport.put(scanLog.id,
+            "|remote_result:" + scanLog.remoteResult.toString() +
+            "|local_result:" + scanLog.localResult.toString() +
+            "|ticket_uuid:" + scanLog.ticketUuid +
+            "|event_id:" + scanLog.eventId.toString() + "|"
+        )
+    }
+
+    private fun findAllIdsWith(nameValuePairs: Array<Pair<String, String>>): List<String> {
+        val toCheck = nameValuePairs.map { "|"+it.first+":"+it.second+"|" }
+        val matching = ArrayList<String>()
+        scanLogTableSupport.keys().forEach {
+            val idx = scanLogTableSupport.getAsString(it)
+            var match = true
+            for (check in toCheck) {
+                if (idx.indexOf(check) < 0) {
+                    match = false
+                    break
+                }
+            }
+
+            if (match) {
+                matching.add(it)
+            }
+        }
+        return matching
+    }
+
+    private fun findAllIdsWith(name: String, value: String): List<String> {
+        return findAllIdsWith(arrayOf(Pair(name, value)))
     }
 
     open fun findById(key: String): ScanLog? {
@@ -108,34 +126,22 @@ open class KVStore(private val gson: Gson) {
 
     open fun findRemoteFailures(): List<ScanLog> {
         val remoteFailures = ArrayList<ScanLog>()
-        val retry = CheckInStatus.RETRY.toString()
-        scanLogRemoteResultSupport.keys().forEach { key ->
-            if (retry == scanLogRemoteResultSupport.getAsString(key)) {
-                findOptionalById(key).ifPresent({ scanLog -> remoteFailures.add(scanLog) })
-            }
-        }
+        findAllIdsWith("remote_result", CheckInStatus.RETRY.toString()).forEach({key ->
+            findOptionalById(key).ifPresent({ scanLog -> remoteFailures.add(scanLog) })
+        })
         return remoteFailures
     }
 
     fun loadSuccessfulScanForTicket(eventId: Int, ticketUuid: String): Optional<ScanLog> {
-        val success = CheckInStatus.SUCCESS.toString()
+        val found = findAllIdsWith(arrayOf(Pair("ticket_uuid", ticketUuid),
+            Pair("local_result", CheckInStatus.SUCCESS.toString()),
+            Pair("event_id", eventId.toString())))
 
-        val keys = ArrayList<String>()
-        //
-        scanLogTicketUUIDSupport.keys().forEach { key ->
-            if (ticketUuid == scanLogTicketUUIDSupport.getAsString(key)) {
-                keys.add(key)
-            }
+        if(found.isEmpty()) {
+            return Optional.empty()
+        } else {
+            return findOptionalById(found.first())
         }
-        //
-
-        return keys.stream()
-            .filter({ key -> success == scanLogLocalResultSupport.getAsString(key) })
-            .map { key -> findById(key) }
-            .filter(Objects::nonNull)
-            .map { scanLog -> scanLog!! }
-            .filter({ scanLog -> scanLog.eventId == eventId })
-            .findFirst()
     }
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
