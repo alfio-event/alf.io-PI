@@ -97,13 +97,11 @@ open class KVStore(private val gson: Gson) {
 
         scanLogTable.put(scanLog.id, gson.toJson(scanLog))
 
-
-
         val toSearch = if(scanLog.ticketData == null) {
             ""
         } else {
             val ticket = GsonContainer.GSON?.fromJson(scanLog.ticketData, Ticket::class.java)!!
-            ticket.firstName+" " +ticket.lastName + " " + ticket.email
+            (ticket.firstName+" " +ticket.lastName + " " + ticket.email).toLowerCase(Locale.ENGLISH)
         }
 
         scanLogTableSupport.put(scanLog.id,
@@ -125,9 +123,10 @@ open class KVStore(private val gson: Gson) {
 
     private fun searchScanLog(term: String?) : List<String> {
         val matching = ArrayList<Triple<String, String, String>>()
+        val termLowerCase = term?.toLowerCase(Locale.ENGLISH)
         scanLogTableSupport.keys().forEach {
             val idx = scanLogTableSupport.getAsString(it)
-            if(term == null || extractField("to_search", idx).indexOf(term) >= 0) {
+            if(termLowerCase == null || extractField("to_search", idx).indexOf(termLowerCase) >= 0) {
                 matching.add(Triple(it, extractField("scan_ts", idx), extractField("ticket_uuid", idx)))
             }
         }
