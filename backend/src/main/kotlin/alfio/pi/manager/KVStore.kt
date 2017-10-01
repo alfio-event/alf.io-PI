@@ -4,6 +4,7 @@ import alfio.pi.model.CheckInStatus
 import alfio.pi.model.ScanLog
 import ch.digitalfondue.synckv.SyncKV
 import com.google.gson.Gson
+import org.jgroups.util.Tuple
 import org.springframework.stereotype.Component
 import java.time.ZonedDateTime
 import java.util.*
@@ -78,17 +79,44 @@ open class KVStore(private val gson: Gson) {
     }
 
     private fun putScanLong(scanLog: ScanLog) {
+
         scanLogTable.put(scanLog.id, gson.toJson(scanLog))
+
+        val toSearch = if(scanLog.ticket == null) {""} else {scanLog.ticket.firstName+" " +scanLog.ticket.lastName + " " + scanLog.ticket.email}
+
         scanLogTableSupport.put(scanLog.id,
-            "|remote_result:" + scanLog.remoteResult.toString() +
-            "|local_result:" + scanLog.localResult.toString() +
-            "|ticket_uuid:" + scanLog.ticketUuid +
-            "|event_id:" + scanLog.eventId.toString() + "|"
+                "|||remote_result:" + scanLog.remoteResult.toString() +
+                "|||local_result:" + scanLog.localResult.toString() +
+                "|||ticket_uuid:" + scanLog.ticketUuid +
+                "|||event_id:" + scanLog.eventId.toString() +
+                "|||to_search:" + toSearch +
+                "|||scan_ts" + scanLog.timestamp.toEpochSecond().toString() + "|||"
         )
     }
 
+    private fun extractField(name: String, idx: String) : String {
+        val fieldName = "|||"+name+":"
+        val boundary1 = idx.indexOf(fieldName)
+        val boundary2 = idx.indexOf("|||", boundary1 + 1)
+        return idx.substring(boundary1+fieldName.length, boundary2)
+    }
+
+    private fun searchScanLog(term: String?) : List<String> {
+        val matching = ArrayList<Triple<String, String, String>>()
+        scanLogTableSupport.keys().forEach {
+            val idx = scanLogTableSupport.getAsString(it)
+            if(term == null || extractField("to_search", idx).indexOf(term) >= 0) {
+                matching.add(Triple(it, extractField("scan_ts", idx), extractField("ticket_uuid", idx)))
+            }
+        }
+
+        matching.sortedWith(compareByDescending<Triple<String, String, String>> { it.second }.thenBy {it.third})
+
+        return matching.map { it.first }
+    }
+
     private fun findAllIdsWith(nameValuePairs: Array<Pair<String, String>>): List<String> {
-        val toCheck = nameValuePairs.map { "|"+it.first+":"+it.second+"|" }
+        val toCheck = nameValuePairs.map { "|||"+it.first+":"+it.second+"|||" }
         val matching = ArrayList<String>()
         scanLogTableSupport.keys().forEach {
             val idx = scanLogTableSupport.getAsString(it)
@@ -153,11 +181,28 @@ open class KVStore(private val gson: Gson) {
     }
 
     fun loadNew(timestamp: Date): List<ScanLog> {
-        return ArrayList() //TODO IMPLEMENT
+
+        val timestampConverted = timestamp.toInstant().epochSecond
+        val matching = ArrayList<Tuple<String, Long>>()
+        scanLogTableSupport.keys().forEach {
+            val idx = scanLogTableSupport.getAsString(it)
+            val scanTs = extractField("scan_ts", idx).toLong()
+            if(scanTs > timestampConverted) {
+                matching.add(Tuple(it, scanTs))
+            }
+        }
+
+        return matching
+            .sortedWith(compareByDescending<Tuple<String, Long>> { it.val2 }.thenBy { it.val1 })
+            .map { findById(it.val1)!! }
     }
 
     fun loadPageAndTotalCount(offset: Int, pageSize: Int, search: String?): Pair<List<ScanLog>, Int> {
-        return Pair(ArrayList(), 0) //TODO IMPLEMENT
+
+        val count = searchScanLog(search).size
+        val selectedPage = searchScanLog(search).subList(offset, Math.min(count, offset*pageSize)).map { findById(it)!! }
+
+        return Pair(selectedPage, count)
     }
 
     fun isLeader(): Boolean {
