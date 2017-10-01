@@ -46,12 +46,14 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
                      @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
                      @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLog>> {
         val searchTrimmed = if (search.trim().length == 0) null else (search.trim())
-        val l = findAllEntries(page, pageSize, searchTrimmed).invoke(scanLogRepository)
+        val l = scanLogRepository.loadPage(page * pageSize, pageSize, searchTrimmed)
         return PaginatedResult(page, l, scanLogRepository.count(searchTrimmed))
     }
 
     @RequestMapping("/event/{eventId}")
-    open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog> = findAllEntriesForEvent(eventId).invoke(scanLogRepository)
+    open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog>  {
+        return scanLogRepository.loadAllForEvent(eventId)
+    }
 
     @RequestMapping(value = "/event/{eventId}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
     open fun getReprintPreview(@PathVariable("eventId") eventId: Int, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
