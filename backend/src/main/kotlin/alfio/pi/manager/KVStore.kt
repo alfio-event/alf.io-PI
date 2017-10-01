@@ -227,7 +227,11 @@ open class KVStore(private val gson: Gson) {
 
         val found = searchScanLog(search)
         val count = found.size
-        val selectedPage = found.map { findById(it)!! }
+        val selectedPage = if (found.isEmpty()) {
+            ArrayList()
+        } else {
+            found.subList(offset, Math.min(found.size, offset + pageSize)).map { findById(it)!! }
+        }
 
         return Pair(selectedPage, count)
     }
