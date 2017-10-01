@@ -90,7 +90,7 @@ open class KVStore(private val gson: Gson) {
                 "|||ticket_uuid:" + scanLog.ticketUuid +
                 "|||event_id:" + scanLog.eventId.toString() +
                 "|||to_search:" + toSearch +
-                "|||scan_ts" + scanLog.timestamp.toEpochSecond().toString() + "|||"
+                "|||scan_ts:" + scanLog.timestamp.toEpochSecond().toString() + "|||"
         )
     }
 
