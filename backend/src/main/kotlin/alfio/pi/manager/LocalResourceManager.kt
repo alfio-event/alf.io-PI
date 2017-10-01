@@ -34,20 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.ScanLogManager")
 
-fun findLocalEvents(): (EventRepository) -> List<Event> = {
-    tryOrDefault<List<Event>>().invoke({it.loadAll()}, {
-        logger.error("unexpected error while loading events", it)
-        emptyList()
-    })
-}
-
-fun findLocalEvent(eventKey: String): (EventRepository) -> Optional<Event> = {
-    tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventKey)}, {
-        logger.error("error while loading event $eventKey", it)
-        Optional.empty()
-    })
-}
-
 fun toggleEventActivation(eventKey: String, state: Boolean): (PlatformTransactionManager, EventRepository) -> Boolean = { transactionManager, eventRepository ->
     doInTransaction<Boolean>().invoke(transactionManager, {
         eventRepository.toggleActivation(eventKey, state) == 1
