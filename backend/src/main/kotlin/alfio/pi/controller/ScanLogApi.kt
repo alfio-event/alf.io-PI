@@ -37,7 +37,6 @@ import java.security.Principal
 open class ScanLogApi (private val scanLogRepository: KVStore,
                        private val printManager: PrintManager,
                        private val printerRepository: PrinterRepository,
-                       private val labelConfigurationRepository: LabelConfigurationRepository,
                        private val userRepository: UserRepository,
                        private val environment: Environment) {
 
@@ -57,7 +56,7 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
 
     @RequestMapping(value = "/event/{eventKey}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
     open fun getReprintPreview(@PathVariable("eventKey") eventKey: String, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
-        reprintPreview(eventKey, entryId).invoke(printManager, scanLogRepository, labelConfigurationRepository)
+        reprintPreview(eventKey, entryId).invoke(printManager, scanLogRepository)
             .map { ResponseEntity.ok(it) }
             .orElseGet { ResponseEntity.notFound().build() }
 
@@ -75,7 +74,7 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
             else -> null
         }
         return if(username != null && (printerId != null || content != null)) {
-            ResponseEntity.ok(reprintBadge(entryId, printerId, username, content, desk).invoke(printManager, printerRepository, scanLogRepository, labelConfigurationRepository, userRepository))
+            ResponseEntity.ok(reprintBadge(entryId, printerId, username, content, desk).invoke(printManager, printerRepository, scanLogRepository, userRepository))
         } else {
             ResponseEntity(HttpStatus.BAD_REQUEST)
         }

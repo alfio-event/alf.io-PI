@@ -1,9 +1,6 @@
 package alfio.pi.manager
 
-import alfio.pi.model.CheckInStatus
-import alfio.pi.model.GsonContainer
-import alfio.pi.model.ScanLog
-import alfio.pi.model.Ticket
+import alfio.pi.model.*
 import ch.digitalfondue.synckv.SyncKV
 import com.google.gson.Gson
 import org.jgroups.util.Tuple
@@ -20,19 +17,23 @@ open class KVStore(private val gson: Gson) {
     private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv")
 
     private val attendeeTable: SyncKV.SyncKVTable
+    //
     private val lastUpdatedTable: SyncKV.SyncKVTable
     //
     private val scanLogTable: SyncKV.SyncKVTable
     private val scanLogTableSupport: SyncKV.SyncKVTable
+    //
+    private val labelConfigurationTable: SyncKV.SyncKVTable
+
 
     init {
         attendeeTable = store.getTable("attendee")
         lastUpdatedTable = store.getTable("last_updated")
-
         //
         scanLogTable = store.getTable("scan_log")
         scanLogTableSupport = store.getTable("scan_log_support")
         //
+        labelConfigurationTable = store.getTable("label_configuration")
     }
 
     data class ScanLogToPersist(val id: String,
@@ -233,6 +234,25 @@ open class KVStore(private val gson: Gson) {
         }
 
         return Pair(selectedPage, count)
+    }
+
+    //----------
+
+    data class PayloadAndEnabled(val payload: String?, val enabled: Boolean)
+
+    fun saveLabelConfiguration(eventKey: String, payload: String?, enabled: Boolean) {
+        val toSave = PayloadAndEnabled(payload, enabled)
+        labelConfigurationTable.put(eventKey, gson.toJson(toSave))
+    }
+
+    fun loadLabelConfiguration(eventKey: String) : Optional<LabelConfiguration> {
+        val res = labelConfigurationTable.getAsString(eventKey)
+        return if (res == null) {
+            Optional.empty()
+        } else {
+            val toLoad = gson.fromJson(res, PayloadAndEnabled::class.java)
+            Optional.of(LabelConfiguration(eventKey, toLoad.payload, toLoad.enabled))
+        }
     }
 
     fun isLeader(): Boolean {
