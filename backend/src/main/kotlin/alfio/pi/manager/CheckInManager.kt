@@ -137,9 +137,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                                 logger.info("label printing disabled for event {}", eventName)
                             }
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
-                            val now = ZonedDateTime.now()
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
-                            kvStore.insertScanLog(now, eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            kvStore.insertScanLog(eventId, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {

@@ -86,9 +86,10 @@ open class KVStore(private val gson: Gson) {
         return res
     }
 
-    fun insertScanLog(timestamp: ZonedDateTime?, eventId: Int, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
+    fun insertScanLog(eventId: Int, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
+        val timestamp = ZonedDateTime.now()
         val key = System.nanoTime().toString() + UUID.randomUUID().toString()
-        val scanLogWithKey = ScanLogToPersist(key, timestamp!!.toEpochSecond(), timestamp!!.zone.id, eventId, uuid, userId,
+        val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventId, uuid, userId,
             localResult, remoteResult, badgePrinted, jsonPayload)
         putScanLong(scanLogWithKey)
     }
@@ -122,18 +123,16 @@ open class KVStore(private val gson: Gson) {
     }
 
     private fun searchScanLog(term: String?) : List<String> {
-        val matching = ArrayList<Triple<String, String, String>>()
+        val matching = ArrayList<Triple<String, Long, String>>()
         val termLowerCase = term?.toLowerCase(Locale.ENGLISH)
         scanLogTableSupport.keys().forEach {
             val idx = scanLogTableSupport.getAsString(it)
             if(termLowerCase == null || extractField("to_search", idx).indexOf(termLowerCase) >= 0) {
-                matching.add(Triple(it, extractField("scan_ts", idx), extractField("ticket_uuid", idx)))
+                matching.add(Triple(it, extractField("scan_ts", idx).toLong(), extractField("ticket_uuid", idx)))
             }
         }
 
-        matching.sortedWith(compareByDescending<Triple<String, String, String>> { it.second }.thenBy {it.third})
-
-        return matching.map { it.first }
+        return matching.sortedWith(compareByDescending<Triple<String, Long, String>> { it.second }.thenBy {it.third}).map { it.first }
     }
 
     private fun findAllIdsWith(nameValuePairs: Array<Pair<String, String>>): List<String> {
@@ -167,10 +166,11 @@ open class KVStore(private val gson: Gson) {
     open fun findOptionalById(key: String): Optional<ScanLog> {
         val res = scanLogTable.getAsString(key)
         return Optional.ofNullable(res).map { gson.fromJson(it, ScanLogToPersist::class.java) }
-            .map { ScanLog(it.id,
+            .map {ScanLog(it.id,
                 ZonedDateTime.ofInstant(Instant.ofEpochMilli(it.timestamp), ZoneId.of(it.zoneId)),
                 it.eventId, it.ticketUuid, it.userId, it.localResult, it.remoteResult, it.badgePrinted, it.ticketData
-                ) }
+                )
+            }
     }
 
     open fun findOptionalByIdAndEventId(key: String, eventId: Int): Optional<ScanLog> {
