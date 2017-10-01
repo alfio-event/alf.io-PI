@@ -77,7 +77,7 @@ open class SystemEventHandlerImpl(private val gson: Gson,
     @Scheduled(fixedDelay = 1000L)
     open fun fetchAndSendNewScans() {
         kvStore.loadNew(lastCheckTimestamp.getAndSet(Date()))
-            .groupBy { it.eventId }
+            .groupBy { it.eventKey }
             .map({(key, value) -> SystemEvent(SystemEventType.NEW_SCAN, NewScan(value, eventRepository.loadSingle(key).get()))})
             .forEach(this::notifyAllSessions)
     }

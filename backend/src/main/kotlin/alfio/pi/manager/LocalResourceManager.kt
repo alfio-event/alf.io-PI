@@ -41,16 +41,16 @@ fun findLocalEvents(): (EventRepository) -> List<Event> = {
     })
 }
 
-fun findLocalEvent(eventId: Int): (EventRepository) -> Optional<Event> = {
-    tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventId)}, {
-        logger.error("error while loading event $eventId", it)
+fun findLocalEvent(eventKey: String): (EventRepository) -> Optional<Event> = {
+    tryOrDefault<Optional<Event>>().invoke({it.loadSingle(eventKey)}, {
+        logger.error("error while loading event $eventKey", it)
         Optional.empty()
     })
 }
 
-fun toggleEventActivation(id: Int, state: Boolean): (PlatformTransactionManager, EventRepository) -> Boolean = { transactionManager, eventRepository ->
+fun toggleEventActivation(eventKey: String, state: Boolean): (PlatformTransactionManager, EventRepository) -> Boolean = { transactionManager, eventRepository ->
     doInTransaction<Boolean>().invoke(transactionManager, {
-        eventRepository.toggleActivation(id, state) == 1
+        eventRepository.toggleActivation(eventKey, state) == 1
     }, {
         logger.error("error while trying to update active state", it)
         false
@@ -116,21 +116,21 @@ fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: 
             .filter { it.ticket != null }
             .flatMap { scanLog ->
                 val optionalPrinter = if(printerId != null) {
-                    printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
+                    printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventKey) }
                 } else {
                     userRepository.findByUsername(username)
                         .flatMap { (id) -> printerRepository.findByUserId(id) }
-                        .map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventId) }
+                        .map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventKey) }
                 }
                 when {
                     optionalPrinter.isPresent -> optionalPrinter
                     desk -> Optional.ofNullable(printManager.getAvailablePrinters().firstOrNull())
                         .map { Printer(-1, it.name, null, true) }
-                        .map { Triple(it, scanLog.ticket!!, scanLog.eventId) }
+                        .map { Triple(it, scanLog.ticket!!, scanLog.eventKey) }
                     else -> Optional.empty()
                 }
-            }.map { (printer, ticket, eventId) ->
-                val labelConfiguration = labelConfigRepository.loadForEvent(eventId).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))
+            }.map { (printer, ticket, eventKey) ->
+                val labelConfiguration = labelConfigRepository.loadForEvent(eventKey).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))
                 printManager.printLabel(printer, ticket, labelConfiguration)
             }.orElse(false)
     }, {
@@ -139,10 +139,10 @@ fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: 
     })
 }
 
-fun reprintPreview(eventId: Int, scanLogId: String): (PrintManager, KVStore, LabelConfigurationRepository) -> Optional<ConfigurableLabelContent> = { printManager, kvStore, labelConfigurationRepository ->
-    kvStore.findOptionalByIdAndEventId(scanLogId, eventId)
+fun reprintPreview(eventKey: String, scanLogId: String): (PrintManager, KVStore, LabelConfigurationRepository) -> Optional<ConfigurableLabelContent> = { printManager, kvStore, labelConfigurationRepository ->
+    kvStore.findOptionalByIdAndEventKey(scanLogId, eventKey)
         .filter {it.ticket != null}
-        .map { printManager.getLabelContent(it.ticket!!, labelConfigurationRepository.loadForEvent(eventId).orElse(null)) }
+        .map { printManager.getLabelContent(it.ticket!!, labelConfigurationRepository.loadForEvent(eventKey).orElse(null)) }
 }
 
 fun printTestBadge(printerId: Int): (PrintManager, PrinterRepository) -> Boolean = { printManager, printerRepository ->

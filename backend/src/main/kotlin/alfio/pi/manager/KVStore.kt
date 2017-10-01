@@ -38,7 +38,7 @@ open class KVStore(private val gson: Gson) {
     data class ScanLogToPersist(val id: String,
                                 val timestamp: Long,
                                 val zoneId: String,
-                                val eventId: Int,
+                                val eventKey: String,
                                 val ticketUuid: String,
                                 val userId: Int,
                                 val localResult: CheckInStatus,
@@ -77,19 +77,19 @@ open class KVStore(private val gson: Gson) {
     }
     //-----------
 
-    open fun loadAllForEvent(eventId: Int): List<ScanLog> {
+    open fun loadAllForEvent(eventKey: String): List<ScanLog> {
         val res = ArrayList<ScanLog>()
 
-        findAllIdsWith("event_id", eventId.toString()).forEach({
+        findAllIdsWith("event_key", eventKey).forEach({
             findOptionalById(it).ifPresent({scanLog -> res.add(scanLog)})
         })
         return res
     }
 
-    fun insertScanLog(eventId: Int, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
+    fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
         val timestamp = ZonedDateTime.now()
         val key = System.nanoTime().toString() + UUID.randomUUID().toString()
-        val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventId, uuid, userId,
+        val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventKey, uuid, userId,
             localResult, remoteResult, badgePrinted, jsonPayload)
         putScanLong(scanLogWithKey)
     }
@@ -109,7 +109,7 @@ open class KVStore(private val gson: Gson) {
                 "|||remote_result:" + scanLog.remoteResult.toString() +
                 "|||local_result:" + scanLog.localResult.toString() +
                 "|||ticket_uuid:" + scanLog.ticketUuid +
-                "|||event_id:" + scanLog.eventId.toString() +
+                "|||event_key:" + scanLog.eventKey +
                 "|||to_search:" + toSearch +
                 "|||scan_ts:" + scanLog.timestamp.toString() + "|||"
         )
@@ -168,13 +168,13 @@ open class KVStore(private val gson: Gson) {
         return Optional.ofNullable(res).map { gson.fromJson(it, ScanLogToPersist::class.java) }
             .map {ScanLog(it.id,
                 ZonedDateTime.ofInstant(Instant.ofEpochMilli(it.timestamp), ZoneId.of(it.zoneId)),
-                it.eventId, it.ticketUuid, it.userId, it.localResult, it.remoteResult, it.badgePrinted, it.ticketData
+                it.eventKey, it.ticketUuid, it.userId, it.localResult, it.remoteResult, it.badgePrinted, it.ticketData
                 )
             }
     }
 
-    open fun findOptionalByIdAndEventId(key: String, eventId: Int): Optional<ScanLog> {
-        return findOptionalById(key).filter({ scanLog -> scanLog.eventId == eventId })
+    open fun findOptionalByIdAndEventKey(key: String, eventKey: String): Optional<ScanLog> {
+        return findOptionalById(key).filter({ scanLog -> scanLog.eventKey == eventKey })
     }
 
     open fun findRemoteFailures(): List<ScanLog> {
@@ -185,10 +185,10 @@ open class KVStore(private val gson: Gson) {
         return remoteFailures
     }
 
-    fun loadSuccessfulScanForTicket(eventId: Int, ticketUuid: String): Optional<ScanLog> {
+    fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
         val found = findAllIdsWith(arrayOf(Pair("ticket_uuid", ticketUuid),
             Pair("local_result", CheckInStatus.SUCCESS.toString()),
-            Pair("event_id", eventId.toString())))
+            Pair("event_key", eventKey)))
 
         if(found.isEmpty()) {
             return Optional.empty()
@@ -199,7 +199,7 @@ open class KVStore(private val gson: Gson) {
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
         findOptionalById(key).ifPresent({ scanLog ->
-            val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toEpochSecond(), scanLog.timestamp.zone.id, scanLog.eventId, scanLog.ticketUuid,
+            val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toEpochSecond(), scanLog.timestamp.zone.id, scanLog.eventKey, scanLog.ticketUuid,
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
             putScanLong(updatedScanLog)
         })

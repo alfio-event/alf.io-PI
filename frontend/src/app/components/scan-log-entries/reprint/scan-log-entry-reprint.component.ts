@@ -30,8 +30,8 @@ import {ActivatedRoute, Params} from "@angular/router";
 })
 export class ScanLogEntryReprintComponent implements OnInit {
 
-  entryId: number;
-  eventId: number;
+  entryId: string;
+  eventKey: string;
 
   progressManager = new ProgressManager();
   content: ConfigurableLabelContent;
@@ -48,7 +48,7 @@ export class ScanLogEntryReprintComponent implements OnInit {
     this.route.params
       .subscribe((params: Params) => {
         this.entryId = params['entryId'];
-        this.eventId = params['eventId'];
+        this.eventKey = params['eventKey'];
         this.loadData();
       });
   }
@@ -56,9 +56,9 @@ export class ScanLogEntryReprintComponent implements OnInit {
   private loadData() {
     this.progressManager
       .monitorCall(() => {
-        return Observable.forkJoin(this.scanLogService.getReprintPreview(this.entryId, this.eventId),
+        return Observable.forkJoin(this.scanLogService.getReprintPreview(this.entryId, this.eventKey),
           this.printerService.loadAllPrinters(),
-          this.eventService.getSingleEvent(this.eventId)
+          this.eventService.getSingleEvent(this.eventKey)
         );
       })
       .subscribe(res => {

@@ -83,7 +83,7 @@ import {ConfigurationService} from "./shared/configuration/configuration.service
       { path: 'scan-log', children: [
         { path: '', redirectTo: 'view', pathMatch: 'full' },
         { path: 'view', component: ScanLogComponent },
-        { path: 'event/:eventId/entry/:entryId/reprint', component: ScanLogEntryReprintComponent }
+        { path: 'event/:eventKey/entry/:entryId/reprint', component: ScanLogEntryReprintComponent }
       ]},
       { path: 'users-printers', component: UserPrinterComponent, children: [
         { path: 'user/new', component: UserEditComponent },

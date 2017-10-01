@@ -50,14 +50,14 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
         return PaginatedResult(page, pageAndTotalCount.first, pageAndTotalCount.second)
     }
 
-    @RequestMapping("/event/{eventId}")
-    open fun loadForEvent(@PathVariable("eventId") eventId: Int) : List<ScanLog>  {
-        return scanLogRepository.loadAllForEvent(eventId)
+    @RequestMapping("/event/{eventKey}")
+    open fun loadForEvent(@PathVariable("eventKey") eventKey: String) : List<ScanLog>  {
+        return scanLogRepository.loadAllForEvent(eventKey)
     }
 
-    @RequestMapping(value = "/event/{eventId}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
-    open fun getReprintPreview(@PathVariable("eventId") eventId: Int, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
-        reprintPreview(eventId, entryId).invoke(printManager, scanLogRepository, labelConfigurationRepository)
+    @RequestMapping(value = "/event/{eventKey}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
+    open fun getReprintPreview(@PathVariable("eventKey") eventKey: String, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
+        reprintPreview(eventKey, entryId).invoke(printManager, scanLogRepository, labelConfigurationRepository)
             .map { ResponseEntity.ok(it) }
             .orElseGet { ResponseEntity.notFound().build() }
 
@@ -101,12 +101,12 @@ open class EventApi (private val transactionManager: PlatformTransactionManager,
     @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
     open fun loadAll(): List<Event> = findLocalEvents().invoke(eventRepository)
 
-    @RequestMapping(value = "/{eventId}", method = arrayOf(RequestMethod.GET))
-    open fun getSingleEvent(@PathVariable("eventId") eventId: Int) : ResponseEntity<Event> = findLocalEvent(eventId).invoke(eventRepository)
+    @RequestMapping(value = "/{eventKey}", method = arrayOf(RequestMethod.GET))
+    open fun getSingleEvent(@PathVariable("eventKey") eventKey: String) : ResponseEntity<Event> = findLocalEvent(eventKey).invoke(eventRepository)
         .map{ ResponseEntity.ok(it) }
         .orElseGet { ResponseEntity(HttpStatus.NOT_FOUND) }
 
-    @RequestMapping(value = "/{eventId}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
-    open fun toggleActiveState(@PathVariable("eventId") eventId: Int, method: HttpMethod): Boolean = toggleEventActivation(eventId, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
+    @RequestMapping(value = "/{eventKey}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
+    open fun toggleActiveState(@PathVariable("eventKey") eventKey: String, method: HttpMethod): Boolean = toggleEventActivation(eventKey, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
 
 }

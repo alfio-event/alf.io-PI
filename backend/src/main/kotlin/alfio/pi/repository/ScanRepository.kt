@@ -74,13 +74,13 @@ interface UserPrinterRepository {
 
 @QueryRepository
 interface LabelConfigurationRepository {
-    @Query("""merge into label_configuration using (values (:eventId, :json, :enabled))
-        as vals(event_id_fk, json, enabled) on label_configuration.event_id_fk = vals.event_id_fk
+    @Query("""merge into label_configuration using (values (:eventKey, :json, :enabled))
+        as vals(event_key_fk, json, enabled) on label_configuration.event_key_fk = vals.event_key_fk
         when matched then update set label_configuration.json = vals.json, label_configuration.enabled = vals.enabled
-        when not matched then insert values vals.event_id_fk, vals.json, vals.enabled""")
-    fun merge(@Bind("eventId") eventId: Int, @Bind("json") json: String?, @Bind("enabled") enabled: Boolean)
+        when not matched then insert values vals.event_key_fk, vals.json, vals.enabled""")
+    fun merge(@Bind("eventKey") eventKey: String, @Bind("json") json: String?, @Bind("enabled") enabled: Boolean)
 
-    @Query("select * from label_configuration where event_id_fk = :eventId")
-    fun loadForEvent(@Bind("eventId") eventId: Int): Optional<LabelConfiguration>
+    @Query("select * from label_configuration where event_key_fk = :eventKey")
+    fun loadForEvent(@Bind("eventKey") eventKey: String): Optional<LabelConfiguration>
 
 }
