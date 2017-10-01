@@ -27,11 +27,14 @@ open class KVStore(private val gson: Gson) {
     init {
         attendeeTable = store.getTable("attendee")
         lastUpdatedTable = store.getTable("last_updated")
+
+        //
         scanLogTable = store.getTable("scan_log")
         scanLogRemoteResultSupport = store.getTable("scan_log_remote_result_support")
         scanLogLocalResultSupport = store.getTable("scan_log_local_result_support")
         scanLogTicketUUIDSupport = store.getTable("scan_log_ticket_uuid_support")
         scanLogEventIdSupport = store.getTable("scan_log_ticket_event_id_support")
+        //
     }
 
     //-----------
@@ -153,12 +156,8 @@ open class KVStore(private val gson: Gson) {
         return ArrayList() //TODO IMPLEMENT
     }
 
-    fun loadPage(offset: Int, pageSize: Int, search: String?): List<ScanLog> {
-        return ArrayList() //TODO IMPLEMENT
-    }
-
-    open fun count(search: String?): Int {
-        return 0 //TODO IMPLEMENT
+    fun loadPageAndTotalCount(offset: Int, pageSize: Int, search: String?): Pair<List<ScanLog>, Int> {
+        return Pair(ArrayList(), 0) //TODO IMPLEMENT
     }
 
     fun isLeader(): Boolean {
