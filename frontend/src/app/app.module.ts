@@ -39,6 +39,7 @@ import { QRCodeModule } from 'angular2-qrcode';
 import {SettingsComponent} from "./components/settings/settings.component";
 import { VirtualKeyboardDirective } from './virtual-keyboard.directive';
 import {ConfigurationService} from "./shared/configuration/configuration.service";
+import { SystemInfoComponent } from './components/system-info/system-info.component';
 
 @NgModule({
   declarations: [
@@ -65,7 +66,8 @@ import {ConfigurationService} from "./shared/configuration/configuration.service
     SettingsComponent,
     CheckInComponent,
     ScanListenerDirective,
-    VirtualKeyboardDirective
+    VirtualKeyboardDirective,
+    SystemInfoComponent
   ],
   imports: [
     NgbModule.forRoot(),
@@ -92,7 +94,8 @@ import {ConfigurationService} from "./shared/configuration/configuration.service
       { path: 'check-in', component: CheckInComponent},
       { path: 'events', component: EventListPageComponent},
       { path: 'settings', component: SettingsComponent},
-      { path: 'power-off', component: ConfirmPowerOffComponent}
+      { path: 'power-off', component: ConfirmPowerOffComponent},
+      { path: 'system-info', component: SystemInfoComponent }
 
     ])
   ],

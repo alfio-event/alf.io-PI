@@ -59,7 +59,10 @@ open class KVStore(private val gson: Gson) {
 
     open fun getAttendeeData(event: String, identifier: String): String? {
         return attendeeTable.getAsString(attendeeKey(event, identifier))
+    }
 
+    open fun getAttendeeDataCount() : Long {
+        return attendeeTable.count()
     }
 
     //-----------
@@ -257,6 +260,14 @@ open class KVStore(private val gson: Gson) {
 
     fun isLeader(): Boolean {
         return store.isLeader
+    }
+
+    fun getClusterMemberName(): String {
+        return store.clusterMemberName
+    }
+
+    fun getClusterMembersName(): List<String> {
+        return store.clusterMembersName;
     }
 }
 
