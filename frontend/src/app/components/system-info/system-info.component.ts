@@ -14,10 +14,12 @@ export class SystemInfoComponent implements OnInit {
   namesInCluster: string;
   ipAddresses: string;
   attendeeDataCount: number;
+  isLeader:boolean;
 
   ngOnInit() {
     this.http.get('/api/internal/system/cluster/me').map(res => res.text()).subscribe(r => this.nameInCluster = r);
     this.http.get('/api/internal/system/cluster/all').map(res => res.json()).subscribe(r => this.namesInCluster = r.join(', '));
+    this.http.get('/api/internal/system/cluster/is-leader').map(res => res.json()).subscribe(r => this.isLeader = r);
     this.http.get('/api/internal/system/ip').map(res => res.json()).subscribe(r => this.ipAddresses = r.join(', '));
     this.http.get('/api/internal/system/tables/attendee/count').map(res => res.json()).subscribe(r => this.attendeeDataCount = r);
   }

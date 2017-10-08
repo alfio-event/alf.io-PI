@@ -73,6 +73,11 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
         return kvStore.getClusterMembersName()
     }
 
+    @RequestMapping(value = "cluster/is-leader")
+    open fun isLeader() : Boolean {
+        return kvStore.isLeader()
+    }
+
 
     @RequestMapping(value = "tables/attendee/count")
     open fun getAttendeeSyncedCount() : Long {

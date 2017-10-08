@@ -9,7 +9,7 @@ export class ConfigurationService {
 
 
   getConfiguration(key: string) : Observable<string> {
-    return this.http.get('/api/internal/system/configuration/'+key).map(res => res.json())
+    return this.http.get('/api/internal/system/configuration/'+key).map(res => res.text().length == 0 ? null : res.json())
   }
 
   save(key: string, value: string) : Observable<any> {
