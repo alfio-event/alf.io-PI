@@ -14,7 +14,7 @@ import kotlin.collections.ArrayList
 @Component
 open class KVStore(private val gson: Gson) {
 
-    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv")
+    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv", javaClass.classLoader.getResourceAsStream("/udp.xml"))
 
     private val attendeeTable: SyncKV.SyncKVTable
     //
