@@ -86,7 +86,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val key = calcHash256(hmac)
         val result = getAttendeeData(event, key)
         return tryOrDefault<CheckInResponse>().invoke({
-            if(result != null && result !== ticketDataNotFound) {
+            if(result != null && result != ticketDataNotFound) {
                 val ticketData = gson.fromJson(decrypt("$uuid/$hmac", result), TicketData::class.java)
                 TicketAndCheckInResult(Ticket(uuid,
                     ticketData.firstName, ticketData.lastName,
@@ -123,7 +123,11 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
                         if (localDataResult.isSuccessful()) {
                             localDataResult as TicketAndCheckInResult
-                            val remoteResult = remoteCheckIn(event.key, uuid, hmac, username)
+                            val who = Optional.ofNullable(printManager.getAvailablePrinters())
+                                .filter { it.size == 1 }
+                                .map { it.first().name }
+                                .orElse(username)
+                            val remoteResult = remoteCheckIn(event.key, uuid, hmac, who)
                             val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE, INVALID_TICKET_CATEGORY_CHECK_IN_DATE).contains(remoteResult.result.status)) {
                                 remoteResult.result.status
                             } else {
