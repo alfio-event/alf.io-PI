@@ -73,11 +73,7 @@ open class KVStore(private val gson: Gson) {
 
     open fun getLatestUpdate(event: String): Long {
         val res = lastUpdatedTable.getAsString(event)
-        return if (res != null) {
-            res.toLong()
-        } else {
-            -1
-        }
+        return res?.toLong() ?: -1
     }
     //-----------
 
