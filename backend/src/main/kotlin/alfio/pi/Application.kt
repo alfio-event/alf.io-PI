@@ -387,6 +387,8 @@ open class WebSocketConfiguration(private val systemEventHandler: SystemEventHan
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
 
 fun main(args: Array<String>) {
+    val properties = System.getProperties().entries.joinToString(separator = "\n", transform = {entry -> "${entry.key}=${entry.value}"})
+    logger.info("system properties: \n{}", properties);
     val address = retrieveIPAddress()
     System.setProperty("alfio.server.address", address)
     generateSslKeyPair(address)
