@@ -8,12 +8,25 @@
       <div class="card-block">
         <h4 class="card-title">Label Printing</h4>
         <p class="card-text">Define how many labels are available to the printer in the current roll</p>
-        <div class="form-inline">
-          <label>
-            <span class="sr-only">Remaining labels</span>
-            <input type="number" virtualKeyboard class="form-control" [(ngModel)]="labelCounter">
+        <div class="form-group row">
+          <label class="col-sm-4 col-form-label">
+            Remaining labels:
           </label>
-          <button class="btn btn-success ml-2" (click)="saveLabel()"><i class="fa fa-save"></i> Save</button>
+          <div class="col-auto">
+            <input type="number" name="labelCounter" placeholder="Remaining labels" virtualKeyboard class="form-control" [(ngModel)]="labelCounter">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-success ml-2" (click)="saveLabel()"><i class="fa fa-save"></i> Save</button>
+          </div>
+        </div>
+        <div class="form-group row" style="margin-top:4px">
+          <label class="col-sm-4 col-form-label">Full label counter:</label>
+          <div class="col-auto">
+            <input type="number" name="defaultLabelCounter" placeholder="Default label counter" virtualKeyboard class="form-control" [(ngModel)]="defaultLabelCounter">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-success ml-2" (click)="saveDefaultLabel()"><i class="fa fa-save"></i> Save</button>
+          </div>
         </div>
       </div>
       <div class="card-block">
