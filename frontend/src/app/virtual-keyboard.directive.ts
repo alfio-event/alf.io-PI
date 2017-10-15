@@ -1,4 +1,4 @@
-import {Directive, ElementRef, EventEmitter, OnInit, Optional, Output} from '@angular/core';
+import {Directive, ElementRef, EventEmitter, Input, OnInit, Optional, Output} from '@angular/core';
 import {NgModel} from "@angular/forms";
 
 @Directive({
@@ -7,7 +7,7 @@ import {NgModel} from "@angular/forms";
 export class VirtualKeyboardDirective implements OnInit {
 
   ngOnInit(): void {
-    let _a = this.change;
+    let _a = this.keyboardChange;
     let ngModel = this.ngModel;
     let el = this.el;
     jQuery(el.nativeElement).keyboard({type:'', layout: 'international', accepted: (event, keyboard) => {
@@ -21,7 +21,7 @@ export class VirtualKeyboardDirective implements OnInit {
   }
 
   @Output()
-  change: EventEmitter<String> = new EventEmitter();
+  keyboardChange: EventEmitter<String> = new EventEmitter();
 
   constructor(private el: ElementRef, @Optional() private ngModel: NgModel) {
   }

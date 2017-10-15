@@ -44,5 +44,8 @@
     <div *ngIf="labelCounter != null && labelCounter != ''" class="position-fixed-bottom">
       <h4 [ngClass]="{'text-danger': labelCounter < 20}">Remaining labels: {{labelCounter}}</h4>
     </div>
+    <div *ngIf="labelDefaultCounter != null && labelDefaultCounter != ''" class="position-fixed-bottom-right">
+      <button (click)="confirmResetLabelCounter()" class="btn btn-outline-warning btn-bottom-right">Reset label counter</button>
+    </div>
   </div>
 </alfio-responsive-layout>

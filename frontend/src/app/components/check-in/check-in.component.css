@@ -3,3 +3,16 @@
   bottom: 0;
   padding-left:25%;
 }
+
+.position-fixed-bottom-right {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+}
+
+.btn-bottom-right {
+  border-bottom: 0;
+  border-right: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0;
+}

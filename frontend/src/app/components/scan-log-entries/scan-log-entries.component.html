@@ -9,7 +9,7 @@
   <div class="card-block" *ngIf="enableFilter">
     <form>
       <label for="term" class="sr-only">Search</label>
-      <input virtualKeyboard id="term" name="term" type="text" class="form-control" [(ngModel)]="term" placeholder="Filter by First Name, Last Name or E-Mail" (change)="search()">
+      <input virtualKeyboard id="term" name="term" type="text" class="form-control" [(ngModel)]="term" placeholder="Filter by First Name, Last Name or E-Mail" (keyboardChange)="search()">
     </form>
   </div>
   <div class="w-100" *ngIf="entries.length > 0">

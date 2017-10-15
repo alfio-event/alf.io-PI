@@ -6,7 +6,7 @@ import {isDefined} from "@ng-bootstrap/ng-bootstrap/util/util";
 import {CheckInStatus, statusDescriptions, Ticket} from "../../scan-module/scan/scan-common";
 import {ProgressManager} from "../../ProgressManager";
 import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
-import {ConfigurationService, PRINTER_REMAINING_LABEL_COUNTER} from "../../shared/configuration/configuration.service";
+import {ConfigurationService, PRINTER_REMAINING_LABEL_COUNTER, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
 
 @Component({
   selector: 'alfio-check-in',
@@ -27,6 +27,7 @@ export class CheckInComponent implements OnInit {
   testMode = false;
 
   labelCounter: any;
+  labelDefaultCounter: any;
 
   constructor(private eventService: EventService,
               private scanService: ScanService,
@@ -50,6 +51,7 @@ export class CheckInComponent implements OnInit {
     });
 
     this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_COUNTER).subscribe(res => this.labelCounter = res);
+    this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_DEFAULT_COUNTER).subscribe(res => this.labelDefaultCounter = res);
   }
 
   onScan(scan: string): void {
@@ -84,5 +86,13 @@ export class CheckInComponent implements OnInit {
 
   setActiveEvent(event: Event) {
     this.activeEvent = event;
+  }
+
+  confirmResetLabelCounter() {
+    if(confirm('Reset label counter to ' + this.labelDefaultCounter+'?')) {
+      this.configurationService.save(PRINTER_REMAINING_LABEL_COUNTER, this.labelDefaultCounter).subscribe(() => {
+        this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_COUNTER).subscribe(res => this.labelCounter = res);
+      })
+    }
   }
 }
