@@ -1,5 +1,5 @@
 <alfio-responsive-layout>
-  <alfio-key-listener (scanStream)="onScan($event)"></alfio-key-listener>
+  <alfio-key-listener #keyListener (scanStream)="onScan($event)"></alfio-key-listener>
   <!-- -->
   <div *ngIf="testMode">
     <textarea [(ngModel)]="toScan"></textarea>

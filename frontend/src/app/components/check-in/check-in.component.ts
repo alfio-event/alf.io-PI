@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
 import {Account} from "../../scan-module/account/account";
@@ -25,6 +25,8 @@ export class CheckInComponent implements OnInit {
   toScan: string;
 
   testMode = false;
+
+  @ViewChild('keyListener') keyListener;
 
   labelCounter: any;
   labelDefaultCounter: any;
@@ -94,5 +96,7 @@ export class CheckInComponent implements OnInit {
         this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_COUNTER).subscribe(res => this.labelCounter = res);
       })
     }
+
+    this.keyListener.nativeElement.focus();
   }
 }
