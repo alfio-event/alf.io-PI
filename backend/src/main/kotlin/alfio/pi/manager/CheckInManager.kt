@@ -72,6 +72,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     private fun getAttendeeData(event: Event, key: String) : String? {
 
         if(!kvStore.isAttendeeDataPresent(event.key, key)) {
+            logger.debug("calling syncAttendees before check-in for ${event.key}")
             syncAttendees(event.key) //ensure our copy is up to date
         }
 
@@ -184,18 +185,19 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
             .url(url)
             .build()
-        return httpClient.newCall(request).execute().use { resp ->
-            if (resp.isSuccessful) {
-                val body = resp.body().string()
-                val serverTime = resp.header("Alfio-TIME").toLong()
-                Pair(parseIdsResponse(body).invoke(gson), serverTime)
-            } else {
-                Pair(listOf(), 0)
+        return httpClientWithCustomTimeout(200L, TimeUnit.MILLISECONDS).invoke(httpClient)
+            .newCall(request).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    val body = resp.body().string()
+                    val serverTime = resp.header("Alfio-TIME").toLong()
+                    Pair(parseIdsResponse(body).invoke(gson), serverTime)
+                } else {
+                    Pair(listOf(), 0)
+                }
             }
-        }
     }
 
-    private fun loadLabelConfiguration(eventName: String): LabelConfiguration? {
+    internal fun loadLabelConfiguration(eventName: String): LabelConfiguration? {
         val url = "${master.url}/admin/api/check-in/$eventName/label-layout"
         val request = Request.Builder()
             .addHeader("Authorization", Credentials.basic(master.username, master.password))
@@ -218,14 +220,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 val ids = idsAndTime.first
 
                 logger.debug("found ${ids.size} for event $eventName")
-
-                //fetch label config, if any
-                val labelConfiguration = loadLabelConfiguration(eventName)
-                eventRepository.loadSingle(eventName).ifPresent { (id) ->
-                    if(labelConfiguration != null) {
-                        kvStore.saveLabelConfiguration(id, labelConfiguration.json, labelConfiguration.enabled)
-                    }
-                }
 
                 if(!ids.isEmpty()) {
                     ids.partitionWithSize(200).forEach { partitionedIds ->
@@ -250,7 +244,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .url(url)
                 .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
                 .build()
-            val res = httpClient.newCall(request)
+            val res = httpClientWithCustomTimeout(1L, TimeUnit.SECONDS).invoke(httpClient).newCall(request)
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
@@ -412,21 +406,40 @@ internal fun calcHash256(hmac: String) : String {
 @Component
 @Profile("server", "full")
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
-                                   private val remoteResourceManager: RemoteResourceManager,
-                                   private val kvStore: KVStore) {
+                                   private val eventRepository: EventRepository,
+                                   private val kvStore: KVStore,
+                                   private val eventSynchronizer: EventSynchronizer) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
     @EventListener
     open fun handleContextRefresh(event: ContextRefreshedEvent) {
+        eventSynchronizer.sync()
         performSync()
+    }
+
+    private fun loadLabelConfiguration(eventName: String) {
+        //fetch label config, if any
+        val labelConfiguration = checkInDataManager.loadLabelConfiguration(eventName)
+        eventRepository.loadSingle(eventName).ifPresent { (id) ->
+            if (labelConfiguration != null) {
+                kvStore.saveLabelConfiguration(id, labelConfiguration.json, labelConfiguration.enabled)
+            }
+        }
     }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
         logger.trace("downloading attendees data")
-        val remoteEvents = remoteResourceManager.getRemoteEventList()
+        val remoteEvents = eventRepository.loadAll().map {
+            val remoteEvent = RemoteEvent()
+            remoteEvent.key = it.key
+            remoteEvent
+        }
         onDemandSync(remoteEvents)
+        remoteEvents.forEach {
+            loadLabelConfiguration(it.name!!)
+        }
     }
 
     open fun onDemandSync(events: List<RemoteEvent>) {
