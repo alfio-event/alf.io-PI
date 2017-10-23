@@ -219,14 +219,15 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
                 logger.debug("found ${ids.size} for event $eventName")
 
-                if(!ids.isEmpty()) {
-                    //fetch label config, if any
-                    val labelConfiguration = loadLabelConfiguration(eventName)
-                    eventRepository.loadSingle(eventName).ifPresent { (id) ->
-                        if(labelConfiguration != null) {
-                            kvStore.saveLabelConfiguration(id, labelConfiguration.json, labelConfiguration.enabled)
-                        }
+                //fetch label config, if any
+                val labelConfiguration = loadLabelConfiguration(eventName)
+                eventRepository.loadSingle(eventName).ifPresent { (id) ->
+                    if(labelConfiguration != null) {
+                        kvStore.saveLabelConfiguration(id, labelConfiguration.json, labelConfiguration.enabled)
                     }
+                }
+
+                if(!ids.isEmpty()) {
                     ids.partitionWithSize(200).forEach { partitionedIds ->
                         logger.debug("loading ${partitionedIds.size}")
                         val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map { Attendee(eventName, it.key, it.value, idsAndTime.second) }
