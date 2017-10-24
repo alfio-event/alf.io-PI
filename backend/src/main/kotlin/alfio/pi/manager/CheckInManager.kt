@@ -155,9 +155,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     private fun checkValidity(localDataResult: CheckInResponse): CheckInStatus {
 
         if(localDataResult.ticket != null) {
-            val ticket = localDataResult.ticket;
-
-            val now = ZonedDateTime.now().toEpochSecond();
+            val ticket = localDataResult.ticket
+            val now = ZonedDateTime.now().toEpochSecond()
 
             if((ticket.validCheckInFrom != null && ticket.validCheckInFrom.toLong() > now) || (ticket.validCheckInTo != null && ticket.validCheckInTo.toLong() < now)) {
                 return INVALID_TICKET_CATEGORY_CHECK_IN_DATE
@@ -407,26 +406,9 @@ internal fun calcHash256(hmac: String) : String {
 @Profile("server", "full")
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
                                    private val eventRepository: EventRepository,
-                                   private val kvStore: KVStore,
-                                   private val eventSynchronizer: EventSynchronizer) {
+                                   private val kvStore: KVStore) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
-
-    @EventListener
-    open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        eventSynchronizer.sync()
-        performSync()
-    }
-
-    private fun loadLabelConfiguration(eventName: String) {
-        //fetch label config, if any
-        val labelConfiguration = checkInDataManager.loadLabelConfiguration(eventName)
-        eventRepository.loadSingle(eventName).ifPresent { (id) ->
-            if (labelConfiguration != null) {
-                kvStore.saveLabelConfiguration(id, labelConfiguration.json, labelConfiguration.enabled)
-            }
-        }
-    }
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
     open fun performSync() {
@@ -437,9 +419,6 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
             remoteEvent
         }
         onDemandSync(remoteEvents)
-        remoteEvents.forEach {
-            loadLabelConfiguration(it.name!!)
-        }
     }
 
     open fun onDemandSync(events: List<RemoteEvent>) {
