@@ -19,6 +19,7 @@ package alfio.pi.manager
 
 import alfio.pi.ConnectionDescriptor
 import alfio.pi.model.Event
+import alfio.pi.model.LabelConfiguration
 import alfio.pi.model.RemoteEvent
 import alfio.pi.repository.EventRepository
 import alfio.pi.wrapper.doInTransaction
