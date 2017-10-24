@@ -183,7 +183,11 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, pr
     internal fun buildConfigurableLabelContent(layout: LabelLayout?, ticket: Ticket): ConfigurableLabelContent {
         return if (layout != null) {
             val row = layout.content.thirdRow.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty).joinToString(separator = " ")
-            val qrContent = listOf(ticket.uuid).plus(layout.qrCode.additionalInfo.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty)).joinToString(separator = layout.qrCode.infoSeparator)
+            val qrContent = listOf(ticket.uuid.substringBefore("-"))
+                .plus(listOf(ticket.lastName, ticket.firstName))
+                .plus(layout.qrCode.additionalInfo.map { ticket.additionalInfo?.get(it)?:"_" }/*.filter(String::isNotEmpty)*/)
+                .plus(ticket.email)
+                .joinToString(separator = layout.qrCode.infoSeparator)
             val partialID = if (layout.general.printPartialID) {
                 ticket.uuid.substringBefore('-').toUpperCase()
             } else {
@@ -191,6 +195,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, pr
             }
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, row, qrContent, partialID)
         } else {
+            logger.warn("can't get ")
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, ticket.additionalInfo?.get("company").orEmpty(), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
         }
     }
