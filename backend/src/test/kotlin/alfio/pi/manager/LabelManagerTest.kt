@@ -66,7 +66,7 @@ class LabelManagerTest {
         assertEquals(ticket1.firstName, result.firstRow)
         assertEquals(ticket1.lastName, result.secondRow)
         assertEquals(ticket1.additionalInfo!!["company"], result.thirdRow)
-        assertEquals(ticket1.uuid, result.qrContent)
+        assertEquals("${ticket1.uuid}::${ticket1.lastName}::${ticket1.firstName}::${ticket1.additionalInfo!!["company"].orEmpty()}::${ticket1.email}", result.qrContent)
         assertEquals(ticket1.uuid.substringBefore('-'), result.partialID)
 
         val ticket2 = ticket(null)
@@ -74,7 +74,7 @@ class LabelManagerTest {
         assertEquals(ticket2.firstName, result.firstRow)
         assertEquals(ticket2.lastName, result.secondRow)
         assertEquals("", result2.thirdRow)
-        assertEquals(ticket2.uuid, result2.qrContent)
+        assertEquals("${ticket2.uuid}::${ticket2.lastName}::${ticket2.firstName}::${ticket2.additionalInfo?.get("company").orEmpty()}::${ticket2.email}", result2.qrContent)
         assertEquals(ticket2.uuid.substringBefore('-'), result2.partialID)
     }
 

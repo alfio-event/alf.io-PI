@@ -68,7 +68,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.beginText()
             it.newLineAtOffset(10F, 70F)
             it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(18 to 16F, 19 to 14F), true)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(17 to 16F, 18 to 14F), true)
 
             it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -20F)
