@@ -74,7 +74,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(25 to 10F, 27 to 9F), true)
+            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(24 to 10F, 26 to 9F), false)
 
             it.newLineAtOffset(0F, -20F)
             it.setFont(font, 20F)
@@ -82,7 +82,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.setFont(font, thirdRowContent.second)
             it.showText(" ${thirdRowContent.first}")
             it.endText()
-            it.drawImage(labelContent.qrCode, 175F, 30F, 70F, 70F)
+            it.drawImage(labelContent.qrCode, 173F, 30F, 70F, 70F)
             it.setFont(font, 9F)
             it.beginText()
             it.newLineAtOffset(189F, 25F)

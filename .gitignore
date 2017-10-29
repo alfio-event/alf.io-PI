@@ -25,3 +25,4 @@ nbdist/
 .nb-gradle/
 backend/application.properties
 npm-debug.log
+backend/alfio-pi-synckv
