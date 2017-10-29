@@ -123,7 +123,7 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
             insertNew(notExisting)
             checkInDataSynchronizer.onDemandSync(remoteEvents)
             remoteEvents.forEach {
-                loadLabelConfiguration(it.name!!)
+                loadLabelConfiguration(it.key!!)
             }
         }, {
             logger.error("cannot load events", it)
