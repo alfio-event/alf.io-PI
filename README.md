@@ -64,3 +64,10 @@ npm start
 
 Then point your browser to http://localhost:4200/
 
+### Expected api from alf.io server
+
+ - GET  /admin/api/events -> List of RemoteEvent
+ - GET  /admin/api/check-in/$eventName/label-layout
+ - GET  /admin/api/check-in/$eventName/offline-identifiers?changedSince=EPOCH
+ - POST /admin/api/check-in/$eventName/offline
+ - POST /admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username
