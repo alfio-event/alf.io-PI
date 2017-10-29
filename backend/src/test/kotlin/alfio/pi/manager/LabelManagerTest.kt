@@ -39,10 +39,14 @@ class LabelManagerTest {
 
     @Test
     fun testCompact() {
-        assertEquals("George W." to 24F, optimizeText("George William", maxLengthForSize, true))
+        assertEquals("George William" to 18F, optimizeText("George William", maxLengthForSize, true))
         assertEquals("George William" to 18F, optimizeText("George William", maxLengthForSize, false))
-        assertEquals("George W. H." to 22F, optimizeText("George William Henry", maxLengthForSize, true))
-        assertEquals("George William " to 18F, optimizeText("George William Henry Arthur", maxLengthForSize, false))
+        assertEquals("George W.H." to 18F, optimizeText("George William Henry", maxLengthForSize, true))
+        assertEquals("George William" to 18F, optimizeText("George William Henry Arthur", maxLengthForSize, false))
+        assertEquals("George W.H.A." to 18F, optimizeText("George William Henry Arthur", maxLengthForSize, true))
+        assertEquals("George V.d.M." to 18F, optimizeText("George Van der Meyde", maxLengthForSize, true))
+        assertEquals("V.d.Bellen" to 24F, optimizeText("Van der Bellen", maxLengthForSize, true))
+        assertEquals("Serbelloni Mazz" to 18F, optimizeText("Serbelloni Mazzanti Vien Dal Mare", maxLengthForSize, true)) //FIXME should be just "Serbelloni"
     }
 
     @Test
