@@ -92,24 +92,30 @@ open class DymoLW450Turbo41x89: LabelTemplate {
 }
 
 internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
-    val sizes = maxLengthForSize.map {
-        (maxLength, fontSize) ->
-        checkTextLength(compactText, content, fontSize, maxLength)
+    val options = maxLengthForSize.size
+    val sizes = maxLengthForSize.mapIndexed {
+        i, (maxLength, fontSize) -> checkTextLength(compactText, content, fontSize, maxLength, i == options - 1)
     }
     return Optional.ofNullable(sizes.firstOrNull { it.first })
         .map { it!!.second to it.third }
         .orElseGet {
             val conf = maxLengthForSize[maxLengthForSize.size - 1]
-            content.substring(0 until conf.first) to conf.second
+            content.substring(0 until conf.first).trim() to conf.second
         }
 }
 
-private fun checkTextLength(compactText: Boolean, content: String, fontSize: Float, maxLength: Int): Triple<Boolean, String, Float> {
+private fun checkTextLength(compactText: Boolean, content: String, fontSize: Float, maxLength: Int, heavyCompact: Boolean): Triple<Boolean, String, Float> {
     val text = if (content.length <= maxLength || !compactText) {
         content
     } else {
-        compact(content)
+        val res = compact(content, maxLength, true)
+        if(heavyCompact && res.length > maxLength) {
+            compact(content, maxLength, false)
+        } else {
+            res
+        }
     }
+
     return if (text.length <= maxLength) {
         Triple(true, text, fontSize)
     } else {
@@ -117,7 +123,36 @@ private fun checkTextLength(compactText: Boolean, content: String, fontSize: Flo
     }
 }
 
-private fun compact(text: String): String = text.trim().splitToSequence(" ").mapIndexed { i, s -> if(i > 0 && s.isNotEmpty()) { "${s.substring(0,1)}." } else {s} }.joinToString(" ")
+private fun compact(text: String, maxLength: Int, lightOnly: Boolean = false): String {
+    val lightCompactSeq = text.trim()
+        .splitToSequence(" ")
+        .map { it.trim() }
+        .map { txt -> if(commonAffixes.any { affix -> affix == txt.toLowerCase() }) {
+            "${txt.substring(0, 1)}."
+        } else { "$txt " }}
+
+    return if(!lightOnly) {
+        var difference = lightCompactSeq.joinToString("").length - maxLength
+        val original = lightCompactSeq.toList()
+        val upsideDown = original.reversed().mapIndexed { i, part ->
+            if(difference > 0 && i < original.size-1) {
+                val newPart = if(part.trim().length > 2) {
+                    "${part.substring(0,1)}."
+                } else {
+                    part
+                }
+                difference -= (part.length - newPart.length)
+                newPart
+            } else {
+                part
+            }
+        }
+        upsideDown.reversed().asSequence()
+    } else {
+        lightCompactSeq
+    }.joinToString("").trim()
+}
+
 
 fun generatePDFLabel(firstName: String, lastName: String, thirdRow: String, ticketUUID: String, qrCodeContent: String = ticketUUID, partialUUID: String): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
@@ -153,3 +188,54 @@ fun generateQRCodeImage(value: String): ByteArray {
     val output = ByteArrayOutputStream()
     return output.use { MatrixToImageWriter.writeToStream(generateBitMatrix(value, 350, 350), "png", it); it.toByteArray() }
 }
+
+private val commonAffixes = listOf(
+    "Abu",
+    "Ālam",
+    "Bar",
+    "Bath",
+    "bat",
+    "Ben",
+    "bin",
+    "ibn",
+    "Bet",
+    "Bint",
+    "Das",
+    "Degli",
+    "Delle",
+    "Del",
+    "Della",
+    "Der",
+    "Dos",
+    "Fetch",
+    "Vetch",
+    "Fitz",
+    "Kil",
+    "Gil",
+    "Mac",
+    "Mck",
+    "Mhic",
+    "Mic",
+    "Mala",
+    "Neder",
+    "Nic",
+    "Nin",
+    "Nord",
+    "Norr",
+    "Öfver",
+    "Ost",
+    "öst",
+    "öster",
+    "øst",
+    "Över",
+    "Pour",
+    "Stor",
+    "Söder",
+    "Ter",
+    "Ter",
+    "Tre",
+    "Van",
+    "Väster",
+    "Vest",
+    "von",
+    "Woj").map { it.toLowerCase() }
