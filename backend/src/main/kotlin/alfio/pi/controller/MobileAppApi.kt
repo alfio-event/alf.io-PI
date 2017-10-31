@@ -36,7 +36,7 @@ import java.util.*
 @RequestMapping("/admin/api/check-in")
 open class CheckInApi(val checkInDataManager: CheckInDataManager, val environment: Environment) {
 
-    @RequestMapping(value = "/event/{eventName}/ticket/{ticketIdentifier}", method = arrayOf(RequestMethod.POST))
+    @RequestMapping(value = "/event/{eventName}/ticket/{ticketIdentifier:.+}", method = arrayOf(RequestMethod.POST))
     open fun performCheckIn(@PathVariable("eventName") eventName: String,
                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
                             @RequestBody ticketCode: TicketCode,
