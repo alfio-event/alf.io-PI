@@ -418,7 +418,7 @@ private fun guessIPAddress(): String? {
     return NetworkInterface.getNetworkInterfaces().toList()
     .flatMap { it.interfaceAddresses }
     .map {it.address}
-    .firstOrNull { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }?.hostAddress
+    .firstOrNull { it.isSiteLocalAddress && (it.hostAddress.startsWith("192") || it.hostAddress.startsWith("10"))}?.hostAddress
 }
 
 private fun generateSslKeyPair(hostAddress: String) {
