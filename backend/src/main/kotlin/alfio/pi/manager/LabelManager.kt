@@ -63,18 +63,18 @@ open class DymoLW450Turbo41x89: LabelTemplate {
         val font = fontLoader.invoke(DymoLW450Turbo41x89::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
         stream.use {
             it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F), true)
+            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 14 to 18F), true)
             it.setFont(font, firstRowContent.second)
             it.beginText()
             it.newLineAtOffset(10F, 70F)
             it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(17 to 16F, 18 to 14F), true)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 16F, 17 to 14F), true)
 
             it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(24 to 10F, 26 to 9F), false)
+            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(23 to 10F, 25 to 9F), false)
 
             it.newLineAtOffset(0F, -20F)
             it.setFont(font, 20F)
@@ -82,7 +82,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.setFont(font, thirdRowContent.second)
             it.showText(" ${thirdRowContent.first}")
             it.endText()
-            it.drawImage(labelContent.qrCode, 173F, 30F, 70F, 70F)
+            it.drawImage(labelContent.qrCode, 170F, 30F, 70F, 70F)
             it.setFont(font, 9F)
             it.beginText()
             it.newLineAtOffset(189F, 25F)

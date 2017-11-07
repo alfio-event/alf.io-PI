@@ -185,7 +185,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, pr
             val row = layout.content.thirdRow.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty).joinToString(separator = " ")
             val qrContent = listOf(ticket.uuid.substringBefore("-"))
                 .plus(listOf(ticket.lastName, ticket.firstName))
-                .plus(layout.qrCode.additionalInfo.map { ticket.additionalInfo?.get(it).orEmpty().take(50) })
+                .plus(layout.qrCode.additionalInfo.map { ticket.additionalInfo?.get(it).orEmpty().take(30) })
                 .plus(ticket.email)
                 .joinToString(separator = layout.qrCode.infoSeparator)
             val partialID = if (layout.general.printPartialID) {
@@ -196,7 +196,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, pr
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, row, qrContent, partialID)
         } else {
             logger.warn("layout is not defined. Applying default for this conference")
-            val qrContent = listOf(ticket.uuid.substringBefore("-"), ticket.lastName, ticket.firstName, ticket.additionalInfo?.get("company").orEmpty().take(50), ticket.email).joinToString("::")
+            val qrContent = listOf(ticket.uuid.substringBefore("-"), ticket.lastName, ticket.firstName, ticket.additionalInfo?.get("company").orEmpty().take(30), ticket.email).joinToString("::")
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, ticket.additionalInfo?.get("company").orEmpty(), qrContent, ticket.uuid.substringBefore('-').toUpperCase())
         }
     }

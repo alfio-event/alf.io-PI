@@ -56,8 +56,8 @@ class LabelManagerTest {
     @Test
     fun testGenerateLabel() {
         val uuid = UUID.randomUUID().toString()
-        val qrCode = "$uuid::L12345678901234567890::F12345678901234567890::::noreply@alf.io"
-        val bytes = generatePDFLabel("George", "William", "123456789012345678901234567890", UUID.randomUUID().toString(), qrCode, uuid.substringBefore("-")).invoke(DymoLW450Turbo41x89())
+        val qrCode = "1879e01a-52f9-4d41-96f7-5e5aabd1aa4d::a969096c-b3a7-4116-ad4c-f553fa3e52d4b48658a1-bc6f-4cea-ab1c-127de7f3bebc::3afed664-8163-4240-9d72-653d79cf29ec82887a1b-92ef-4e9a-8409::test::afd2a0c6-02d9-46@gmail.com"
+        val bytes = generatePDFLabel("BBBBBBBBBBBB", "AAAAAAAAAAAAAAAA", "VEEEEEERY LONG COMPANY NAME", UUID.randomUUID().toString(), qrCode, uuid.substringBefore("-")).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
         Files.write(Paths.get("/tmp/test.pdf"), bytes)
     }
