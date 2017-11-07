@@ -152,6 +152,17 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             }.orElseGet{ EmptyTicketResult() }
     }
 
+    internal fun forcePrintLabel(eventName: String, hmac: String, username: String, uuid: String) : Boolean {
+        return eventRepository.loadSingle(eventName).flatMap { event -> userRepository.findByUsername(username).map { user -> event to user}}
+            .map { (event, user) ->
+                val localDataResult = getLocalTicketData(event, uuid, hmac)
+                val eventKey = event.key
+                val ticket = localDataResult.ticket!!
+                val configuration = kvStore.loadLabelConfiguration(eventKey).orElse(null)
+                printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
+            }.orElse(false)
+    }
+
     private fun checkValidity(localDataResult: CheckInResponse): CheckInStatus {
 
         if(localDataResult.ticket != null) {
@@ -354,6 +365,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
 fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> CheckInResponse = { manager ->
     manager.performCheckIn(eventName, uuid, hmac, username)
+}
+
+fun forcePrintLabel(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> Boolean = {manager ->
+    manager.forcePrintLabel(eventName, uuid, hmac, username)
 }
 
 fun parseTicketDataResponse(body: String): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }

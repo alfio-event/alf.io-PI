@@ -51,6 +51,20 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager, val environmen
             }
     }
 
+    @RequestMapping(value = "/event/{eventName}/force-print-label-ticket/{ticketIdentifier:.+}", method = arrayOf(RequestMethod.POST))
+    open fun printLabel(@PathVariable("eventName") eventName: String,
+                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
+                             @RequestBody ticketCode: TicketCode,
+                             principal: Principal?) : ResponseEntity<Boolean> {
+        val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
+        return Optional.ofNullable(username)
+            .map {
+                ResponseEntity.ok(forcePrintLabel(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!).invoke(checkInDataManager))
+            }.orElseGet {
+                ResponseEntity(HttpStatus.UNAUTHORIZED)
+            }
+    }
+
     class TicketCode {
         var code: String? = null
     }

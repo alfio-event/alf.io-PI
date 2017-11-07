@@ -57,6 +57,7 @@ export class CheckInComponent implements OnInit {
   }
 
   onScan(scan: string): void {
+    this.toScan = scan;
     if(isDefined(this.activeEvent)) {
       this.progressManager.monitorCall(() => this.scanService.checkIn(this.activeEvent.key, this.account, scan))
         .subscribe(result => {
@@ -67,6 +68,10 @@ export class CheckInComponent implements OnInit {
           this.ticket = null;
         });
     }
+  }
+
+  forcePrint() {
+    this.scanService.forcePrintLabel(this.activeEvent.key, this.account, this.toScan).subscribe(result => {})
   }
 
   isStatusSuccess(): boolean {
