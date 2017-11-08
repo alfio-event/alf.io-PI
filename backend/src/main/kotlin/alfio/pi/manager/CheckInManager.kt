@@ -140,7 +140,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             if(!printingEnabled) {
                                 logger.info("label printing disabled for event {}", eventName)
                             }
-                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
+                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && localResult != INVALID_TICKET_CATEGORY_CHECK_IN_DATE && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                             kvStore.insertScanLog(eventKey, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
@@ -152,7 +152,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             }.orElseGet{ EmptyTicketResult() }
     }
 
-    internal fun forcePrintLabel(eventName: String, hmac: String, username: String, uuid: String) : Boolean {
+    internal fun forcePrintLabel(eventName: String, uuid: String, hmac: String, username: String) : Boolean {
         return eventRepository.loadSingle(eventName).flatMap { event -> userRepository.findByUsername(username).map { user -> event to user}}
             .map { (event, user) ->
                 val localDataResult = getLocalTicketData(event, uuid, hmac)
