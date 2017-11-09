@@ -34,7 +34,8 @@ import java.util.*
 @RestController
 @Profile("server", "full")
 @RequestMapping("/admin/api/check-in")
-open class CheckInApi(val checkInDataManager: CheckInDataManager, val environment: Environment) {
+open class CheckInApi(private val checkInDataManager: CheckInDataManager,
+                      private val environment: Environment) {
 
     @RequestMapping(value = "/event/{eventName}/ticket/{ticketIdentifier:.+}", method = arrayOf(RequestMethod.POST))
     open fun performCheckIn(@PathVariable("eventName") eventName: String,
@@ -45,7 +46,7 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager, val environmen
         val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
         return Optional.ofNullable(username)
             .map {
-                ResponseEntity.ok(checkIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!).invoke(checkInDataManager))
+                ResponseEntity.ok(checkInDataManager.performCheckIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!))
             }.orElseGet {
                 ResponseEntity(HttpStatus.UNAUTHORIZED)
             }
@@ -59,7 +60,7 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager, val environmen
         val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
         return Optional.ofNullable(username)
             .map {
-                ResponseEntity.ok(forcePrintLabel(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!).invoke(checkInDataManager))
+                ResponseEntity.ok(checkInDataManager.forcePrintLabel(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!))
             }.orElseGet {
                 ResponseEntity(HttpStatus.UNAUTHORIZED)
             }
@@ -72,7 +73,7 @@ open class CheckInApi(val checkInDataManager: CheckInDataManager, val environmen
 
 @RestController
 @Profile("server", "full")
-open class AppEventApi(val eventRepository: EventRepository) {
+open class AppEventApi(private val eventRepository: EventRepository) {
 
     @RequestMapping(value = "/api/events/{eventName}", method = arrayOf(RequestMethod.GET))
     open fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> {

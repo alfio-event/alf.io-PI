@@ -358,17 +358,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.info("Done saving {} attendees in {}ms", attendeesForEvent.size, end - begin)
     }
 
-    fun findLastModifiedTimeForAttendeeInEvent(event: String): Long {
+    private fun findLastModifiedTimeForAttendeeInEvent(event: String): Long {
         return kvStore.getLatestUpdate(event)
     }
-}
-
-fun checkIn(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> CheckInResponse = { manager ->
-    manager.performCheckIn(eventName, uuid, hmac, username)
-}
-
-fun forcePrintLabel(eventName: String, uuid: String, hmac: String, username: String) : (CheckInDataManager) -> Boolean = {manager ->
-    manager.forcePrintLabel(eventName, uuid, hmac, username)
 }
 
 fun parseTicketDataResponse(body: String): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }
