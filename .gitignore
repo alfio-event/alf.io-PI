@@ -25,3 +25,5 @@ nbdist/
 .nb-gradle/
 backend/application.properties
 npm-debug.log
+logs/
+alfio-pi-keystore.jks
