@@ -54,14 +54,14 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
         return scanLogRepository.loadAllForEvent(eventKey)
     }
 
-    @RequestMapping(value = "/event/{eventKey}/entry/{entryId}/reprint-preview", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/event/{eventKey}/entry/{entryId}/reprint-preview"], method = [(RequestMethod.GET)])
     open fun getReprintPreview(@PathVariable("eventKey") eventKey: String, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
         reprintPreview(eventKey, entryId).invoke(printManager, scanLogRepository)
             .map { ResponseEntity.ok(it) }
             .orElseGet { ResponseEntity.notFound().build() }
 
 
-    @RequestMapping(value = "/{entryId}/reprint", method = arrayOf(RequestMethod.PUT))
+    @RequestMapping(value = ["/{entryId}/reprint"], method = [(RequestMethod.PUT)])
     open fun reprint(@PathVariable("entryId") entryId: String,
                      @RequestBody form: ReprintForm,
                      principal: Principal?): ResponseEntity<Boolean> {
@@ -97,15 +97,15 @@ data class PaginatedResult<T>(val page: Int, val values : T, val found: Int)
 open class EventApi (private val transactionManager: PlatformTransactionManager,
                      private val eventRepository: EventRepository) {
 
-    @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = [""], method = [(RequestMethod.GET)])
     open fun loadAll(): List<Event> = eventRepository.loadAll()
 
-    @RequestMapping(value = "/{eventKey}", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/{eventKey}"], method = [(RequestMethod.GET)])
     open fun getSingleEvent(@PathVariable("eventKey") eventKey: String) : ResponseEntity<Event> = eventRepository.loadSingle(eventKey)
         .map{ ResponseEntity.ok(it) }
         .orElseGet { ResponseEntity(HttpStatus.NOT_FOUND) }
 
-    @RequestMapping(value = "/{eventKey}/active", method = arrayOf(RequestMethod.PUT, RequestMethod.DELETE))
+    @RequestMapping(value = ["/{eventKey}/active"], method = [(RequestMethod.PUT), (RequestMethod.DELETE)])
     open fun toggleActiveState(@PathVariable("eventKey") eventKey: String, method: HttpMethod): Boolean = toggleEventActivation(eventKey, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
 
 }

@@ -53,12 +53,12 @@ fun httpClientBuilderWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): (OkHt
 
 @Component
 @Profile("server", "full")
-open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val configuration: ConnectionDescriptor,
-                                 val httpClient: OkHttpClient,
-                                 val gson: Gson) {
+open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: ConnectionDescriptor,
+                                 private val httpClient: OkHttpClient,
+                                 private val gson: Gson) {
     private val logger = LoggerFactory.getLogger(RemoteResourceManager::class.java)
 
-    internal fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
+    private fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
         .invoke({
             val url = "${configuration.url}$resource";
             logger.info("Will call remote url {}", url)
@@ -75,7 +75,7 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") val
                 .execute()
                 .use { resp ->
                     if(resp.isSuccessful) {
-                        val body = resp.body().string()
+                        val body = resp.body()!!.string()
                         val result: T = gson.fromJson(body, type.type)
                         true to result
                     } else {

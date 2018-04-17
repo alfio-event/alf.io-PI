@@ -452,7 +452,7 @@ private fun openDBConsole() {
     val methodInvoker = MethodInvoker()
     methodInvoker.targetClass = cls
     methodInvoker.setStaticMethod("org.hsqldb.util.DatabaseManagerSwing.main")
-    methodInvoker.arguments = arrayOf(arrayOf("--url", "jdbc:hsqldb:file:alfio", "--noexit"))
+    methodInvoker.setArguments(arrayOf(arrayOf("--url", "jdbc:hsqldb:file:alfio", "--noexit")))
     methodInvoker.prepare()
     methodInvoker.invoke()
 }

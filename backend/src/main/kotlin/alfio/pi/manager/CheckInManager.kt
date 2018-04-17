@@ -198,8 +198,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return httpClientWithCustomTimeout(200L, TimeUnit.MILLISECONDS).invoke(httpClient)
             .newCall(request).execute().use { resp ->
                 if (resp.isSuccessful) {
-                    val body = resp.body().string()
-                    val serverTime = resp.header("Alfio-TIME").toLong()
+                    val body = resp.body()?.string()
+                    val serverTime = resp.header("Alfio-TIME")?.toLong()?:1L
                     Pair(parseIdsResponse(body).invoke(gson), serverTime)
                 } else {
                     Pair(listOf(), 0)
@@ -216,7 +216,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.info("Will call remote url {}", url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
-                resp.isSuccessful -> LabelConfiguration(eventName, resp.body().string(), true)
+                resp.isSuccessful -> LabelConfiguration(eventName, resp.body()?.string(), true)
                 resp.code() == 412 -> LabelConfiguration(eventName, null, false)
                 else -> null
             }
@@ -258,7 +258,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
-                        val body = resp.body().string()
+                        val body = resp.body()?.string()
                         parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
                         logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
@@ -298,7 +298,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
-                        gson.fromJson(resp.body().string(), TicketAndCheckInResult::class.java)
+                        gson.fromJson(resp.body()!!.string(), TicketAndCheckInResult::class.java)
                     } else {
                         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
                     }
@@ -363,8 +363,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 }
 
-fun parseTicketDataResponse(body: String): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }
-fun parseIdsResponse(body: String): (Gson) -> List<Int> = {gson ->  gson.fromJson(body, object: TypeToken<List<Int>>() {}.type)}
+fun parseTicketDataResponse(body: String?): (Gson) -> Map<String, String> = {gson -> gson.fromJson(body, object : TypeToken<Map<String, String>>() {}.type) }
+fun parseIdsResponse(body: String?): (Gson) -> List<Int> = {gson ->  gson.fromJson(body, object: TypeToken<List<Int>>() {}.type)}
 
 private fun decrypt(key: String, payload: String): String {
     try {

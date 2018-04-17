@@ -24,23 +24,16 @@ import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import javax.servlet.http.HttpServletRequest
 import java.net.NetworkInterface
-import java.net.InetAddress
-import java.util.Enumeration
-
-
-
-
-
-
+import javax.servlet.http.HttpServletRequest
 
 @RestController
 @RequestMapping("/api/internal/system")
 @Profile("desk")
 open class SystemApi(private val configurationRepository: ConfigurationRepository,
                      private val kvStore: KVStore) {
-    @RequestMapping(value = "/power-off", method = arrayOf(RequestMethod.PUT))
+
+    @RequestMapping(value = ["/power-off"], method = [(RequestMethod.PUT)])
     open fun powerOff(servletRequest: HttpServletRequest): ResponseEntity<String> {
         if(!isLocalAddress(servletRequest.remoteAddr)) {
             return ResponseEntity(HttpStatus.NOT_MODIFIED)
@@ -53,38 +46,38 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
         }
     }
 
-    @RequestMapping(value = "configuration/{key}", method = arrayOf(RequestMethod.POST))
+    @RequestMapping(value = ["configuration/{key}"], method = [(RequestMethod.POST)])
     open fun insertOrUpdateConfiguration(@PathVariable("key") key : String, @RequestBody value : String) {
         configurationRepository.insertOrUpdate(key, value)
     }
 
-    @RequestMapping(value = "configuration/{key}", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["configuration/{key}"], method = [(RequestMethod.GET)])
     open fun getConfigurationValue(@PathVariable("key") key : String) : String? {
         return configurationRepository.getData(key).orElse("")
     }
 
-    @RequestMapping(value = "cluster/me")
+    @RequestMapping(value = ["cluster/me"])
     open fun getClusterMemberName() : String {
         return kvStore.getClusterMemberName()
     }
 
-    @RequestMapping(value = "cluster/all")
+    @RequestMapping(value = ["cluster/all"])
     open fun getClusterMembersName() : List<String> {
         return kvStore.getClusterMembersName()
     }
 
-    @RequestMapping(value = "cluster/is-leader")
+    @RequestMapping(value = ["cluster/is-leader"])
     open fun isLeader() : Boolean {
         return kvStore.isLeader()
     }
 
 
-    @RequestMapping(value = "tables/attendee/count")
+    @RequestMapping(value = ["tables/attendee/count"])
     open fun getAttendeeSyncedCount() : Long {
         return kvStore.getAttendeeDataCount()
     }
 
-    @RequestMapping(value = "ip")
+    @RequestMapping(value = ["ip"])
     open fun getAllIpAddresses() : List<String> {
         val res = arrayListOf<String>()
         val interfaces = NetworkInterface.getNetworkInterfaces()
@@ -103,6 +96,4 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
         }
         return res
     }
-
-
 }

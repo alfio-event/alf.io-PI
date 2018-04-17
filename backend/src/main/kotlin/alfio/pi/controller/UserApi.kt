@@ -46,23 +46,23 @@ import javax.imageio.ImageIO
 @RestController
 @RequestMapping("/api/internal/users")
 @Profile("server", "full")
-open class UserApi(val userRepository: UserRepository,
-                   val transactionManager: PlatformTransactionManager,
-                   val passwordGenerator: PasswordGenerator,
-                   val passwordEncoder: PasswordEncoder,
-                   val authorityRepository: AuthorityRepository,
-                   @Qualifier("localServerURL") val localServerUrl: String,
-                   val gson: Gson,
-                   val sslKeyExporter: SslKeyExporter) {
+open class UserApi(private val userRepository: UserRepository,
+                   private val transactionManager: PlatformTransactionManager,
+                   private val passwordGenerator: PasswordGenerator,
+                   private val passwordEncoder: PasswordEncoder,
+                   private val authorityRepository: AuthorityRepository,
+                   @Qualifier("localServerURL") private val localServerUrl: String,
+                   private val gson: Gson,
+                   private val sslKeyExporter: SslKeyExporter) {
     private val logger = LoggerFactory.getLogger(UserApi::class.java)
 
-    @RequestMapping(value = "", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = [""], method = [(RequestMethod.GET)])
     open fun loadAllOperators(): List<User> = doInTransaction<List<User>>().invoke(transactionManager, {userRepository.findAllOperators()}, {
         logger.error("error while loading users", it)
         emptyList()
     })
 
-    @RequestMapping(value = "/{userId}", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/{userId}"], method = [(RequestMethod.GET)])
     open fun loadSingleUser(@PathVariable("userId") userId: Int): ResponseEntity<User> = doInTransaction<ResponseEntity<User>>().invoke(transactionManager, {
         userRepository.findById(userId).map {
             ResponseEntity.ok(it)
@@ -74,7 +74,7 @@ open class UserApi(val userRepository: UserRepository,
         ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
     })
 
-    @RequestMapping(value = "/", method = arrayOf(RequestMethod.POST))
+    @RequestMapping(value = ["/"], method = [(RequestMethod.POST)])
     open fun create(@RequestBody() form: UserForm): ResponseEntity<UserWithPassword> = doInTransaction<ResponseEntity<UserWithPassword>>().invoke(transactionManager, {
         val username = form.username
         if(username != null && username.isNotBlank()) {
@@ -87,7 +87,7 @@ open class UserApi(val userRepository: UserRepository,
         ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
     })
 
-    @RequestMapping(value = "/{userId}/resetPassword", method = arrayOf(RequestMethod.POST))
+    @RequestMapping(value = ["/{userId}/resetPassword"], method = [(RequestMethod.POST)])
     open fun resetPassword(@PathVariable("userId") userId: Int): ResponseEntity<UserWithPassword> = doInTransaction<ResponseEntity<UserWithPassword>>().invoke(transactionManager, {
         userRepository.findById(userId).map {
             ResponseEntity.ok(updatePassword(it).invoke(passwordGenerator, passwordEncoder, userRepository))
@@ -100,7 +100,7 @@ open class UserApi(val userRepository: UserRepository,
     })
 
 
-    @RequestMapping(value = "/{userId}/qr-code", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/{userId}/qr-code"], method = [(RequestMethod.GET)])
     open fun generateQRCode(@PathVariable("userId") userId: Int,
                             @RequestParam("password") password: String,//base-64 encoded password
                             response: HttpServletResponse) {

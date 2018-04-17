@@ -37,7 +37,7 @@ import java.util.*
 open class CheckInApi(private val checkInDataManager: CheckInDataManager,
                       private val environment: Environment) {
 
-    @RequestMapping(value = "/event/{eventName}/ticket/{ticketIdentifier:.+}", method = arrayOf(RequestMethod.POST))
+    @RequestMapping(value = ["/event/{eventName}/ticket/{ticketIdentifier:.+}"], method = [(RequestMethod.POST)])
     open fun performCheckIn(@PathVariable("eventName") eventName: String,
                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
                             @RequestBody ticketCode: TicketCode,
@@ -52,7 +52,7 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
             }
     }
 
-    @RequestMapping(value = "/event/{eventName}/force-print-label-ticket/{ticketIdentifier:.+}", method = arrayOf(RequestMethod.POST))
+    @RequestMapping(value = ["/event/{eventName}/force-print-label-ticket/{ticketIdentifier:.+}"], method = [(RequestMethod.POST)])
     open fun printLabel(@PathVariable("eventName") eventName: String,
                              @PathVariable("ticketIdentifier") ticketIdentifier: String,
                              @RequestBody ticketCode: TicketCode,
@@ -75,7 +75,7 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
 @Profile("server", "full")
 open class AppEventApi(private val eventRepository: EventRepository) {
 
-    @RequestMapping(value = "/api/events/{eventName}", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/api/events/{eventName}"], method = [(RequestMethod.GET)])
     open fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> {
         return eventRepository.loadSingle(eventName).map {
             ResponseEntity.ok(it)
@@ -84,10 +84,10 @@ open class AppEventApi(private val eventRepository: EventRepository) {
         }
     }
 
-    @RequestMapping(value = "/admin/api/events", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/admin/api/events"], method = [(RequestMethod.GET)])
     open fun loadEvents() = eventRepository.loadAll().filter { it.active }
 
-    @RequestMapping(value = "/admin/api/user-type", method = arrayOf(RequestMethod.GET))
+    @RequestMapping(value = ["/admin/api/user-type"], method = [(RequestMethod.GET)])
     open fun loadUserType() = "STAFF"//Sponsors should call the central server
 }
 
