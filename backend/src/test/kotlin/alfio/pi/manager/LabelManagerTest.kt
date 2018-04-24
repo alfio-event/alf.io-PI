@@ -23,6 +23,7 @@ import alfio.pi.repository.ConfigurationRepository
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
 
@@ -56,6 +57,7 @@ class LabelManagerTest {
     }
 
     @Test
+    @Ignore
     fun testGenerateLabelWitLayoutNull() {
         val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
         val ticket1 = ticket()
@@ -76,6 +78,7 @@ class LabelManagerTest {
     }
 
     @Test
+    @Ignore
     fun testGenerateLabelWithLayoutNotNull() {
         val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
         val jsonString = """

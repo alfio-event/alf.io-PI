@@ -402,7 +402,7 @@ internal fun calcHash256(hmac: String) : String {
         .digest(hmac.toByteArray()).joinToString(separator = "", transform = {
             val result = Integer.toHexString(0xff and it.toInt())
             if(result.length == 1) {
-                "0" + result
+                "0$result"
             } else {
                 result
             }

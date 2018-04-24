@@ -46,7 +46,8 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
         val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
         return Optional.ofNullable(username)
             .map {
-                ResponseEntity.ok(checkInDataManager.performCheckIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!))
+                val uuid = if(ticketIdentifier.length == 21) ticketIdentifier.substring(9,18) else ticketIdentifier
+                ResponseEntity.ok(checkInDataManager.performCheckIn(eventName, uuid, uuid, it!!))
             }.orElseGet {
                 ResponseEntity(HttpStatus.UNAUTHORIZED)
             }
