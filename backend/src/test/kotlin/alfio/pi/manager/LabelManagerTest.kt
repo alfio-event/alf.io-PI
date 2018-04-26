@@ -23,7 +23,6 @@ import alfio.pi.repository.ConfigurationRepository
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
 
@@ -52,12 +51,11 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabel() {
-        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678", "12345678", "123").invoke(DymoLW450Turbo41x89())
+        val bytes = generatePDFLabel("12345678901234", "1234567890123456", "12345678901234567890123", "", "123456789::1234567890::123456789012345::1234567::123456789012345@123456789012345.ch", "123").invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 
     @Test
-    @Ignore
     fun testGenerateLabelWitLayoutNull() {
         val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
         val ticket1 = ticket()
@@ -65,7 +63,7 @@ class LabelManagerTest {
         assertEquals(ticket1.firstName, result.firstRow)
         assertEquals(ticket1.lastName, result.secondRow)
         assertEquals(ticket1.additionalInfo!!["company"], result.thirdRow)
-        assertEquals(ticket1.uuid, result.qrContent)
+        assertEquals("12345::${ticket1.lastName}::${ticket1.firstName}::${ticket1.additionalInfo!!["company"].orEmpty().take(20)}::${ticket1.email}", result.qrContent)
         assertEquals(ticket1.uuid.substringBefore('-'), result.partialID)
 
         val ticket2 = ticket(null)
@@ -73,12 +71,11 @@ class LabelManagerTest {
         assertEquals(ticket2.firstName, result.firstRow)
         assertEquals(ticket2.lastName, result.secondRow)
         assertEquals("", result2.thirdRow)
-        assertEquals(ticket2.uuid, result2.qrContent)
+        assertEquals("12345::${ticket2.lastName}::${ticket2.firstName}::::${ticket2.email}", result2.qrContent)
         assertEquals(ticket2.uuid.substringBefore('-'), result2.partialID)
     }
 
     @Test
-    @Ignore
     fun testGenerateLabelWithLayoutNotNull() {
         val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
         val jsonString = """
@@ -100,11 +97,11 @@ class LabelManagerTest {
         assertEquals(ticket.firstName, result.firstRow)
         assertEquals(ticket.lastName, result.secondRow)
         assertEquals("thisIsTheFirstWord thisIsTheSecondWord thisIsTheThirdWord", result.thirdRow)
-        assertEquals("${ticket.uuid}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord", result.qrContent)
+        assertEquals("12345::${ticket.lastName}::${ticket.firstName}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord::email@localhost", result.qrContent)
         assertTrue(result.partialID.isEmpty())
     }
 
-    private fun ticket(additionalInfo: Map<String, String>? = mapOf("company" to "company")): Ticket = Ticket(uuid = "12345-678", firstName = "firstName", lastName = "lastName", additionalInfo = additionalInfo, email = null)
+    private fun ticket(additionalInfo: Map<String, String>? = mapOf("company" to "company")): Ticket = Ticket(uuid = "12345-678", firstName = "firstName", lastName = "lastName", additionalInfo = additionalInfo, email = "email@localhost")
 
 
 }

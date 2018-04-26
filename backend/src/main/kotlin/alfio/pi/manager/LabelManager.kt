@@ -63,27 +63,27 @@ open class DymoLW450Turbo41x89: LabelTemplate {
         val font = fontLoader.invoke(DymoLW450Turbo41x89::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
         stream.use {
             it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F), true)
+            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(10 to 24F, 11 to 22F, 12 to 20F, 14 to 18F), true)
             it.setFont(font, firstRowContent.second)
             it.beginText()
             it.newLineAtOffset(10F, 70F)
             it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(18 to 16F, 19 to 14F), true)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(15 to 16F, 17 to 14F), true)
 
             it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(27 to 10F, 29 to 9F), true)
+            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(23 to 10F, 27 to 9F), true)
 
             it.setFont(font, thirdRowContent.second)
             it.newLineAtOffset(0F, -20F)
             it.showText(thirdRowContent.first)
             it.endText()
-            it.drawImage(labelContent.qrCode, 175F, 30F, 70F, 70F)
+            it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
             it.setFont(font, 9F)
             it.beginText()
-            it.newLineAtOffset(189F, 25F)
+            it.newLineAtOffset(189F, 18F)
             it.showText(labelContent.qrText)
         }
     }
@@ -172,13 +172,14 @@ private val convertMMToPoint: (Float) -> Float = {
 }
 
 private fun generateQRCode(value: String): BufferedImage {
-    val matrix = generateBitMatrix(value, 200, 200)
+    val matrix = generateBitMatrix(value, 1, 1)
     return MatrixToImageWriter.toBufferedImage(matrix)
 }
 
 private fun generateBitMatrix(value: String, width: Int, height: Int): BitMatrix {
     val hintMap = EnumMap<EncodeHintType, Any>(EncodeHintType::class.java)
-    hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M)
+    hintMap[EncodeHintType.ERROR_CORRECTION] = ErrorCorrectionLevel.M
+    hintMap[EncodeHintType.MARGIN] = 0
     return MultiFormatWriter().encode(value, BarcodeFormat.QR_CODE, width, height, hintMap)
 }
 
