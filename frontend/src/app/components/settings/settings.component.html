@@ -6,7 +6,7 @@
         <loading-indicator [observable]="progressManager.observable" [big]="false"></loading-indicator>
       </div>
       <div class="card-block">
-        <h4 class="card-title">Label Printing</h4>
+        <h4 class="card-title">Label Printing <small *ngIf="printerName">on {{printerName}}</small></h4>
         <p class="card-text">Define how many labels are available to the printer in the current roll</p>
         <div class="form-group row">
           <label class="col-sm-4 col-form-label">

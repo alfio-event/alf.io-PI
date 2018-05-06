@@ -58,7 +58,7 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabelWitLayoutNull() {
-        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
+        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(SystemEventHandler::class.java), Mockito.mock(KVStore::class.java))
         val ticket1 = ticket()
         val result = localPrintManager.buildConfigurableLabelContent(null, ticket1)
         assertEquals(ticket1.firstName, result.firstRow)
@@ -78,7 +78,7 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabelWithLayoutNotNull() {
-        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(ConfigurationRepository::class.java), Mockito.mock(SystemEventHandler::class.java))
+        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(SystemEventHandler::class.java), Mockito.mock(KVStore::class.java))
         val jsonString = """
             {
               "qrCode": {
