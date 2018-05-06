@@ -24,6 +24,7 @@ open class KVStore(private val gson: Gson) {
     private val scanLogTableSupport: SyncKV.SyncKVTable
     //
     private val labelConfigurationTable: SyncKV.SyncKVTable
+    private val remainingLabels: SyncKV.SyncKVTable
 
 
     init {
@@ -34,6 +35,7 @@ open class KVStore(private val gson: Gson) {
         scanLogTableSupport = store.getTable("scan_log_support")
         //
         labelConfigurationTable = store.getTable("label_configuration")
+        remainingLabels = store.getTable("printer_remaining_labels")
     }
 
     data class ScanLogToPersist(val id: String,
@@ -48,6 +50,14 @@ open class KVStore(private val gson: Gson) {
                                 val ticketData: String?)
 
     //-----------
+
+    open fun putRemainingLabels(printer: String, labels: Int) {
+        remainingLabels.put(printer, labels.toString(10))
+    }
+
+    open fun getRemainingLabels(printer: String) : Int {
+        return remainingLabels.getAsString(printer)?.toInt() ?: 0
+    }
 
     open fun putAttendeeData(event: String, identifier: String, payload: String) {
         attendeeTable.put(attendeeKey(event, identifier), payload)
@@ -116,7 +126,7 @@ open class KVStore(private val gson: Gson) {
     }
 
     private fun extractField(name: String, idx: String) : String {
-        val fieldName = "|||"+name+":"
+        val fieldName = "|||$name:"
         val boundary1 = idx.indexOf(fieldName)
         val boundary2 = idx.indexOf("|||", boundary1 + 1)
         return idx.substring(boundary1+fieldName.length, boundary2)
@@ -190,10 +200,10 @@ open class KVStore(private val gson: Gson) {
             Pair("local_result", CheckInStatus.SUCCESS.toString()),
             Pair("event_key", eventKey)))
 
-        if(found.isEmpty()) {
-            return Optional.empty()
+        return if(found.isEmpty()) {
+            Optional.empty()
         } else {
-            return findOptionalById(found.first())
+            findOptionalById(found.first())
         }
     }
 
@@ -263,7 +273,7 @@ open class KVStore(private val gson: Gson) {
     }
 
     fun getClusterMembersName(): List<String> {
-        return store.clusterMembersName;
+        return store.clusterMembersName
     }
 }
 

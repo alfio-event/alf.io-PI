@@ -79,7 +79,7 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
             override fun serviceResolved(event: ServiceEvent?) {
                 if (MDNS_NAME == event?.info?.name)  {
                     val resolvedMasterUrl = event.info.getPropertyString("url")
-                    logger.info("Resolved master url: " + resolvedMasterUrl)
+                    logger.info("Resolved master url: $resolvedMasterUrl")
                     masterUrl.set(resolvedMasterUrl)
                 }
             }
@@ -111,7 +111,9 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
 
 @Component
 @Profile("printer")
-open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, private val configurationRepository: ConfigurationRepository, private val publisher : SystemEventHandler): PrintManager {
+open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
+                             private val publisher : SystemEventHandler,
+                             private val kvStore: KVStore): PrintManager {
 
     override fun getLabelContent(ticket: Ticket, labelConfiguration: LabelConfiguration?): ConfigurableLabelContent = buildConfigurableLabelContent(labelConfiguration?.layout, ticket)
 
@@ -170,11 +172,12 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>, pr
         val res = print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
 
         if(res) {
-            configurationRepository.getData(ConfigurationRepository.PRINTER_REMAINING_LABEL_COUNTER).ifPresent({counter ->
-                val updatedCount = Integer.parseInt(counter) - 1
-                configurationRepository.insertOrUpdate(ConfigurationRepository.PRINTER_REMAINING_LABEL_COUNTER, Integer.toString(updatedCount))
+            val labels = kvStore.getRemainingLabels(name)
+            if(labels > 0) {
+                val updatedCount = labels - 1
+                kvStore.putRemainingLabels(name, updatedCount)
                 publisher.notifyAllSessions(SystemEvent(SystemEventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER, UpdatePrinterRemainingLabelCounter(updatedCount)))
-            })
+            }
         }
 
         return res
@@ -215,9 +218,9 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
                             private val printerRepository: PrinterRepository,
                             private val gson: Gson,
                             private val trustManager: X509TrustManager,
-                            configurationRepository: ConfigurationRepository,
                             publisher : SystemEventHandler,
-                            private val environment: Environment): LocalPrintManager(labelTemplates, configurationRepository, publisher) {
+                            private val environment: Environment,
+                            private val kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
 
     private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 

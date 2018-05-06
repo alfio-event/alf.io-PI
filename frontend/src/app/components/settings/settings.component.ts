@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {ConfigurationService, PRINTER_REMAINING_LABEL_COUNTER, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
+import {ConfigurationService, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
 import {ProgressManager} from "../../ProgressManager";
 
 @Component({
@@ -11,6 +11,7 @@ export class SettingsComponent implements OnInit {
 
   labelCounter: any = '';
   defaultLabelCounter: any = '';
+  printerName: any;
   progressManager: ProgressManager;
   loading: boolean;
 
@@ -22,17 +23,25 @@ export class SettingsComponent implements OnInit {
 
   ngOnInit() {
     this.progressManager
-      .monitorCall(() => this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_COUNTER))
+      .monitorCall(() => this.configurationService.getRemainingLabels())
       .subscribe(res => this.labelCounter = res);
 
     this.progressManager
       .monitorCall(() => this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_DEFAULT_COUNTER))
       .subscribe(res => this.defaultLabelCounter = res);
+
+    this.progressManager
+      .monitorCall(() => this.configurationService.getPrinterName())
+      .subscribe(res => {
+        this.printerName = res
+      });
+
+
   }
 
   saveLabel() {
     this.progressManager
-      .monitorCall(() => this.configurationService.save(PRINTER_REMAINING_LABEL_COUNTER, this.labelCounter))
+      .monitorCall(() => this.configurationService.saveRemainingLabels(this.labelCounter))
       .subscribe(r => {})
   }
 

@@ -73,7 +73,6 @@ interface EventRepository {
 interface ConfigurationRepository {
 
     companion object {
-        const val PRINTER_REMAINING_LABEL_COUNTER = "PRINTER_REMAINING_LABEL_COUNTER"
         const val PRINTER_REMAINING_LABEL_DEFAULT_COUNTER = "PRINTER_REMAINING_LABEL_DEFAULT_COUNTER"
     }
 

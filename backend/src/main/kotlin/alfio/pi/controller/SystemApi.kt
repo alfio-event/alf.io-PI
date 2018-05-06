@@ -19,6 +19,7 @@ package alfio.pi.controller
 
 import alfio.pi.isLocalAddress
 import alfio.pi.manager.KVStore
+import alfio.pi.manager.PrintManager
 import alfio.pi.repository.ConfigurationRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
@@ -31,7 +32,8 @@ import javax.servlet.http.HttpServletRequest
 @RequestMapping("/api/internal/system")
 @Profile("desk")
 open class SystemApi(private val configurationRepository: ConfigurationRepository,
-                     private val kvStore: KVStore) {
+                     private val kvStore: KVStore,
+                     private val printManager: PrintManager) {
 
     @RequestMapping(value = ["/power-off"], method = [(RequestMethod.PUT)])
     open fun powerOff(servletRequest: HttpServletRequest): ResponseEntity<String> {
@@ -55,6 +57,30 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
     open fun getConfigurationValue(@PathVariable("key") key : String) : String? {
         return configurationRepository.getData(key).orElse("")
     }
+
+    @RequestMapping(value = ["labels/remaining"], method = [(RequestMethod.GET)])
+    open fun getRemainingLabels() : String? {
+        val printerName = printManager.getAvailablePrinters().firstOrNull()?.name
+        return if(printerName != null) {
+            kvStore.getRemainingLabels(printerName).toString(10)
+        } else {
+            null
+        }
+    }
+
+    @RequestMapping(value = ["labels/remaining"], method = [(RequestMethod.POST)])
+    open fun setRemainingLabels(@RequestBody value : String) {
+        val printerName = printManager.getAvailablePrinters().firstOrNull()?.name
+        if(printerName != null) {
+            kvStore.putRemainingLabels(printerName, value.toInt())
+        }
+    }
+
+    @RequestMapping(value = ["printer"], method = [(RequestMethod.GET)])
+    open fun getPrinterName() : String? {
+        return printManager.getAvailablePrinters().firstOrNull()?.name
+    }
+
 
     @RequestMapping(value = ["cluster/me"])
     open fun getClusterMemberName() : String {
