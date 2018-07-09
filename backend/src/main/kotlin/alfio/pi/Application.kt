@@ -1,3 +1,4 @@
+
 /*
  * This file is part of alf.io.
  *
@@ -14,15 +15,13 @@
  * You should have received a copy of the GNU General Public License
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
+package alfio.pi
 
-package alfio.pi.manager
+import io.javalin.Javalin
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
-
-class CheckInDataManagerTest {
-    /*@Test
-    fun testCalcHash256() {
-        assertEquals("2e99758548972a8e8822ad47fa1017ff72f06f3ff6a016851f45c398732bc50c", calcHash256("this is a test"))
-    }*/
+fun main(args: Array<String>) {
+    val app = Javalin.start(8080)
+    app.get("/") {
+        ctx -> ctx.result("Hello World")
+    }
 }

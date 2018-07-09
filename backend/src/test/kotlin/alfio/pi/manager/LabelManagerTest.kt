@@ -19,13 +19,13 @@ package alfio.pi.manager
 
 /*import alfio.pi.model.LabelLayout
 import alfio.pi.model.Ticket
-import alfio.pi.repository.ConfigurationRepository
+import alfio.pi.repository.ConfigurationRepository*/
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.Mockito
-import java.util.**/
+//import org.mockito.Mockito
+import java.util.*
 
 class LabelManagerTest {
     private val maxLengthForSize = arrayOf(11 to 24F, 12 to 22F, 13 to 20F, 15 to 18F)
