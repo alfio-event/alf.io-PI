@@ -1,6 +1,6 @@
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+//import java.time.ZoneId
+//import java.time.ZonedDateTime
+//import java.time.format.DateTimeFormatter
 
 /*
  * This file is part of alf.io.
@@ -20,38 +20,29 @@ import java.time.format.DateTimeFormatter
  */
 buildscript {
     ext {
-        kotlinVersion = '1.2.31'
-        springBootVersion = '1.5.12.RELEASE'
+        kotlinVersion = '1.2.51'
     }
     repositories {
         mavenCentral()
-        maven { url 'http://repo.spring.io/plugins-release' }
     }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
     }
 }
 
-configure(allprojects) {
-    apply plugin: 'propdeps'
-    apply plugin: 'propdeps-maven'
-    apply plugin: 'propdeps-idea'
-    apply plugin: 'propdeps-eclipse'
+plugins {
+    id 'com.github.ben-manes.versions' version '0.20.0'
 }
 
 apply plugin: 'kotlin'
-apply plugin: 'eclipse'
-apply plugin: 'org.springframework.boot'
 
 jar {
     baseName = 'alfio-pi'
     version = "${project.version}"
 }
-jar.dependsOn(":frontend:jar")
+//jar.dependsOn(":frontend:jar")
 
-processResources.doLast {
+/*processResources.doLast {
 
     final gradleProperties = new File(( File ) it.destinationDir, 'application.properties' )
 
@@ -62,7 +53,7 @@ processResources.doLast {
     properties[ 'alfio.version' ] = project.version
     properties[ 'alfio.build-ts' ] = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     gradleProperties.withWriter { properties.store( it, null )}
-}
+}*/
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -71,52 +62,21 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    compile.exclude module: "spring-boot-starter-tomcat"
-    compile.exclude module: "jackson-core"
-    compile.exclude module: "jackson-databind"
-    compile.exclude module: "hibernate-validator"
-}
-
 dependencies {
-    compile('org.flywaydb:flyway-core')
-    compile('org.springframework.boot:spring-boot-starter-security')
-    compile('org.springframework.boot:spring-boot-starter-websocket')
-    compile('org.springframework.boot:spring-boot-starter-web')
-    compile('org.springframework.boot:spring-boot-starter-jetty')
-    compile('org.springframework:spring-tx')
-    compile('org.springframework:spring-jdbc')
-    compile('com.zaxxer:HikariCP:2.7.8')
-    compile('ch.digitalfondue.npjt-extra:npjt-extra:1.1.4')
+
     compile("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
-    compile("org.apache.pdfbox:pdfbox:2.0.9")
-    compile("com.google.zxing:core:3.3.0")
-    compile("com.google.zxing:javase:3.3.0")
+    compile("org.apache.pdfbox:pdfbox:2.0.11")
+    compile("com.google.zxing:core:3.3.3")
+    compile("com.google.zxing:javase:3.3.3")
     compile("com.squareup.okhttp3:okhttp:3.10.0")
-    compile("com.google.code.gson:gson:2.8.2")
-    compile("org.bouncycastle:bcpkix-jdk15on:1.59")
-    compile('ch.digitalfondue.synckv:synckv:0.1.6')
-    compile('org.jmdns:jmdns:3.5.4')
-    runtime('org.hsqldb:hsqldb')
-    runtime project(':frontend')
-    testCompile('org.springframework.boot:spring-boot-starter-test')
-    optional("org.springframework.boot:spring-boot-configuration-processor")
+    compile("com.google.code.gson:gson:2.8.5")
+    compile("org.bouncycastle:bcpkix-jdk15on:1.60")
+    compile('ch.digitalfondue.synckv:synckv:0.2.1')
+
+    //runtime project(':frontend')
 }
 
-bootRun {
-    final properties = new Properties(System.properties)
-    properties[ 'alfio.version' ] = project.version
-    properties[ 'alfio.build-ts' ] = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
-    systemProperties properties
-    //jvmArgs = ["-DopenDBConsole=true"]
-    //jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" ]
 
-
-}
-
-springBoot {
-    executable = true
-}
 compileJava.dependsOn(processResources)
 
 

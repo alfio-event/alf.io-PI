@@ -24,17 +24,17 @@ task npmClean(type: Delete) {
 clean.dependsOn(npmClean)
 
 // build task for npm
-processResources.dependsOn(npm_install)
-processResources.dependsOn(npm_run_build)
+//processResources.dependsOn(npm_install)
+//processResources.dependsOn(npm_run_build)
 
-jar {
+/*jar {
   baseName = 'alfio-pi-frontend'
   version = "${project.version}"
   into("META-INF/resources/webjars/${baseName}/${project.version}") {
       from 'dist'
   }
-}
+}*/
 
 // run all task
 task runAll {}
-runAll.dependsOn(npm_run_start)
+//runAll.dependsOn(npm_run_start)

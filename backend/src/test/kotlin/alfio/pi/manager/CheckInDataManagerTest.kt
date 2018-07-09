@@ -17,12 +17,12 @@
 
 package alfio.pi.manager
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
+//import org.junit.Assert.assertEquals
+//import org.junit.Test
 
 class CheckInDataManagerTest {
-    @Test
+    /*@Test
     fun testCalcHash256() {
         assertEquals("2e99758548972a8e8822ad47fa1017ff72f06f3ff6a016851f45c398732bc50c", calcHash256("this is a test"))
-    }
+    }*/
 }
