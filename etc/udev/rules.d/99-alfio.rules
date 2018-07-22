@@ -1,1 +1,2 @@
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash /opt/alfio/init-printer.sh $attr{serial}" SYMLINK+="usb/Alfio-%c"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash /opt/alfio/init-printer.sh $attr{serial} LW450T" SYMLINK+="usb/Alfio-DYM-%c"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0a5f", ATTRS{idProduct}=="011c", PROGRAM="/bin/bash /opt/alfio/init-printer.sh $attr{serial} ZD410" SYMLINK+="usb/Alfio-ZBR-%c"

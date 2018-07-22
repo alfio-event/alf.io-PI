@@ -89,6 +89,48 @@ open class DymoLW450Turbo41x89: LabelTemplate {
     }
 }
 
+@Component
+open class ZebraZD410: LabelTemplate {
+
+    override fun getCUPSMediaName(): String = "w162h288"//"oe_w162h288_2.25x4in"
+
+    override fun getDescription(): String = "Zebra ZD410 - 57x102 mm (xxx / xxx)"
+
+    override fun getPageDimensions(): PDRectangle = PDRectangle(convertMMToPoint(57F), convertMMToPoint(102F))
+
+    override fun writeContent(stream: PDPageContentStream,
+                              pageWidth: Float,
+                              labelContent: LabelContent,
+                              fontLoader: (InputStream) -> PDFont) {
+        val font = fontLoader.invoke(ZebraZD410::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        stream.use {
+            it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
+            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(10 to 24F, 11 to 22F, 12 to 20F, 14 to 18F), true)
+            it.setFont(font, firstRowContent.second)
+            it.beginText()
+            it.newLineAtOffset(10F, 70F)
+            it.showText(firstRowContent.first)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(15 to 16F, 17 to 14F), true)
+
+            it.setFont(font, secondRowContent.second)
+            it.newLineAtOffset(0F, -20F)
+            it.showText(secondRowContent.first)
+
+            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(23 to 10F, 27 to 9F), true)
+
+            it.setFont(font, thirdRowContent.second)
+            it.newLineAtOffset(0F, -20F)
+            it.showText(thirdRowContent.first)
+            it.endText()
+            it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
+            it.setFont(font, 9F)
+            it.beginText()
+            it.newLineAtOffset(180F, 15F)
+            it.showText(labelContent.qrText)
+        }
+    }
+}
+
 internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
     val options = maxLengthForSize.size
     val sizes = maxLengthForSize.mapIndexed {

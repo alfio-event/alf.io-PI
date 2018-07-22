@@ -25,6 +25,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 
 class LabelManagerTest {
@@ -53,6 +55,12 @@ class LabelManagerTest {
     @Test
     fun testGenerateLabel() {
         val bytes = generatePDFLabel("George", "William", "Test Company", "12345678", UUID.randomUUID().toString(), "12345678").invoke(DymoLW450Turbo41x89())
+        assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun testGenerateLabelZebra() {
+        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678", UUID.randomUUID().toString(), "12345678").invoke(ZebraZD410())
         assertTrue(bytes.isNotEmpty())
     }
 
