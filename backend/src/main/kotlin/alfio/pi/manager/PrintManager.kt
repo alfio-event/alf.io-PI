@@ -121,7 +121,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         return tryOrDefault<Boolean>().invoke({
             val localPrinter = getCupsPrinters().firstOrNull { it.name == printer.name }
             if(localPrinter != null) {
-                doPrint(labelTemplates.first(), printer.name, ticket, labelConfiguration)
+                doPrint(labelTemplates.first { it.supportsPrinter(printer.name) }, printer.name, ticket, labelConfiguration)
             } else {
                 logger.warn("cannot find local printer ${printer.name}")
                 false
@@ -148,7 +148,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
                     val result = systemPrinterExtractor.find(it)
                     result?.groupValues?.get(1)
                 }.filter { it != null }
-                .map({ SystemPrinter(it!!) })
+                .map { SystemPrinter(it!!) }
                 .collect(Collectors.toList<SystemPrinter>())
         }
     }, {

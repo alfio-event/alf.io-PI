@@ -43,6 +43,7 @@ interface LabelTemplate {
     fun writeContent(stream: PDPageContentStream, pageWidth: Float, labelContent: LabelContent, fontLoader: (InputStream) -> PDFont)
     fun getDescription(): String
     fun getCUPSMediaName(): String
+    fun supportsPrinter(name: String): Boolean
 }
 
 class LabelContent(val firstRow: String, val secondRow: String, val thirdRow: String, val qrCode: PDImageXObject, val qrText: String)
@@ -87,6 +88,8 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.showText(labelContent.qrText)
         }
     }
+
+    override fun supportsPrinter(name: String): Boolean = name.matches(Regex("^Alfio(-DYM)?-[A-Z0-9]+$"))
 }
 
 @Component
@@ -129,6 +132,8 @@ open class ZebraZD410: LabelTemplate {
             it.showText(labelContent.qrText)
         }
     }
+
+    override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-ZBR-")
 }
 
 internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
