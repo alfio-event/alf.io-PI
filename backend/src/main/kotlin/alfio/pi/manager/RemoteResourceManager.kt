@@ -17,7 +17,7 @@
 
 package alfio.pi.manager
 
-import alfio.pi.ConnectionDescriptor
+import alfio.pi.RemoteApiAuthenticationDescriptor
 import alfio.pi.model.Event
 import alfio.pi.model.RemoteEvent
 import alfio.pi.repository.EventRepository
@@ -53,7 +53,7 @@ fun httpClientBuilderWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): (OkHt
 
 @Component
 @Profile("server", "full")
-open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: ConnectionDescriptor,
+open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: RemoteApiAuthenticationDescriptor,
                                  private val httpClient: OkHttpClient,
                                  private val gson: Gson) {
     private val logger = LoggerFactory.getLogger(RemoteResourceManager::class.java)
@@ -63,7 +63,7 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
             val url = "${configuration.url}$resource";
             logger.info("Will call remote url {}", url)
             val request = Request.Builder()
-                .addHeader("Authorization", Credentials.basic(configuration.username, configuration.password))
+                .addHeader("Authorization", configuration.authenticationHeaderValue())
                 .url(url)
                 .build()
             val client = if(timeoutMillis > -1L) {

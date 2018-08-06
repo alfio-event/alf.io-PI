@@ -20,6 +20,9 @@ master.url=https://url-of-master
 master.username=pi-agent
 master.password=password
 
+# or, instead of username and password
+#master.apiKey=your api key
+
 ##db config (HSQL)
 jdbc.url=jdbc:hsqldb:mem:db/alfio
 jdbc.username=sa

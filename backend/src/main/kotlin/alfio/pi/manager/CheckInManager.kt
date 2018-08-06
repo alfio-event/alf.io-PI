@@ -17,7 +17,7 @@
 
 package alfio.pi.manager
 
-import alfio.pi.ConnectionDescriptor
+import alfio.pi.RemoteApiAuthenticationDescriptor
 import alfio.pi.model.*
 import alfio.pi.model.CheckInStatus.*
 import alfio.pi.repository.*
@@ -30,8 +30,6 @@ import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
-import org.springframework.context.event.ContextRefreshedEvent
-import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
@@ -54,7 +52,7 @@ import javax.crypto.spec.SecretKeySpec
 
 @Component
 @Profile("server", "full")
-open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: ConnectionDescriptor,
+open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: RemoteApiAuthenticationDescriptor,
                               private val eventRepository: EventRepository,
                               private val kvStore: KVStore,
                               private val userRepository: UserRepository,
@@ -192,7 +190,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.info("Will call remote url {}", url)
 
         val request = Request.Builder()
-            .addHeader("Authorization", Credentials.basic(master.username, master.password))
+            .addHeader("Authorization", master.authenticationHeaderValue())
             .url(url)
             .build()
         return httpClientWithCustomTimeout(200L, TimeUnit.MILLISECONDS).invoke(httpClient)
@@ -210,7 +208,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     internal fun loadLabelConfiguration(eventName: String): LabelConfiguration? {
         val url = "${master.url}/admin/api/check-in/$eventName/label-layout"
         val request = Request.Builder()
-            .addHeader("Authorization", Credentials.basic(master.username, master.password))
+            .addHeader("Authorization", master.authenticationHeaderValue())
             .url(url)
             .build()
         logger.info("Will call remote url {}", url)
@@ -250,7 +248,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return tryOrDefault<Map<String, String>>().invoke({
             val begin = System.currentTimeMillis()
             val request = Request.Builder()
-                .addHeader("Authorization", Credentials.basic(master.username, master.password))
+                .addHeader("Authorization", master.authenticationHeaderValue())
                 .url(url)
                 .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
                 .build()
@@ -287,7 +285,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
             val url = "${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username"
             val request = Request.Builder()
-                .addHeader("Authorization", Credentials.basic(master.username, master.password))
+                .addHeader("Authorization", master.authenticationHeaderValue())
                 .post(requestBody)
                 .url(url)
                 .build()
