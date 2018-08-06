@@ -2,6 +2,7 @@ package alfio.pi.manager
 
 import alfio.pi.model.*
 import ch.digitalfondue.synckv.SyncKV
+import ch.digitalfondue.synckv.SyncKVTable
 import com.google.gson.Gson
 import org.jgroups.util.Tuple
 import org.springframework.stereotype.Component
@@ -14,17 +15,17 @@ import kotlin.collections.ArrayList
 @Component
 open class KVStore(private val gson: Gson) {
 
-    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv", javaClass.classLoader.getResourceAsStream("/udp.xml"))
+    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv")
 
-    private val attendeeTable: SyncKV.SyncKVTable
+    private val attendeeTable: SyncKVTable
     //
-    private val lastUpdatedTable: SyncKV.SyncKVTable
+    private val lastUpdatedTable: SyncKVTable
     //
-    private val scanLogTable: SyncKV.SyncKVTable
-    private val scanLogTableSupport: SyncKV.SyncKVTable
+    private val scanLogTable: SyncKVTable
+    private val scanLogTableSupport: SyncKVTable
     //
-    private val labelConfigurationTable: SyncKV.SyncKVTable
-    private val remainingLabels: SyncKV.SyncKVTable
+    private val labelConfigurationTable: SyncKVTable
+    private val remainingLabels: SyncKVTable
 
 
     init {
@@ -71,7 +72,7 @@ open class KVStore(private val gson: Gson) {
         return attendeeTable.getAsString(attendeeKey(event, identifier))
     }
 
-    open fun getAttendeeDataCount() : Long {
+    open fun getAttendeeDataCount() : Int {
         return attendeeTable.count()
     }
 

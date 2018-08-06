@@ -99,7 +99,7 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
 
 
     @RequestMapping(value = ["tables/attendee/count"])
-    open fun getAttendeeSyncedCount() : Long {
+    open fun getAttendeeSyncedCount() : Int {
         return kvStore.getAttendeeDataCount()
     }
 
