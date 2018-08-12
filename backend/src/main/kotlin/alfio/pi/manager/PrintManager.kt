@@ -18,7 +18,6 @@
 package alfio.pi.manager
 
 import alfio.pi.model.*
-import alfio.pi.repository.ConfigurationRepository
 import alfio.pi.repository.PrinterRepository
 import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
@@ -162,7 +161,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         } else {
             buildConfigurableLabelContent(labelConfiguration?.configuration?.layout, ticket)
         }
-        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.thirdRow, ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
+        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows, ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace(cmd)
         val print = Runtime.getRuntime().exec(cmd)
@@ -192,9 +191,9 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             } else {
                 ""
             }
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, row, qrContent, partialID)
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(row), qrContent, partialID)//FIXME list of rows
         } else {
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, ticket.additionalInfo?.get("company").orEmpty(), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
         }
     }
 }
@@ -297,7 +296,7 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     return this
 }
 
-data class ConfigurableLabelContent(val firstRow: String, val secondRow: String, val thirdRow: String, val qrContent: String, val partialID: String)
+data class ConfigurableLabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>, val qrContent: String, val partialID: String)
 
 
 

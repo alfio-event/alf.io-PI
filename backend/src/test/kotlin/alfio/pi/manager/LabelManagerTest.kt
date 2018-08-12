@@ -19,7 +19,6 @@ package alfio.pi.manager
 
 import alfio.pi.model.LabelLayout
 import alfio.pi.model.Ticket
-import alfio.pi.repository.ConfigurationRepository
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -54,13 +53,19 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabel() {
-        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678", UUID.randomUUID().toString(), "12345678").invoke(DymoLW450Turbo41x89())
+        val bytes = generatePDFLabel("George", "William", listOf("Test Company"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 
     @Test
     fun testGenerateLabelZebra() {
-        val bytes = generatePDFLabel("George", "William", "Test Company", "12345678", UUID.randomUUID().toString(), "12345678").invoke(ZebraZD410())
+        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(ZebraZD410())
+        assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun testGenerateLabelBixolon() {
+        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(BixolonTX220())
         assertTrue(bytes.isNotEmpty())
     }
 
@@ -71,7 +76,7 @@ class LabelManagerTest {
         val result = localPrintManager.buildConfigurableLabelContent(null, ticket1)
         assertEquals(ticket1.firstName, result.firstRow)
         assertEquals(ticket1.lastName, result.secondRow)
-        assertEquals(ticket1.additionalInfo!!["company"], result.thirdRow)
+        assertEquals(ticket1.additionalInfo!!["company"], result.additionalRows[0])
         assertEquals(ticket1.uuid, result.qrContent)
         assertEquals(ticket1.uuid.substringBefore('-'), result.partialID)
 
@@ -79,7 +84,7 @@ class LabelManagerTest {
         val result2 = localPrintManager.buildConfigurableLabelContent(null, ticket2)
         assertEquals(ticket2.firstName, result.firstRow)
         assertEquals(ticket2.lastName, result.secondRow)
-        assertEquals("", result2.thirdRow)
+        assertEquals("", result2.additionalRows.joinToString(" "))
         assertEquals(ticket2.uuid, result2.qrContent)
         assertEquals(ticket2.uuid.substringBefore('-'), result2.partialID)
     }
@@ -105,7 +110,7 @@ class LabelManagerTest {
         val result = localPrintManager.buildConfigurableLabelContent(labelLayout, ticket)
         assertEquals(ticket.firstName, result.firstRow)
         assertEquals(ticket.lastName, result.secondRow)
-        assertEquals("thisIsTheFirstWord thisIsTheSecondWord thisIsTheThirdWord", result.thirdRow)
+        assertEquals("thisIsTheFirstWord thisIsTheSecondWord thisIsTheThirdWord", result.additionalRows[0])
         assertEquals("${ticket.uuid}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord", result.qrContent)
         assertTrue(result.partialID.isEmpty())
     }

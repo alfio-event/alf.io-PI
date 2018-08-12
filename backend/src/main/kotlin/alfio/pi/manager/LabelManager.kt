@@ -46,7 +46,7 @@ interface LabelTemplate {
     fun supportsPrinter(name: String): Boolean
 }
 
-class LabelContent(val firstRow: String, val secondRow: String, val thirdRow: String, val qrCode: PDImageXObject, val qrText: String)
+class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>, val qrCode: PDImageXObject, val qrText: String)
 
 @Component
 open class DymoLW450Turbo41x89: LabelTemplate {
@@ -75,7 +75,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(23 to 10F, 27 to 9F), true)
+            val thirdRowContent = optimizeText(labelContent.additionalRows.firstOrNull().orEmpty(), arrayOf(23 to 10F, 27 to 9F), true)
 
             it.setFont(font, thirdRowContent.second)
             it.newLineAtOffset(0F, -20F)
@@ -108,32 +108,46 @@ open class ZebraZD410: LabelTemplate {
         val font = fontLoader.invoke(ZebraZD410::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
         stream.use {
             it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(10 to 24F, 11 to 22F, 12 to 20F, 14 to 18F), true)
+            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 26F, 12 to 24F, 14 to 22F, 15 to 20F, 17 to 18F), true)
             it.setFont(font, firstRowContent.second)
             it.beginText()
-            it.newLineAtOffset(10F, 70F)
+            it.newLineAtOffset(10F, 115F)
             it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(15 to 16F, 17 to 14F), true)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 18F, 18 to 16F, 21 to 14F), true)
 
             it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val thirdRowContent = optimizeText(labelContent.thirdRow, arrayOf(23 to 10F, 27 to 9F), true)
+            val maxLengthAdditionalRows = arrayOf(29 to 10F)
+            labelContent.additionalRows.take(3).forEach { content ->
+                val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
+                it.setFont(font, optimizedContent.second)
+                it.newLineAtOffset(0F, -20F)
+                it.showText(optimizedContent.first)
+            }
 
-            it.setFont(font, thirdRowContent.second)
-            it.newLineAtOffset(0F, -20F)
-            it.showText(thirdRowContent.first)
             it.endText()
-            it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
+
+            it.drawImage(labelContent.qrCode, 195F, 50F, 80F, 80F)
             it.setFont(font, 9F)
             it.beginText()
-            it.newLineAtOffset(180F, 15F)
+            it.newLineAtOffset(210F, 25F)
             it.showText(labelContent.qrText)
         }
     }
 
     override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-ZBR-")
+}
+
+@Component
+open class BixolonTX220: ZebraZD410() {
+
+    override fun getCUPSMediaName(): String = "oe_13-x-50-d-8-mmy-101-d-6-mm_2x4in"//"oe_w162h288_2.25x4in"
+
+    override fun getDescription(): String = "Bixolon SLP-TX220 - 57x102 mm (xxx / xxx)"
+
+    override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-BXL-")
 }
 
 internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
@@ -199,17 +213,17 @@ private fun compact(text: String, maxLength: Int, lightOnly: Boolean = false): S
 }
 
 
-fun generatePDFLabel(firstName: String, lastName: String, thirdRow: String, ticketUUID: String, qrCodeContent: String = ticketUUID, partialUUID: String): (LabelTemplate) -> ByteArray = { template ->
+fun generatePDFLabel(firstName: String, lastName: String, additionalRows: List<String>, ticketUUID: String, qrCodeContent: String = ticketUUID, partialUUID: String): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
     val out = ByteArrayOutputStream()
-    document.use {
+    document.use { pdDocument ->
         val page = PDPage(template.getPageDimensions())
         val pageWidth = page.mediaBox.width
-        it.addPage(page)
-        val qr = LosslessFactory.createFromImage(it, generateQRCode(qrCodeContent))
-        val contentStream = PDPageContentStream(it, page, PDPageContentStream.AppendMode.OVERWRITE, false)
-        template.writeContent(contentStream, pageWidth, LabelContent(firstName, lastName, thirdRow, qr, partialUUID), {PDType0Font.load(document, it)})
-        it.save(out)
+        pdDocument.addPage(page)
+        val qr = LosslessFactory.createFromImage(pdDocument, generateQRCode(qrCodeContent))
+        val contentStream = PDPageContentStream(pdDocument, page, PDPageContentStream.AppendMode.OVERWRITE, false)
+        template.writeContent(contentStream, pageWidth, LabelContent(firstName, lastName, additionalRows, qr, partialUUID)) {PDType0Font.load(document, it)}
+        pdDocument.save(out)
     }
     out.toByteArray()
 }
