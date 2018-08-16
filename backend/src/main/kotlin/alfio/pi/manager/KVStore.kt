@@ -210,7 +210,7 @@ open class KVStore(private val gson: Gson) {
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
         findOptionalById(key).ifPresent({ scanLog ->
-            val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toEpochSecond(), scanLog.timestamp.zone.id, scanLog.eventKey, scanLog.ticketUuid,
+            val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toInstant().toEpochMilli(), scanLog.timestamp.zone.id, scanLog.eventKey, scanLog.ticketUuid,
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
             putScanLong(updatedScanLog)
         })
@@ -218,7 +218,7 @@ open class KVStore(private val gson: Gson) {
 
     fun loadNew(timestamp: Date): List<ScanLog> {
 
-        val timestampConverted = timestamp.toInstant().epochSecond
+        val timestampConverted = timestamp.toInstant().toEpochMilli()
         val matching = ArrayList<Tuple<String, Long>>()
         scanLogTableSupport.keys().forEach {
             val idx = scanLogTableSupport.getAsString(it)
