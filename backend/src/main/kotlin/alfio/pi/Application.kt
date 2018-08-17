@@ -17,7 +17,6 @@
 package alfio.pi
 
 import alfio.pi.Constants.*
-import alfio.pi.manager.SystemEventHandler
 import alfio.pi.manager.SystemEventHandlerImpl
 import alfio.pi.model.Role
 import alfio.pi.repository.AuthorityRepository
@@ -32,6 +31,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.zaxxer.hikari.HikariDataSource
+import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x500.X500Name
@@ -143,8 +143,9 @@ open class Application {
 
     @Bean
     open fun masterConnectionConfiguration(@Value("\${master.url}") url: String,
-                                           @Value("\${master.username}") username: String,
-                                           @Value("\${master.password}") password: String): ConnectionDescriptor = ConnectionDescriptor(url, username, password)
+                                           @Value("\${master.username}") username: String?,
+                                           @Value("\${master.password}") password: String?,
+                                           @Value("\${master.apiKey}") apiKey: String?): RemoteApiAuthenticationDescriptor = RemoteApiAuthenticationDescriptor(url, username, password, apiKey)
 
     @Bean
     @Profile("server", "full")
@@ -385,6 +386,18 @@ open class WebSocketConfiguration(private val systemEventHandler: SystemEventHan
 }
 
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
+data class RemoteApiAuthenticationDescriptor(val url: String, val username: String?, val password: String?, val apiKey: String?) {
+
+    fun authenticationHeaderValue(): String {
+        return if (apiKey != null) {
+            "ApiKey ${apiKey}"
+        } else if (username != null && password != null) {
+            Credentials.basic(username, password)
+        } else {
+            throw IllegalStateException()
+        }
+    }
+}
 
 fun main(args: Array<String>) {
     val properties = System.getProperties().entries.joinToString(separator = "\n", transform = {entry -> "${entry.key}=${entry.value}"})
