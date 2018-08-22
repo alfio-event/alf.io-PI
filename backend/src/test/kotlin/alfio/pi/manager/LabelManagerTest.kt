@@ -24,8 +24,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.*
 
 class LabelManagerTest {
@@ -53,9 +51,10 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabel() {
-        val bytes = generatePDFLabel("George", "William", listOf("Test Company"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(DymoLW450Turbo41x89())
+        val bytes = generatePDFLabel("George", "William", listOf("Test Company", "Second row"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
+
 
     @Test
     fun testGenerateLabelZebra() {
@@ -76,7 +75,7 @@ class LabelManagerTest {
         val result = localPrintManager.buildConfigurableLabelContent(null, ticket1)
         assertEquals(ticket1.firstName, result.firstRow)
         assertEquals(ticket1.lastName, result.secondRow)
-        assertEquals(ticket1.additionalInfo!!["company"], result.additionalRows[0])
+        assertEquals(ticket1.additionalInfo!!["company"], result.additionalRows!![0])
         assertEquals(ticket1.uuid, result.qrContent)
         assertEquals(ticket1.uuid.substringBefore('-'), result.partialID)
 
@@ -84,7 +83,7 @@ class LabelManagerTest {
         val result2 = localPrintManager.buildConfigurableLabelContent(null, ticket2)
         assertEquals(ticket2.firstName, result.firstRow)
         assertEquals(ticket2.lastName, result.secondRow)
-        assertEquals("", result2.additionalRows.joinToString(" "))
+        assertEquals("", result2.additionalRows!!.joinToString(" "))
         assertEquals(ticket2.uuid, result2.qrContent)
         assertEquals(ticket2.uuid.substringBefore('-'), result2.partialID)
     }
@@ -95,11 +94,12 @@ class LabelManagerTest {
         val jsonString = """
             {
               "qrCode": {
-                "additionalInfo": ["word1","word2","word3"],
+                "additionalInfo": ["firstName", "lastName", "fullName", "emailAddress", "word1","word2","word3"],
                 "infoSeparator": "::"
               },
               "content": {
-                "thirdRow": ["word1","word2","word3"]
+                "thirdRow": ["word1","word2"],
+                "additionalRows": ["word3"]
               },
               "general": {
                 "printPartialID": false
@@ -110,8 +110,8 @@ class LabelManagerTest {
         val result = localPrintManager.buildConfigurableLabelContent(labelLayout, ticket)
         assertEquals(ticket.firstName, result.firstRow)
         assertEquals(ticket.lastName, result.secondRow)
-        assertEquals("thisIsTheFirstWord thisIsTheSecondWord thisIsTheThirdWord", result.additionalRows[0])
-        assertEquals("${ticket.uuid}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord", result.qrContent)
+        assertEquals("thisIsTheFirstWord thisIsTheSecondWord thisIsTheThirdWord", result.additionalRows.orEmpty().joinToString(" "))
+        assertEquals("${ticket.uuid}::${ticket.firstName}::${ticket.lastName}::${ticket.fullName}::${ticket.email.orEmpty()}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord", result.qrContent)
         assertTrue(result.partialID.isEmpty())
     }
 

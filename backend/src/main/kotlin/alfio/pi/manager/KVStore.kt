@@ -91,9 +91,9 @@ open class KVStore(private val gson: Gson) {
     open fun loadAllForEvent(eventKey: String): List<ScanLog> {
         val res = ArrayList<ScanLog>()
 
-        findAllIdsWith("event_key", eventKey).forEach({
-            findOptionalById(it).ifPresent({scanLog -> res.add(scanLog)})
-        })
+        findAllIdsWith("event_key", eventKey).forEach {
+            findOptionalById(it).ifPresent { scanLog -> res.add(scanLog)}
+        }
         return res
     }
 
@@ -185,14 +185,14 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun findOptionalByIdAndEventKey(key: String, eventKey: String): Optional<ScanLog> {
-        return findOptionalById(key).filter({ scanLog -> scanLog.eventKey == eventKey })
+        return findOptionalById(key).filter { scanLog -> scanLog.eventKey == eventKey }
     }
 
     open fun findRemoteFailures(): List<ScanLog> {
         val remoteFailures = ArrayList<ScanLog>()
-        findAllIdsWith("remote_result", CheckInStatus.RETRY.toString()).forEach({key ->
-            findOptionalById(key).ifPresent({ scanLog -> remoteFailures.add(scanLog) })
-        })
+        findAllIdsWith("remote_result", CheckInStatus.RETRY.toString()).forEach { key ->
+            findOptionalById(key).ifPresent { scanLog -> remoteFailures.add(scanLog) }
+        }
         return remoteFailures
     }
 
@@ -209,11 +209,11 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
-        findOptionalById(key).ifPresent({ scanLog ->
+        findOptionalById(key).ifPresent { scanLog ->
             val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toInstant().toEpochMilli(), scanLog.timestamp.zone.id, scanLog.eventKey, scanLog.ticketUuid,
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
             putScanLong(updatedScanLog)
-        })
+        }
     }
 
     fun loadNew(timestamp: Date): List<ScanLog> {

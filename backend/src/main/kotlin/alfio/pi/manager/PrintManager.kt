@@ -141,8 +141,8 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
 
     private fun getCupsPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
         val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
-        process.inputStream.use {
-            it.bufferedReader().lines()
+        process.inputStream.use { inputStream ->
+            inputStream.bufferedReader().lines()
                 .map {
                     val result = systemPrinterExtractor.find(it)
                     result?.groupValues?.get(1)
@@ -161,7 +161,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         } else {
             buildConfigurableLabelContent(labelConfiguration?.configuration?.layout, ticket)
         }
-        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows, ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
+        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows.orEmpty(), ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace(cmd)
         val print = Runtime.getRuntime().exec(cmd)
@@ -184,18 +184,32 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
 
     internal fun buildConfigurableLabelContent(layout: LabelLayout?, ticket: Ticket): ConfigurableLabelContent {
         return if (layout != null) {
-            val row = layout.content.thirdRow.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty).joinToString(separator = " ")
-            val qrContent = listOf(ticket.uuid).plus(layout.qrCode.additionalInfo.map { ticket.additionalInfo?.get(it).orEmpty() }.filter(String::isNotEmpty)).joinToString(separator = layout.qrCode.infoSeparator)
+            val qrContent = listOf(ticket.uuid).plus(retrieveQRCodeContent(layout, ticket)).joinToString(separator = layout.qrCode.infoSeparator)
             val partialID = if (layout.general.printPartialID) {
                 ticket.uuid.substringBefore('-').toUpperCase()
             } else {
                 ""
             }
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(row), qrContent, partialID)//FIXME list of rows
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID)
         } else {
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
         }
     }
+
+    private fun retrieveAllAdditionalInfo(layout: LabelLayout, ticket: Ticket) : List<String> =
+        layout.content.thirdRow.orEmpty().plus(layout.content.additionalRows.orEmpty())
+            .filter { it.isNotEmpty() }
+            .map { ticket.additionalInfo?.get(it).orEmpty() }
+
+    private fun retrieveQRCodeContent(layout: LabelLayout, ticket: Ticket) : List<String> {
+        val info = ticket.additionalInfo.orEmpty().plus(getTicketBasicInfo(ticket))
+        return layout.qrCode.additionalInfo.map { info[it].orEmpty() }
+    }
+
+    private fun getTicketBasicInfo(ticket: Ticket) = listOf("firstName" to ticket.firstName,
+            "lastName" to ticket.lastName,
+            "fullName" to ticket.fullName,
+            "emailAddress" to ticket.email)
 }
 
 /**
@@ -296,7 +310,7 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     return this
 }
 
-data class ConfigurableLabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>, val qrContent: String, val partialID: String)
+data class ConfigurableLabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrContent: String, val partialID: String)
 
 
 

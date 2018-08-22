@@ -46,7 +46,7 @@ interface LabelTemplate {
     fun supportsPrinter(name: String): Boolean
 }
 
-class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>, val qrCode: PDImageXObject, val qrText: String)
+class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrCode: PDImageXObject, val qrText: String)
 
 @Component
 open class DymoLW450Turbo41x89: LabelTemplate {
@@ -75,11 +75,19 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val thirdRowContent = optimizeText(labelContent.additionalRows.firstOrNull().orEmpty(), arrayOf(23 to 10F, 27 to 9F), true)
+            val maxLengthAdditionalRows = arrayOf(23 to 10F, 27 to 9F)
+            val offset = if(labelContent.additionalRows?.size ?: 0 > 1) {
+                -17F
+            } else {
+                -20F
+            }
+            labelContent.additionalRows.orEmpty().take(2).forEach {content ->
+                val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
+                it.setFont(font, optimizedContent.second)
+                it.newLineAtOffset(0F, offset)
+                it.showText(optimizedContent.first)
+            }
 
-            it.setFont(font, thirdRowContent.second)
-            it.newLineAtOffset(0F, -20F)
-            it.showText(thirdRowContent.first)
             it.endText()
             it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
             it.setFont(font, 9F)
@@ -120,7 +128,7 @@ open class ZebraZD410: LabelTemplate {
             it.showText(secondRowContent.first)
 
             val maxLengthAdditionalRows = arrayOf(29 to 10F)
-            labelContent.additionalRows.take(3).forEach { content ->
+            labelContent.additionalRows.orEmpty().take(3).forEach { content ->
                 val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
                 it.setFont(font, optimizedContent.second)
                 it.newLineAtOffset(0F, -20F)
