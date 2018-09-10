@@ -105,7 +105,7 @@ open class ZebraZD410: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w162h288"//"oe_w162h288_2.25x4in"
 
-    override fun getDescription(): String = "Zebra ZD410 - 57x102 mm (xxx / xxx)"
+    override fun getDescription(): String = "Zebra ZD410 - 57x102 mm (800262-405)"
 
     override fun getPageDimensions(): PDRectangle = PDRectangle(convertMMToPoint(57F), convertMMToPoint(102F))
 
@@ -153,7 +153,7 @@ open class BixolonTX220: ZebraZD410() {
 
     override fun getCUPSMediaName(): String = "oe_13-x-50-d-8-mmy-101-d-6-mm_2x4in"//"oe_w162h288_2.25x4in"
 
-    override fun getDescription(): String = "Bixolon SLP-TX220 - 57x102 mm (xxx / xxx)"
+    override fun getDescription(): String = "Bixolon SLP-TX220 - 57x102 mm (Zebra 800262-405)"
 
     override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-BXL-")
 }
