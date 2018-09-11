@@ -18,6 +18,7 @@
 package alfio.pi.manager
 
 import alfio.pi.RemoteApiAuthenticationDescriptor
+import alfio.pi.RemoteEventFilter
 import alfio.pi.model.Event
 import alfio.pi.model.RemoteEvent
 import alfio.pi.repository.EventRepository
@@ -25,7 +26,6 @@ import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.slf4j.LoggerFactory
@@ -60,7 +60,7 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
 
     private fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
         .invoke({
-            val url = "${configuration.url}$resource";
+            val url = "${configuration.url}$resource"
             logger.info("Will call remote url {}", url)
             val request = Request.Builder()
                 .addHeader("Authorization", configuration.authenticationHeaderValue())
@@ -104,7 +104,8 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
                              private val jdbc: NamedParameterJdbcTemplate,
                              private val checkInDataSynchronizer: CheckInDataSynchronizer,
                              private val kvStore: KVStore,
-                             private val checkInDataManager: CheckInDataManager) {
+                             private val checkInDataManager: CheckInDataManager,
+                             private val eventFilter: RemoteEventFilter) {
     private val logger = LoggerFactory.getLogger(EventSynchronizer::class.java)
 
     @EventListener
@@ -116,8 +117,8 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
     @Scheduled(fixedDelay = 60L * 60000L)
     open fun sync() {
         doInTransaction<Unit>().invoke(transactionManager, {
-            val localEvents = eventRepository.loadAll()
-            val remoteEvents = remoteResourceManager.getRemoteEventList()
+            val localEvents = eventRepository.loadAll().filter { eventFilter.accept(it.key) }
+            val remoteEvents = remoteResourceManager.getRemoteEventList().filter { eventFilter.accept(it.key!!) }
             val (existing, notExisting) = remoteEvents.partition { r -> localEvents.any { l -> r.key == l.key } }
             updateExisting(existing, localEvents)
             insertNew(notExisting)

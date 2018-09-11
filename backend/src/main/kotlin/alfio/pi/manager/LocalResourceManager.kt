@@ -75,8 +75,8 @@ fun togglePrinterActivation(id: Int, state: Boolean): (PlatformTransactionManage
     })
 }
 
-fun findAllRegisteredPrinters(): (PrinterRepository) -> List<Printer> = {
-    tryOrDefault<List<Printer>>().invoke({it.loadAll()}, {
+fun findAllRegisteredPrinters(): (PrinterRepository) -> List<Printer> = { printerRepository ->
+    tryOrDefault<List<Printer>>().invoke({printerRepository.loadAll()}, {
         logger.error("error while loading printers", it)
         emptyList()
     })
@@ -186,9 +186,9 @@ open class LocalPrinterMonitor(private val printManager: PrintManager) {
     private fun synchronizeLocalPrinters() {
         val initialized = monitorInitialized.get()
         if(!initialized && Files.exists(path)) {
-            Files.newDirectoryStream(path).use {
-                it.filter { it.fileName.toString().startsWith("Alfio") }
-                    .mapTo(connectedPrinters, { SystemPrinter(it.fileName.toString()) })
+            Files.newDirectoryStream(path).use { directoryStream ->
+                directoryStream.filter { it.fileName.toString().startsWith("Alfio") }
+                    .mapTo(connectedPrinters) { SystemPrinter(it.fileName.toString()) }
             }
             pollEvents(path.register(watcher, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE))
             monitorInitialized.set(true)

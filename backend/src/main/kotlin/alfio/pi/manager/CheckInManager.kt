@@ -18,6 +18,7 @@
 package alfio.pi.manager
 
 import alfio.pi.RemoteApiAuthenticationDescriptor
+import alfio.pi.RemoteEventFilter
 import alfio.pi.model.*
 import alfio.pi.model.CheckInStatus.*
 import alfio.pi.repository.*
@@ -90,7 +91,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 TicketAndCheckInResult(Ticket(uuid,
                     ticketData.firstName, ticketData.lastName,
                     ticketData.email, ticketData.additionalInfo,
-                    category = ticketData.category,
+                    categoryName = ticketData.category,
                     validCheckInFrom = ticketData.validCheckInFrom,
                     validCheckInTo = ticketData.validCheckInTo), CheckInResult(ticketData.checkInStatus))
             } else {
@@ -289,7 +290,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .post(requestBody)
                 .url(url)
                 .build()
-            logger.info("Will call remote url {}", url)
+            logger.debug("Will call remote url {}", url)
             httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
                 .newCall(request)
@@ -303,7 +304,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 }
         /*}*/
     }, {
-        logger.warn("got Exception while performing remote check-in")
+        logger.warn("got Exception while performing remote check-in", it)
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
     })
 
@@ -347,10 +348,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val begin = System.currentTimeMillis()
         logger.info("Saving {} attendees", attendeesForEvent.size)
         var maxLastUpdate = 0L
-        attendeesForEvent.forEach({ attendee ->
+        attendeesForEvent.forEach { attendee ->
             kvStore.putAttendeeData(eventName, attendee.identifier, attendee.data)
             maxLastUpdate = maxOf(maxLastUpdate, attendee.lastUpdate?:0)
-        })
+        }
         kvStore.putLastUpdated(eventName, maxLastUpdate)
         val end = System.currentTimeMillis()
         logger.info("Done saving {} attendees in {}ms", attendeesForEvent.size, end - begin)
@@ -411,7 +412,8 @@ internal fun calcHash256(hmac: String) : String {
 @Profile("server", "full")
 open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
                                    private val eventRepository: EventRepository,
-                                   private val kvStore: KVStore) {
+                                   private val kvStore: KVStore,
+                                   private val remoteEventFilter: RemoteEventFilter) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
@@ -429,8 +431,8 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
     open fun onDemandSync(events: List<RemoteEvent>) {
         if(kvStore.isLeader()) {
             logger.debug("Leader begin onDemandSync")
-            events.filter { it.key != null }.map {
-                checkInDataManager.syncAttendees(it.key!!)
+            events.map { it.key }.filter { it != null && remoteEventFilter.accept(it)}.map {
+                checkInDataManager.syncAttendees(it!!)
             }
             logger.debug("Leader end onDemandSync")
         }

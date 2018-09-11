@@ -148,6 +148,9 @@ open class Application {
                                            @Value("\${master.apiKey}") apiKey: String?): RemoteApiAuthenticationDescriptor = RemoteApiAuthenticationDescriptor(url, username, password, apiKey)
 
     @Bean
+    open fun remoteEventsFilter(@Value("\${events.filter}") eventNames: String) = RemoteEventFilter(eventNames)
+
+    @Bean
     @Profile("server", "full")
     open fun localServerURL(env: Environment): String {
         val scheme = if(env.acceptsProfiles("dev")) {
@@ -390,13 +393,21 @@ data class RemoteApiAuthenticationDescriptor(val url: String, val username: Stri
 
     fun authenticationHeaderValue(): String {
         return if (apiKey != null) {
-            "ApiKey ${apiKey}"
+            "ApiKey $apiKey"
         } else if (username != null && password != null) {
             Credentials.basic(username, password)
         } else {
             throw IllegalStateException()
         }
     }
+}
+
+data class RemoteEventFilter(private val events: String?) {
+    private val eventNames
+        get() = events.orEmpty().split(",").map { it.trim() }
+
+    fun accept(eventName: String) = eventNames.isEmpty() or eventNames.contains(eventName.trim())
+
 }
 
 fun main(args: Array<String>) {

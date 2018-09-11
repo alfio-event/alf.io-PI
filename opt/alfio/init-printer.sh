@@ -10,5 +10,7 @@ elif [ "$2" == "TX220" ]; then
     /usr/sbin/lpadmin -E -p "Alfio-BXL-${device_name}" -v "usb://BIXOLON/SLP-TX220?serial=$1" -P /usr/share/cups/model/Bixolon/SLPTX220_v1.1.0.ppd -o printer-error-policy=abort-job -o printer-is-shared=false
 else
     /usr/sbin/lpadmin -E -p "Alfio-DYM-${device_name}" -v "usb://DYMO/LabelWriter%20450%20Turbo?serial=$1" -P /usr/share/cups/model/lw450t.ppd -o printer-error-policy=abort-job -o printer-is-shared=false
+    /usr/sbin/cupsenable "Alfio-DYM-${device_name}"
+    /usr/sbin/cupsaccept "Alfio-DYM-${device_name}"
 fi
 echo ${device_name}

@@ -23,7 +23,7 @@ export class Ticket {
                 public lastName: string,
                 public fullName: string,
                 public email: string,
-                public category: string) {}
+                public categoryName: string) {}
 }
 
 export class TicketAndCheckInResult {
