@@ -89,7 +89,7 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
     open fun uploadPrinters() {
         val url = masterUrl.get() ?: return
         logger.trace("calling master $url")
-        val httpClient = httpClientBuilderWithCustomTimeout(1L, TimeUnit.SECONDS)
+        val httpClient = httpClientBuilderWithCustomTimeout(1L to TimeUnit.SECONDS)
             .invoke(httpClient)
             .trustKeyStore(trustManager)
             .build()
@@ -269,7 +269,7 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
         val remotePrinter = remotePrinters.firstOrNull { it.name == printerName }
         logger.trace("remote print $printerName for ticket $ticket: remote printer is $remotePrinter")
         return if(remotePrinter != null) {
-            val httpClient = httpClientBuilderWithCustomTimeout(500L, TimeUnit.MILLISECONDS)
+            val httpClient = httpClientBuilderWithCustomTimeout(500L to TimeUnit.MILLISECONDS)
                 .invoke(httpClient)
                 .trustKeyStore(trustManager)
                 .build()

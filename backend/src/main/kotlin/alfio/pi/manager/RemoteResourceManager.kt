@@ -43,12 +43,18 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 
-fun httpClientWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): (OkHttpClient) -> OkHttpClient = {
-    httpClientBuilderWithCustomTimeout(timeout, timeUnit).invoke(it).build()
+fun httpClientWithCustomTimeout(connectionTimeout: Pair<Long, TimeUnit>, readTimeout: Pair<Long, TimeUnit>? = null): (OkHttpClient) -> OkHttpClient = {
+    httpClientBuilderWithCustomTimeout(connectionTimeout, readTimeout).invoke(it).build()
 }
 
-fun httpClientBuilderWithCustomTimeout(timeout: Long, timeUnit: TimeUnit): (OkHttpClient) -> OkHttpClient.Builder = {
-    it.newBuilder().connectTimeout(timeout, timeUnit)
+fun httpClientBuilderWithCustomTimeout(connectionTimeout: Pair<Long, TimeUnit>, readTimeout: Pair<Long, TimeUnit>? = null): (OkHttpClient) -> OkHttpClient.Builder = {
+    val builder = it.newBuilder().connectTimeout(connectionTimeout.first, connectionTimeout.second)
+    if(readTimeout != null) {
+        builder.readTimeout(readTimeout.first, readTimeout.second)
+    } else {
+        builder
+    }
+
 }
 
 @Component
@@ -61,13 +67,13 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
     private fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
         .invoke({
             val url = "${configuration.url}$resource"
-            logger.info("Will call remote url {}", url)
+            logger.debug("Will call remote url {}", url)
             val request = Request.Builder()
                 .addHeader("Authorization", configuration.authenticationHeaderValue())
                 .url(url)
                 .build()
             val client = if(timeoutMillis > -1L) {
-                httpClientWithCustomTimeout(timeoutMillis, TimeUnit.MILLISECONDS).invoke(httpClient)
+                httpClientWithCustomTimeout(timeoutMillis to TimeUnit.MILLISECONDS).invoke(httpClient)
             } else {
                 httpClient
             }

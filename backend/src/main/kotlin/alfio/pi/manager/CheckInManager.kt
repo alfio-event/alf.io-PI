@@ -194,7 +194,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             .addHeader("Authorization", master.authenticationHeaderValue())
             .url(url)
             .build()
-        return httpClientWithCustomTimeout(200L, TimeUnit.MILLISECONDS).invoke(httpClient)
+        return httpClientWithCustomTimeout(200L to TimeUnit.MILLISECONDS).invoke(httpClient)
             .newCall(request).execute().use { resp ->
                 if (resp.isSuccessful) {
                     val body = resp.body()?.string()
@@ -253,7 +253,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .url(url)
                 .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
                 .build()
-            val res = httpClientWithCustomTimeout(1L, TimeUnit.SECONDS).invoke(httpClient).newCall(request)
+            val res = httpClientWithCustomTimeout(1L to TimeUnit.SECONDS).invoke(httpClient).newCall(request)
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
@@ -279,10 +279,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
 
-        /*if(!cluster.isLeader()) {
-            val result = cluster.remoteCheckInToMaster(eventKey, uuid, hmac, username)
-            result ?: EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
-        } else {*/
             val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
             val url = "${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username"
             val request = Request.Builder()
@@ -291,7 +287,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .url(url)
                 .build()
             logger.debug("Will call remote url {}", url)
-            httpClientWithCustomTimeout(100L, TimeUnit.MILLISECONDS)
+            httpClientWithCustomTimeout(100L to TimeUnit.MILLISECONDS, 1L to TimeUnit.SECONDS)
                 .invoke(httpClient)
                 .newCall(request)
                 .execute()
@@ -304,7 +300,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 }
         /*}*/
     }, {
-        logger.warn("got Exception while performing remote check-in", it)
+        logger.warn("got Exception while performing remote check-in ($it)")
         EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
     })
 
