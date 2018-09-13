@@ -72,11 +72,11 @@ export class Ticket {
 }
 
 export class ConfigurableLabelContent {
-  constructor(public firstRow: String,
-              public secondRow: String,
-              public thirdRow: String,
-              public qrContent: String,
-              public partialID: String) {}
+  constructor(public firstRow: string,
+              public secondRow: string,
+              public additionalRows: Array<string>,
+              public qrContent: string,
+              public partialID: string) {}
 }
 
 

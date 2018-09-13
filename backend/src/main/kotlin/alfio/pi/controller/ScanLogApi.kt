@@ -44,7 +44,7 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
     open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
                      @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
                      @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLog>> {
-        val searchTrimmed = if (search.trim().length == 0) null else (search.trim())
+        val searchTrimmed = if (search.trim().isEmpty()) null else (search.trim())
         val pageAndTotalCount = scanLogRepository.loadPageAndTotalCount(page * pageSize, pageSize, searchTrimmed)
         return PaginatedResult(page, pageAndTotalCount.first, pageAndTotalCount.second)
     }

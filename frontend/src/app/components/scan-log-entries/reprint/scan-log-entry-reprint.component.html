@@ -44,7 +44,9 @@
                 </div>
                 <div class="row">
                   <div class="col-md-8">
-                    <input class="form-control" [(ngModel)]="content.thirdRow" name="thirdRow" virtualKeyboard>
+                    <div *ngFor="let row of content.additionalRows; trackBy:indexTracker">
+                      <input class="form-control" [(ngModel)]="row.value" [name]="'additionalRow['+i+']'" virtualKeyboard>
+                    </div>
                   </div>
                   <div class="col-md-4 text-center"><input class="form-control" [(ngModel)]="content.partialID" name="thirdRow" virtualKeyboard></div>
                 </div>

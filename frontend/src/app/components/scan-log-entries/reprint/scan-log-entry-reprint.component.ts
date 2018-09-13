@@ -34,7 +34,7 @@ export class ScanLogEntryReprintComponent implements OnInit {
   eventKey: string;
 
   progressManager = new ProgressManager();
-  content: ConfigurableLabelContent;
+  content: PreviewContent;
   printers: Array<Printer> = [];
   event: Event;
 
@@ -64,16 +64,32 @@ export class ScanLogEntryReprintComponent implements OnInit {
       .subscribe(res => {
         let [content, printers, event] = res;
         this.printers = printers.filter(p => p.active);
-        this.content = content;
+        this.content = PreviewContent.fromConfigurableLabelContent(content);
         this.event = event;
       });
   }
 
   reprint(printer?: Printer): void {
-    this.progressManager.monitorCall(() => this.scanLogService.reprint(this.entryId, this.content, printer))
+    this.progressManager.monitorCall(() => this.scanLogService.reprint(this.entryId, this.content.toConfigurableLabelContent(), printer))
       .subscribe(res => console.log("printed", res));
   }
 
+}
+
+export class PreviewContent {
+  constructor(public firstRow: string,
+              public secondRow: string,
+              public additionalRows: Array<{value: string}>,
+              public qrContent: string,
+              public partialID: string) {}
+
+  static fromConfigurableLabelContent(content: ConfigurableLabelContent): PreviewContent {
+    return new PreviewContent(content.firstRow, content.secondRow, content.additionalRows.map(v => ({value: v})), content.qrContent, content.partialID);
+  }
+
+  public toConfigurableLabelContent(): ConfigurableLabelContent {
+    return new ConfigurableLabelContent(this.firstRow, this.secondRow, this.additionalRows.map(m => m.value), this.qrContent, this.partialID);
+  }
 }
 
 
