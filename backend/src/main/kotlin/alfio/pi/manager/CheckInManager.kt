@@ -30,6 +30,7 @@ import com.google.gson.reflect.TypeToken
 import okhttp3.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -61,7 +62,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val gson: Gson,
                               private val httpClient: OkHttpClient,
                               private val printManager: PrintManager,
-                              private val publisher: SystemEventHandler) {
+                              private val publisher: SystemEventHandler,
+                              @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -112,6 +114,10 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             EmptyTicketResult()
         })
 
+    private fun checkBypassSuccessTicketState(result: CheckInResponse) : Boolean {
+        return if (checkInForcePaymentOnSite) result.result.status == MUST_PAY else false
+    }
+
     private fun doPerformCheckIn(eventName: String, hmac: String, username: String, uuid: String): CheckInResponse {
         return eventRepository.loadSingle(eventName)
             .flatMap { event -> userRepository.findByUsername(username).map { user -> event to user } }
@@ -121,18 +127,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     .map(fun(existing: ScanLog) : CheckInResponse = DuplicateScanResult(originalScanLog = existing))
                     .orElseGet {
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
-                        if (localDataResult.isSuccessful()) {
+                        if (localDataResult.isSuccessful() || checkBypassSuccessTicketState(localDataResult)) {
                             localDataResult as TicketAndCheckInResult
                             val who = Optional.ofNullable(printManager.getAvailablePrinters())
                                 .filter { it.size == 1 }
                                 .map { it.first().name }
                                 .orElse(username)
-                            val remoteResult = remoteCheckIn(event.key, uuid, hmac, who)
-                            val localResult = if(arrayOf(ALREADY_CHECK_IN, MUST_PAY, INVALID_TICKET_STATE, INVALID_TICKET_CATEGORY_CHECK_IN_DATE).contains(remoteResult.result.status)) {
-                                remoteResult.result.status
-                            } else {
-                                checkValidity(localDataResult)
-                            }
+                            val remoteResult = EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
+                            val localResult = checkValidity(localDataResult)
                             val ticket = localDataResult.ticket!!
                             val configuration = kvStore.loadLabelConfiguration(eventKey).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
@@ -277,10 +279,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         })
     }
 
-    open fun remoteCheckIn(eventKey: String, uuid: String, hmac: String, username: String) : CheckInResponse = tryOrDefault<CheckInResponse>().invoke({
+    open fun remoteBulkCheckIn(eventKey: String, identifierCodes: List<Map<String, String?>>, username: String) : Map<String, TicketAndCheckInResult> {
 
-            val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(hashMapOf("code" to "$uuid/$hmac")))
-            val url = "${master.url}/admin/api/check-in/event/$eventKey/ticket/$uuid?offlineUser=$username"
+        return tryOrDefault<Map<String, TicketAndCheckInResult>>().invoke({
+            val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(identifierCodes))
+            var url = "${master.url}/admin/api/check-in/event/$eventKey/bulk?offlineUser=$username"
+            if(checkInForcePaymentOnSite) {
+                url += "&forceCheckInPaymentOnSite=true"
+            }
             val request = Request.Builder()
                 .addHeader("Authorization", master.authenticationHeaderValue())
                 .post(requestBody)
@@ -293,17 +299,16 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
-                        gson.fromJson(resp.body()!!.string(), TicketAndCheckInResult::class.java)
+                        gson.fromJson(resp.body()!!.string(), object : TypeToken<Map<String, TicketAndCheckInResult>>() {}.type)
                     } else {
-                        EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
+                        emptyMap()
                     }
                 }
-        /*}*/
-    }, {
-        logger.warn("got Exception while performing remote check-in ($it)")
-        EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
-    })
-
+        }, {
+            logger.warn("got Exception while performing remote check-in ($it)")
+            emptyMap()
+        })
+    }
 
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
@@ -322,13 +327,16 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.info("******** uploading check-in **********")
         tryOrDefault<Unit>().invoke({
             val event = entry.key.get()
-            entry.value.filter { it.ticket != null }.forEach {
-                val ticket = it.ticket!!
-                val scanLogId = it.id
-                userRepository.findById(it.userId).map {
-                    val response = remoteCheckIn(event.key, ticket.uuid, ticket.hmac!!, it.username)
-                    kvStore.updateRemoteResult(response.result.status, scanLogId)
-                }
+            val scanLogEntries = entry.value.filter { it.ticket != null }
+            val username = userRepository.findById(scanLogEntries.first { userRepository.findById(it.userId).isPresent }.userId).get().username
+            val body = scanLogEntries.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket!!.hmac}")}
+            val ticketIdToScanLogId = scanLogEntries.associate { it.ticket!!.uuid to it.id }
+
+            val response = remoteBulkCheckIn(event.key, body, username)
+
+            response.forEach {
+                logger.info("response is ${it.key} ${gson.toJson(it.value)}")
+                kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key]!!)
             }
         }, { logger.error("unable to upload pending check-in", it)})
         logger.info("******** upload completed **********")
