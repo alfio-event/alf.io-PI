@@ -27,3 +27,6 @@ master.password=password
 jdbc.url=jdbc:hsqldb:mem:db/alfio
 jdbc.username=sa
 jdbc.password=
+
+events.filter=
+checkIn.forcePaymentOnSite=
