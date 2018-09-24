@@ -95,7 +95,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     ticketData.email, ticketData.additionalInfo,
                     categoryName = ticketData.category,
                     validCheckInFrom = ticketData.validCheckInFrom,
-                    validCheckInTo = ticketData.validCheckInTo), CheckInResult(ticketData.checkInStatus))
+                    validCheckInTo = ticketData.validCheckInTo,
+                    additionalServicesInfo = ticketData.additionalServicesInfo), CheckInResult(ticketData.checkInStatus))
             } else {
                 logger.warn("no eventData found for $key.")
                 EmptyTicketResult()
@@ -143,7 +144,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             }
                             val labelPrinted = remoteResult.isSuccessfulOrRetry() && localResult != INVALID_TICKET_CATEGORY_CHECK_IN_DATE && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
-                            kvStore.insertScanLog(eventKey, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
+                            //kvStore.insertScanLog(eventKey, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localResult))
                         } else {

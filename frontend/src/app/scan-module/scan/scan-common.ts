@@ -23,7 +23,21 @@ export class Ticket {
                 public lastName: string,
                 public fullName: string,
                 public email: string,
-                public categoryName: string) {}
+                public categoryName: string,
+                public additionalServicesInfo: Array<AdditionalServiceInfo>) {
+    }
+}
+
+export class AdditionalServiceInfo {
+  constructor(public name: string,
+              public count: Number,
+              public fields: Array<TicketFieldValueForAdditionalService>) {}
+}
+
+export class TicketFieldValueForAdditionalService {
+  constructor(public fieldName: string,
+              public fieldValue: string,
+              public additionalServiceId: Number) {};
 }
 
 export class TicketAndCheckInResult {

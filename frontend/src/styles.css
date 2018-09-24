@@ -24,3 +24,7 @@ virtual-keyboard > div > div {
 md-dialog-container.mat-dialog-container {
   max-width: inherit;
 }
+
+.bg-white {
+  background: white;
+}

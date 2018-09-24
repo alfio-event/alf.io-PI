@@ -24,7 +24,7 @@ export class CheckInComponent implements OnInit {
   loading: boolean;
   toScan: string;
 
-  testMode = false;
+  testMode = true;
 
   @ViewChild('keyListener') keyListener;
 

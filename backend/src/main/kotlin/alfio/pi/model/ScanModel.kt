@@ -101,7 +101,8 @@ open class Ticket(val uuid: String,
                   val hmac: String? = null,
                   val categoryName: String? = null,
                   val validCheckInFrom: String? = null,
-                  val validCheckInTo: String? = null) : Serializable
+                  val validCheckInTo: String? = null,
+                  val additionalServicesInfo: List<AdditionalServiceInfo> = emptyList()) : Serializable
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", emptyMap())
 
@@ -139,7 +140,8 @@ data class TicketData(val firstName: String,
                       private val status: String,
                       private val additionalInfoJson: String?,
                       val validCheckInFrom: String?,
-                      val validCheckInTo: String?) {
+                      val validCheckInTo: String?,
+                      private val additionalServicesInfoJson: String?) {
     val checkInStatus: CheckInStatus
         get() = when(status) {
             "ACQUIRED" -> CheckInStatus.SUCCESS
@@ -149,6 +151,9 @@ data class TicketData(val firstName: String,
         }
     val additionalInfo: Map<String, String>
         get() = GsonContainer.GSON?.fromJson(additionalInfoJson, object : TypeToken<Map<String, String>>() {}.type) ?: emptyMap()
+
+    val additionalServicesInfo: List<AdditionalServiceInfo>
+        get() = GsonContainer.GSON?.fromJson(additionalServicesInfoJson, object : TypeToken<List<AdditionalServiceInfo>>() {}.type) ?: emptyList()
 }
 
 class RemoteEvent {
@@ -161,6 +166,18 @@ class RemoteEvent {
     var oneDay: Boolean = false
     var location: String? = null
     var apiVersion: Int = 0
+}
+
+class AdditionalServiceInfo {
+    var name: String? = null
+    var count: Int = 0
+    var fields: List<TicketFieldValueForAdditionalService>? = null
+}
+
+class TicketFieldValueForAdditionalService {
+    var fieldName: String? = null
+    var fieldValue: String? = null
+    var additionalServiceId: Int = 0
 }
 
 data class PrinterWithUsers(val printer: Printer, val users: List<User>): Comparable<PrinterWithUsers> {
@@ -187,3 +204,4 @@ data class LabelLayout(val qrCode: QRCode, val content: Content, val general: Ge
 data class QRCode(val additionalInfo: List<String>, val infoSeparator: String) : Serializable
 data class Content(val thirdRow: List<String>?, val additionalRows: List<String>?) : Serializable
 data class General(val printPartialID: Boolean) : Serializable
+
