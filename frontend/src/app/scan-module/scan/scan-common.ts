@@ -56,7 +56,8 @@ export class CheckInResult {
     constructor(public status: CheckInStatus,
                 public message: string,
                 public dueAmount?: Number,
-                public currency?: string) {}
+                public currency?: string,
+                public boxColorClass?: string) {}
 }
 
 export type CheckInStatus = "EVENT_NOT_FOUND" | "TICKET_NOT_FOUND" | "EMPTY_TICKET_CODE"

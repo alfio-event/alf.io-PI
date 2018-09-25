@@ -23,8 +23,9 @@ export class CheckInComponent implements OnInit {
   progressManager: ProgressManager;
   loading: boolean;
   toScan: string;
+  boxColorClass: string;
 
-  testMode = true;
+  testMode = false;
 
   @ViewChild('keyListener') keyListener;
 
@@ -63,9 +64,11 @@ export class CheckInComponent implements OnInit {
         .subscribe(result => {
           this.status = result.result.status;
           this.ticket = result.ticket;
+          this.boxColorClass = result.result.boxColorClass;
         }, error => {
           this.status = CheckInStatus.ERROR;
           this.ticket = null;
+          this.boxColorClass = "danger";
         });
     }
   }

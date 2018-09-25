@@ -54,6 +54,8 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.core.annotation.Order
+import org.springframework.core.env.ConfigurableEnvironment
+import org.springframework.core.env.EnumerablePropertySource
 import org.springframework.core.env.Environment
 import org.springframework.http.HttpMethod
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -143,12 +145,24 @@ open class Application {
 
     @Bean
     open fun masterConnectionConfiguration(@Value("\${master.url}") url: String,
-                                           @Value("\${master.username}") username: String?,
-                                           @Value("\${master.password}") password: String?,
-                                           @Value("\${master.apiKey}") apiKey: String?): RemoteApiAuthenticationDescriptor = RemoteApiAuthenticationDescriptor(url, username, password, apiKey)
+                                           @Value("\${master.username:#{null}}") username: String?,
+                                           @Value("\${master.password:#{null}}") password: String?,
+                                           @Value("\${master.apiKey:#{null}}") apiKey: String?): RemoteApiAuthenticationDescriptor = RemoteApiAuthenticationDescriptor(url, username, password, apiKey)
 
     @Bean
-    open fun remoteEventsFilter(@Value("\${events.filter}") eventNames: String) = RemoteEventFilter(eventNames)
+    open fun remoteEventsFilter(@Value("\${events.filter:#{null}}") eventNames: String?) = RemoteEventFilter(eventNames.orEmpty())
+
+
+
+    private val checkInColorPrefix = "checkIn.color.category."
+
+    @Bean
+    open fun categoryColorConfiguration(@Value("\${checkIn.color.default:#{null}}") defaultColor: String?, environment: ConfigurableEnvironment) = CategoryColorConfiguration(defaultColor ?: "success", environment.propertySources.asSequence()
+        .filter { it is EnumerablePropertySource }
+        .flatMap { (it as EnumerablePropertySource).propertyNames.asSequence() }
+        .filter { it.startsWith(checkInColorPrefix) }
+        .associate { it.substring(checkInColorPrefix.length) to environment.getProperty(it) })
+
 
     @Bean
     @Profile("server", "full")
@@ -183,7 +197,7 @@ open class Application {
         return trustManagerFactory.trustManagers[0] as X509TrustManager
     }
 
-    fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
+    private fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
         val timeFormatter = DateTimeFormatterBuilder()
             .appendValue(ChronoField.HOUR_OF_DAY, 2)
             .appendLiteral(':')
@@ -404,15 +418,31 @@ data class RemoteApiAuthenticationDescriptor(val url: String, val username: Stri
 
 data class RemoteEventFilter(private val events: String?) {
     private val eventNames
-        get() = events.orEmpty().split(",").map { it.trim() }
+        get() = events.orEmpty()
+            .split(",")
+            .asSequence()
+            .filter { it.isNotEmpty() }
+            .map { it.trim() }
+            .toList()
 
     fun accept(eventName: String) = eventNames.isEmpty() or eventNames.contains(eventName.trim())
 
 }
 
+data class CategoryColorConfiguration(private val defaultColor: String,
+                                      private val customColors: Map<String, String>) {
+
+    fun getColorFor(categoryName: String?): String = if(categoryName != null) {
+            val kebabCategoryName = categoryName.split(" ").joinToString(separator = "-").toLowerCase()
+            customColors.getOrDefault(kebabCategoryName, defaultColor)
+        } else {
+            defaultColor
+        }
+}
+
 fun main(args: Array<String>) {
     val properties = System.getProperties().entries.joinToString(separator = "\n", transform = {entry -> "${entry.key}=${entry.value}"})
-    logger.info("system properties: \n{}", properties);
+    logger.info("system properties: \n{}", properties)
     val address = retrieveIPAddress()
     System.setProperty("alfio.server.address", address)
     generateSslKeyPair(address)

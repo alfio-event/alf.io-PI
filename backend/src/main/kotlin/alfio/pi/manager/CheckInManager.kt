@@ -17,6 +17,7 @@
 
 package alfio.pi.manager
 
+import alfio.pi.CategoryColorConfiguration
 import alfio.pi.RemoteApiAuthenticationDescriptor
 import alfio.pi.RemoteEventFilter
 import alfio.pi.model.*
@@ -63,7 +64,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val httpClient: OkHttpClient,
                               private val printManager: PrintManager,
                               private val publisher: SystemEventHandler,
-                              @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean) {
+                              @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
+                              private val categoryColorConfiguration: CategoryColorConfiguration) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -146,7 +148,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                             val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                             kvStore.insertScanLog(eventKey, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
                             logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
-                            TicketAndCheckInResult(ticket, CheckInResult(localResult))
+                            TicketAndCheckInResult(ticket, CheckInResult(localResult, boxColorClass = categoryColorConfiguration.getColorFor(ticket.categoryName)))
                         } else {
                             localDataResult
                         }

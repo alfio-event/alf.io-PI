@@ -113,11 +113,15 @@ abstract class CheckInResponse(val result: CheckInResult, val ticket: Ticket?) :
 
 class TicketAndCheckInResult(ticket: Ticket, result: CheckInResult) : CheckInResponse(result, ticket), Serializable
 
-class EmptyTicketResult(result: CheckInResult = CheckInResult()) : CheckInResponse(result, null), Serializable
+class EmptyTicketResult(result: CheckInResult = CheckInResult(boxColorClass = "danger")) : CheckInResponse(result, null), Serializable
 
-class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN), val originalScanLog: ScanLog) : CheckInResponse(result, null), Serializable
+class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN, boxColorClass = "danger"), val originalScanLog: ScanLog) : CheckInResponse(result, null), Serializable
 
-data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND, val message: String? = null, val dueAmount: BigDecimal = BigDecimal.ZERO, val currency: String = ""): Serializable
+data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND,
+                         val message: String? = null,
+                         val dueAmount: BigDecimal = BigDecimal.ZERO,
+                         val currency: String = "",
+                         val boxColorClass: String = ""): Serializable
 
 enum class CheckInStatus(val successful: Boolean = false) {
     RETRY(),
