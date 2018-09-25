@@ -332,7 +332,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val event = entry.key.get()
             val scanLogEntries = entry.value.filter { it.ticket != null }
             val username = userRepository.findById(scanLogEntries.first { userRepository.findById(it.userId).isPresent }.userId).get().username
-            val body = scanLogEntries.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket!!.hmac}")}
+            val body = scanLogEntries.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket.hmac}")}
             val ticketIdToScanLogId = scanLogEntries.associate { it.ticket!!.uuid to it.id }
 
             val response = remoteBulkCheckIn(event.key, body, username)
