@@ -28,3 +28,7 @@ md-dialog-container.mat-dialog-container {
 .bg-white {
   background: white;
 }
+
+.h-15 {
+  height: 15% !important;
+}

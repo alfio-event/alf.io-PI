@@ -5,9 +5,9 @@
     <textarea [(ngModel)]="toScan"></textarea>
     <button type="button" (click)="onScan(toScan)">Scan</button>
   </div>
-  <div class="h-100 mt-2 pl-2 mb-5 d-flex flex-column align-content-between">
-    <div class="h-25 align-self-center">
-      <div ngbDropdown>
+  <div class="h-100 mt-2 pl-2 mb-2 d-flex flex-column align-content-between">
+    <div class="align-self-center mb-2 h-15">
+      <div ngbDropdown *ngIf="!status">
         <button class="btn btn-lg btn-outline-success" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-qrcode"></i> <span *ngIf="!activeEvent">Select Event</span><span *ngIf="activeEvent">Check-in for: {{activeEvent.name}}</span></button>
         <div class="dropdown-menu w-100" aria-labelledby="dropdownMenu1">
           <div *ngFor="let e of events; last as isLast" >
@@ -17,41 +17,38 @@
         </div>
       </div>
     </div>
-    <div class="h-75 d-flex flex-column align-content-start" *ngIf="activeEvent">
+    <div class="d-flex flex-column align-content-start" *ngIf="activeEvent">
       <div class="text-center mt-5 text-muted" *ngIf="!status && !loading">
         <i class="fa fa-qrcode fa-5x"></i>
         <h3>Scanning for {{activeEvent.name}}</h3>
       </div>
-      <div *ngIf="!loading && isStatusSuccess()">
+      <div *ngIf="!loading && isStatusSuccess()" class="d-flex flex-column align-content-center w-100">
         <div class="card" [ngClass]="'card-outline-'+boxColorClass">
           <div class="card-header text-center text-white" [ngClass]="'bg-'+boxColorClass">
             <h2><i class="fa fa-check"></i> {{ticket.categoryName}}</h2>
           </div>
           <div class="card-body card-block">
-            <div class="row">
-              <div [class.col-sm-6]="ticket.additionalServicesInfo.length > 0" [class.col-sm-12]="ticket.additionalServicesInfo.length == 0" class="text-center">
-                <div class="d-flex flex-column">
-                  <h4>{{ticket.firstName}} {{ticket.lastName}}</h4>
-                  <span>{{ticket.email}}</span>
-                  <small>{{ticket.uuid}}</small>
+            <div class="text-center">
+              <div class="d-flex flex-column">
+                <h4>{{ticket.firstName}} {{ticket.lastName}}</h4>
+                <span>{{ticket.email}}</span>
+                <small>{{ticket.uuid}}</small>
+              </div>
+            </div>
+            <div *ngIf="ticket.additionalServicesInfo.length > 0" class="text-center mt-1">
+              <i class="fa fa-plus text-muted"></i>
+            </div>
+            <div *ngIf="ticket.additionalServicesInfo.length > 0" class="mt-1 card-group">
+              <div class="card" *ngFor="let additionalService of ticket.additionalServicesInfo">
+                <div class="card-header">
+                  <h5>{{additionalService.count}} x {{additionalService.name}}</h5>
                 </div>
-              </div>
-              <div *ngIf="ticket.additionalServicesInfo.length > 0" class="col-sm-1 d-flex flex-column justify-content-center">
-                <i class="fa fa-plus text-muted"></i>
-              </div>
-              <div *ngIf="ticket.additionalServicesInfo.length > 0" class="col-sm-5">
-                <div class="list-group list-group-flush">
-                  <div class="list-group-item flex-column align-items-start" *ngFor="let additionalService of ticket.additionalServicesInfo">
+                <div class="list-group list-group-flush" *ngIf="additionalService.fields">
+                  <div class="list-group-item" *ngFor="let field of additionalService.fields">
                     <div class="d-flex w-100 justify-content-between">
-                      <h5 class="mb-1">{{additionalService.name}}</h5>
-                      <h5><span class="badge badge-pill" [ngClass]="'badge-'+boxColorClass">{{additionalService.count}}</span></h5>
+                      <span><strong>{{field.fieldName}}</strong></span>
+                      <span>{{field.fieldValue}}</span>
                     </div>
-                    <table class="table table-sm" *ngIf="additionalService.fields">
-                      <tr *ngFor="let field of additionalService.fields">
-                        <td><strong>{{field.fieldName}}</strong></td>
-                        <td>{{field.fieldValue}}</td>
-                      </tr>
-                    </table>
                   </div>
                 </div>
               </div>
