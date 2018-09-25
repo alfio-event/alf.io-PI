@@ -64,7 +64,15 @@
       <div class="text-center mt-2 text-danger" *ngIf="!loading && isStatusError()">
         <i class="fa fa-exclamation-circle fa-5x mb-2"></i>
         <h4>{{getStatusMessage()}}</h4>
-        <button class="btn btn-danger btn-lg mt-5" (click)="forcePrint()">force print label</button>
+        <hr *ngIf="ticket" />
+        <div class="text-center" *ngIf="ticket">
+          <div class="d-flex flex-column">
+            <h5>{{ticket.firstName}} {{ticket.lastName}}</h5>
+            <span>{{ticket.email}}</span>
+            <small>{{ticket.uuid}}</small>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-lg mt-5" (click)="forcePrint()" *ngIf="ticket">force print label</button>
         <button class="btn btn-danger btn-lg mt-5" (click)="nextScan()">dismiss</button>
       </div>
       <div class="mt-auto mb-auto text-center">

@@ -115,7 +115,7 @@ class TicketAndCheckInResult(ticket: Ticket, result: CheckInResult) : CheckInRes
 
 class EmptyTicketResult(result: CheckInResult = CheckInResult(boxColorClass = "danger")) : CheckInResponse(result, null), Serializable
 
-class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN, boxColorClass = "danger"), val originalScanLog: ScanLog) : CheckInResponse(result, null), Serializable
+class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN, boxColorClass = "danger"), val originalScanLog: ScanLog) : CheckInResponse(result, originalScanLog.ticket), Serializable
 
 data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND,
                          val message: String? = null,
