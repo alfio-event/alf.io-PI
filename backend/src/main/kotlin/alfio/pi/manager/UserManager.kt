@@ -23,7 +23,6 @@ import alfio.pi.model.UserWithPassword
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
 import alfio.pi.util.PasswordGenerator
-import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.password.PasswordEncoder
 
 fun updatePassword(user: User): (PasswordGenerator, PasswordEncoder, UserRepository) -> UserWithPassword = { generator, encoder, userRepository ->

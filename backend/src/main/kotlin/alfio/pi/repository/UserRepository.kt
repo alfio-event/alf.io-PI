@@ -17,10 +17,10 @@
 
 package alfio.pi.repository
 
-import alfio.pi.model.*
+import alfio.pi.model.Event
+import alfio.pi.model.Role
+import alfio.pi.model.User
 import ch.digitalfondue.npjt.*
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
 import java.util.*
 
 @QueryRepository

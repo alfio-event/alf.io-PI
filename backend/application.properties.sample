@@ -36,8 +36,12 @@ checkIn.color.default=success
 
 #To apply a specific color, define the key, which is
 #checkIn.color.category.
-# + your category name (kebab-case)
+# + your category name (only ASCII chars, kebab-case. Please check backend/src/test/kotlin/alfio/pi/ApplicationTest.kt for some corner-case samples)
 #
 #checkIn.color.category.long-category-name=warning
 #
 # please do not use "danger" as category color, as it will be confusing for the operator (danger is used to display errors). You have been warned.
+
+#Ticket Categories Blacklist
+#if you want to disable offline check-in for some categories, enter their comma-separated keys (see checkIn.color for details), e.g.
+#checkIn.categories.blacklist=long-category-name-1,long-category-name-2

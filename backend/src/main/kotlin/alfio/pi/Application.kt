@@ -268,7 +268,7 @@ open class Application {
         @Bean
         @Profile("server", "full")
         fun queryRepositoryScanner(queryFactory: QueryFactory): QueryRepositoryScanner = QueryRepositoryScanner(queryFactory, "alfio.pi.repository")
-        val deskUsername = "desk-user"
+        const val deskUsername = "desk-user"
     }
 }
 
@@ -381,7 +381,7 @@ open class PrinterWebSecurity: WebSecurityConfigurerAdapter() {
 
 @Configuration
 @Profile("!dev")
-open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String, val environment: Environment): WebMvcConfigurerAdapter() {
+open class MvcConfiguration(@Value("\${alfio.version}") val alfioVersion: String, private val environment: Environment): WebMvcConfigurerAdapter() {
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
         if(environment.acceptsProfiles("server", "full")) {
             val baseDir = "classpath:/META-INF/resources/webjars/alfio-pi-frontend/$alfioVersion"
@@ -433,12 +433,20 @@ data class CategoryColorConfiguration(private val defaultColor: String,
                                       private val customColors: Map<String, String>) {
 
     fun getColorFor(categoryName: String?): String = if(categoryName != null) {
-            val kebabCategoryName = categoryName.split(" ").joinToString(separator = "-").toLowerCase()
-            customColors.getOrDefault(kebabCategoryName, defaultColor)
+            customColors.getOrDefault(getCategoryKey(categoryName), defaultColor)
         } else {
             defaultColor
         }
 }
+
+private val categoryNameCleaner = Regex("[^a-z0-9\\s]")
+private val delimiter = Regex("\\s+")
+
+fun getCategoryKey(categoryName: String): String = categoryName.trim()
+    .toLowerCase()
+    .replace(categoryNameCleaner, "")
+    .split(delimiter)
+    .joinToString(separator = "-")
 
 fun main(args: Array<String>) {
     val properties = System.getProperties().entries.joinToString(separator = "\n", transform = {entry -> "${entry.key}=${entry.value}"})

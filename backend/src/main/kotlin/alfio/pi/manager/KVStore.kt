@@ -143,7 +143,7 @@ open class KVStore(private val gson: Gson) {
             }
         }
 
-        return matching.sortedWith(compareByDescending<Triple<String, Long, String>> { it.second }.thenBy {it.third}).map { it.first }
+        return matching.asSequence().sortedWith(compareByDescending<Triple<String, Long, String>> { it.second }.thenBy {it.third}).map { it.first }.toList()
     }
 
     private fun findAllIdsWith(nameValuePairs: Array<Pair<String, String>>): List<String> {
@@ -229,8 +229,10 @@ open class KVStore(private val gson: Gson) {
         }
 
         return matching
+            .asSequence()
             .sortedWith(compareByDescending<Tuple<String, Long>> { it.val2 }.thenBy { it.val1 })
             .map { findById(it.val1)!! }
+            .toList()
     }
 
     fun loadPageAndTotalCount(offset: Int, pageSize: Int, search: String?): Pair<List<ScanLog>, Int> {

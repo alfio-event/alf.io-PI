@@ -184,7 +184,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
 
     internal fun buildConfigurableLabelContent(layout: LabelLayout?, ticket: Ticket): ConfigurableLabelContent {
         return if (layout != null) {
-            val qrContent = listOf(ticket.uuid).plus(retrieveQRCodeContent(layout, ticket)).joinToString(separator = layout.qrCode.infoSeparator)
+            val qrContent = sequenceOf(ticket.uuid).plus(retrieveQRCodeContent(layout, ticket)).joinToString(separator = layout.qrCode.infoSeparator)
             val partialID = if (layout.general.printPartialID) {
                 ticket.uuid.substringBefore('-').toUpperCase()
             } else {
@@ -197,9 +197,10 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
     }
 
     private fun retrieveAllAdditionalInfo(layout: LabelLayout, ticket: Ticket) : List<String> =
-        layout.content.thirdRow.orEmpty().plus(layout.content.additionalRows.orEmpty())
+        layout.content.thirdRow.orEmpty().asSequence()
+            .plus(layout.content.additionalRows.orEmpty())
             .filter { it.isNotEmpty() }
-            .map { ticket.additionalInfo?.get(it).orEmpty() }
+            .map { ticket.additionalInfo?.get(it).orEmpty() }.toList()
 
     private fun retrieveQRCodeContent(layout: LabelLayout, ticket: Ticket) : List<String> {
         val info = ticket.additionalInfo.orEmpty().plus(getTicketBasicInfo(ticket))
@@ -226,7 +227,7 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
                             private val trustManager: X509TrustManager,
                             publisher : SystemEventHandler,
                             private val environment: Environment,
-                            private val kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
+                            kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
 
     private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 
@@ -294,7 +295,7 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
         logger.trace("received ${event.printers.size} printers from ${event.remoteHost}")
         val existing = remotePrinters.filter { it.remoteHost == event.remoteHost }
         logger.trace("saved printers: $remotePrinters")
-        if(event.printers.none() || event.printers.map { it.name }.filter { name -> existing.none { it.name == name } }.any()) {
+        if(event.printers.none() || event.printers.asSequence().map { it.name }.filter { name -> existing.none { it.name == name } }.any()) {
             logger.info("adding ${event.printers} for ${event.remoteHost}")
             remotePrinters.removeAll(existing)
             remotePrinters.addAll(event.printers)

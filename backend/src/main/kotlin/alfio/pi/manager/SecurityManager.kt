@@ -35,7 +35,7 @@ interface SslKeyExporter {
 @Profile("!dev")
 open class LiveSslKeyExporter : SslKeyExporter {
 
-    val certificate: String
+    private val certificate: String
 
     init {
         val keyStore = KeyStore.getInstance("JKS")

@@ -17,16 +17,14 @@
 
 package alfio.pi.repository
 
-import alfio.pi.model.*
+import alfio.pi.model.Printer
+import alfio.pi.model.UserAndPrinter
+import alfio.pi.model.UserPrinter
 import ch.digitalfondue.npjt.AffectedRowCountAndKey
 import ch.digitalfondue.npjt.Bind
 import ch.digitalfondue.npjt.Query
 import ch.digitalfondue.npjt.QueryRepository
-import org.slf4j.LoggerFactory
-import java.time.ZonedDateTime
 import java.util.*
-
-private val logger = LoggerFactory.getLogger("ScanRepository")
 
 @QueryRepository
 interface PrinterRepository {

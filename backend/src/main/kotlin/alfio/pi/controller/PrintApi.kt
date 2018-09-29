@@ -38,7 +38,7 @@ val logger: Logger = LoggerFactory.getLogger("PrintApi")
 @RestController
 @RequestMapping("/api/internal/user-printer")
 @Profile("server", "full")
-open class UserPrinterApi(private val transactionManager: PlatformTransactionManager, val userPrinterRepository: UserPrinterRepository) {
+open class UserPrinterApi(private val transactionManager: PlatformTransactionManager, private val userPrinterRepository: UserPrinterRepository) {
     @RequestMapping(value = ["/"], method = [(RequestMethod.POST)])
     open fun linkUserToPrinter(@RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
         val userId = userPrinterForm.userId

@@ -20,6 +20,7 @@ package alfio.pi.manager
 import alfio.pi.CategoryColorConfiguration
 import alfio.pi.RemoteApiAuthenticationDescriptor
 import alfio.pi.RemoteEventFilter
+import alfio.pi.getCategoryKey
 import alfio.pi.model.*
 import alfio.pi.model.CheckInStatus.*
 import alfio.pi.repository.*
@@ -65,11 +66,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val printManager: PrintManager,
                               private val publisher: SystemEventHandler,
                               @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
+                              @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
                               private val categoryColorConfiguration: CategoryColorConfiguration) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
     private val ticketDataNotFound = "ticket-not-found"
+    private val blacklistedCategories = categoriesBlacklist.orEmpty().split(",").asSequence().map { it.trim() }.toSet()
 
 
     private fun getAttendeeData(event: Event, key: String) : String? {
@@ -92,13 +95,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return tryOrDefault<CheckInResponse>().invoke({
             if(result != null && result != ticketDataNotFound) {
                 val ticketData = gson.fromJson(decrypt("$uuid/$hmac", result), TicketData::class.java)
-                TicketAndCheckInResult(Ticket(uuid,
+                val ticket = Ticket(uuid,
                     ticketData.firstName, ticketData.lastName,
                     ticketData.email, ticketData.additionalInfo,
                     categoryName = ticketData.category,
                     validCheckInFrom = ticketData.validCheckInFrom,
                     validCheckInTo = ticketData.validCheckInTo,
-                    additionalServicesInfo = ticketData.additionalServicesInfo), CheckInResult(ticketData.checkInStatus))
+                    additionalServicesInfo = ticketData.additionalServicesInfo)
+                checkIfBlacklisted(TicketAndCheckInResult(ticket, CheckInResult(ticketData.checkInStatus)))
             } else {
                 logger.warn("no eventData found for $key.")
                 EmptyTicketResult()
@@ -156,6 +160,20 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             }.orElseGet{ EmptyTicketResult() }
     }
 
+    private fun checkIfBlacklisted(localResult: TicketAndCheckInResult): CheckInResponse = if(isBlacklisted(localResult)) {
+        logger.warn("Scanned blacklisted category [${localResult.ticket?.categoryName}]")
+        CheckInForbidden()
+    } else {
+        localResult
+    }
+
+    private fun isBlacklisted(localDataResult: CheckInResponse): Boolean {
+        return blacklistedCategories.isNotEmpty()
+            && localDataResult.ticket != null
+            && localDataResult.ticket.categoryName != null
+            && blacklistedCategories.contains(getCategoryKey(localDataResult.ticket.categoryName))
+    }
+
     internal fun forcePrintLabel(eventName: String, uuid: String, hmac: String, username: String) : Boolean {
         return eventRepository.loadSingle(eventName).flatMap { event -> userRepository.findByUsername(username).map { user -> event to user}}
             .map { (event, user) ->
@@ -193,7 +211,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         val changedSinceParam = if (since == null) "" else "?changedSince=$since"
 
         val url = "${master.url}/admin/api/check-in/$eventName/offline-identifiers$changedSinceParam"
-        logger.info("Will call remote url {}", url)
+        logger.debug("Will call remote url {}", url)
 
         val request = Request.Builder()
             .addHeader("Authorization", master.authenticationHeaderValue())
@@ -217,7 +235,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             .addHeader("Authorization", master.authenticationHeaderValue())
             .url(url)
             .build()
-        logger.info("Will call remote url {}", url)
+        logger.debug("Will call remote url {}", url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
                 resp.isSuccessful -> LabelConfiguration(eventName, resp.body()?.string(), true)
@@ -242,15 +260,15 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         saveAttendees(eventName, attendees)
                         logger.debug("finished loading ${partitionedIds.size}")
                     }
+                    logger.info("finished loading attendees for event $eventName")
                 }
-                logger.info("finished loading attendees for event $eventName")
             }
         })
     }
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
         val url = "${master.url}/admin/api/check-in/$eventName/offline"
-        logger.info("Will call remote url {}", url)
+        logger.debug("Will call remote url {}", url)
         return tryOrDefault<Map<String, String>>().invoke({
             val begin = System.currentTimeMillis()
             val request = Request.Builder()
@@ -338,7 +356,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val response = remoteBulkCheckIn(event.key, body, username)
 
             response.forEach {
-                logger.info("response is ${it.key} ${gson.toJson(it.value)}")
+                logger.trace("response is ${it.key} ${gson.toJson(it.value)}")
                 kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key]!!)
             }
         }, { logger.error("unable to upload pending check-in", it)})
@@ -408,7 +426,7 @@ internal fun calcHash256(hmac: String) : String {
         .digest(hmac.toByteArray()).joinToString(separator = "", transform = {
             val result = Integer.toHexString(0xff and it.toInt())
             if(result.length == 1) {
-                "0" + result
+                "0$result"
             } else {
                 result
             }
@@ -438,7 +456,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
     open fun onDemandSync(events: List<RemoteEvent>) {
         if(kvStore.isLeader()) {
             logger.debug("Leader begin onDemandSync")
-            events.map { it.key }.filter { it != null && remoteEventFilter.accept(it)}.map {
+            events.asSequence().map { it.key }.filter { it != null && remoteEventFilter.accept(it)}.forEach {
                 checkInDataManager.syncAttendees(it!!)
             }
             logger.debug("Leader end onDemandSync")

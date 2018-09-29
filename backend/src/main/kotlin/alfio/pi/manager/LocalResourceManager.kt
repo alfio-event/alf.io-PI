@@ -199,6 +199,7 @@ open class LocalPrinterMonitor(private val printManager: PrintManager) {
 
     private fun pollEvents(watchKey: WatchKey) {
         watchKey.pollEvents()
+            .asSequence()
             .filter { it.kind() == StandardWatchEventKinds.ENTRY_CREATE || it.kind() == StandardWatchEventKinds.ENTRY_DELETE }
             .map { (it.context() as Path).fileName.toString() to it.kind() }
             .filter { it.first.startsWith("Alfio") }
