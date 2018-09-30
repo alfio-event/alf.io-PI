@@ -14,3 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
+plugins {
+    id 'net.researchgate.release' version '2.7.0'
+}
+
+release {
+    tagTemplate = 'v$version'
+    git {
+        requireBranch = ''
+        pushToRemote = 'origin'
+        signTag = true
+    }
+}

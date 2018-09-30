@@ -34,10 +34,6 @@ buildscript {
     }
 }
 
-plugins {
-    id 'net.researchgate.release' version '2.7.0'
-}
-
 configure(allprojects) {
     apply plugin: 'propdeps'
     apply plugin: 'propdeps-maven'
@@ -122,14 +118,5 @@ springBoot {
     executable = true
 }
 compileJava.dependsOn(processResources)
-
-release {
-    tagTemplate = 'v$version'
-    git {
-        requireBranch = ''
-        pushToRemote = 'origin'
-        signTag = true
-    }
-}
 
 
