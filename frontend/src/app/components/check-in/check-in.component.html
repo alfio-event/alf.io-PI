@@ -6,7 +6,7 @@
     <button type="button" (click)="onScan(toScan)">Scan</button>
   </div>
   <div class="h-100 mt-2 pl-2 mb-2 d-flex flex-column align-content-between">
-    <div class="align-self-center mb-2 h-15">
+    <div class="align-self-center mb-2" [ngClass]="{'h-15': loading || !isStatusSuccess() || ticket.additionalServicesInfo.length == 0}">
       <div ngbDropdown *ngIf="!status">
         <button class="btn btn-lg btn-outline-success" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-qrcode"></i> <span *ngIf="!activeEvent">Select Event</span><span *ngIf="activeEvent">Check-in for: {{activeEvent.name}}</span></button>
         <div class="dropdown-menu w-100" aria-labelledby="dropdownMenu1">
@@ -62,8 +62,8 @@
         </div>
       </div>
       <div class="text-center mt-2 text-danger" *ngIf="!loading && isStatusError()">
-        <i class="fa fa-exclamation-circle fa-5x mb-2"></i>
-        <h4>{{getStatusMessage()}}</h4>
+        <i class="fa fa-exclamation-circle fa-4x mb-2"></i>
+        <h3>{{getStatusMessage()}}</h3>
         <hr *ngIf="ticket" />
         <div class="text-center" *ngIf="ticket">
           <div class="d-flex flex-column">

@@ -124,7 +124,7 @@ open class ZebraZD410: LabelTemplate {
             val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 18F, 18 to 16F, 21 to 14F), true)
 
             it.setFont(font, secondRowContent.second)
-            it.newLineAtOffset(0F, -20F)
+            it.newLineAtOffset(0F, -25F)
             it.showText(secondRowContent.first)
 
             val maxLengthAdditionalRows = arrayOf(29 to 10F)
