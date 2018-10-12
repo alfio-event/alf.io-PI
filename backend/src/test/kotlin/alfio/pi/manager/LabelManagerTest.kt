@@ -51,20 +51,20 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabel() {
-        val bytes = generatePDFLabel("George", "William", listOf("Test Company", "Second row"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(DymoLW450Turbo41x89())
+        val bytes = generatePDFLabel("George", "William", listOf("Test Company", "Second row"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 
 
     @Test
     fun testGenerateLabelZebra() {
-        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(ZebraZD410())
+        val bytes = generatePDFLabel("George", "William", listOf(), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(ZebraZD410())
         assertTrue(bytes.isNotEmpty())
     }
 
     @Test
     fun testGenerateLabelBixolon() {
-        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678").invoke(BixolonTX220())
+        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(BixolonTX220())
         assertTrue(bytes.isNotEmpty())
     }
 

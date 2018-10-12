@@ -37,6 +37,7 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.*
+import kotlin.math.absoluteValue
 
 interface LabelTemplate {
     fun getPageDimensions(): PDRectangle
@@ -46,7 +47,7 @@ interface LabelTemplate {
     fun supportsPrinter(name: String): Boolean
 }
 
-class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrCode: PDImageXObject, val qrText: String)
+class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrCode: PDImageXObject, val qrText: String, val checkbox: Boolean)
 
 @Component
 open class DymoLW450Turbo41x89: LabelTemplate {
@@ -81,12 +82,8 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             } else {
                 -20F
             }
-            labelContent.additionalRows.orEmpty().take(2).forEach {content ->
-                val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
-                it.setFont(font, optimizedContent.second)
-                it.newLineAtOffset(0F, offset)
-                it.showText(optimizedContent.first)
-            }
+            val additionalRows = labelContent.additionalRows.orEmpty().take(2)
+            printAdditionalRows(additionalRows, it, offset, labelContent, font, maxLengthAdditionalRows)
 
             it.endText()
             it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
@@ -98,6 +95,30 @@ open class DymoLW450Turbo41x89: LabelTemplate {
     }
 
     override fun supportsPrinter(name: String): Boolean = name.matches(Regex("^Alfio(-DYM)?-[A-Z0-9]+$"))
+}
+
+private fun printAdditionalRows(additionalRows: List<String>, it: PDPageContentStream, offset: Float, labelContent: LabelContent, font: PDFont, maxLengthAdditionalRows: Array<Pair<Int, Float>>) {
+    val rowsToPrint = if(additionalRows.isEmpty() && labelContent.checkbox) {
+        arrayListOf("")
+    } else {
+        additionalRows
+    }
+    rowsToPrint.forEachIndexed { index, content ->
+        it.newLineAtOffset(0F, offset)
+        val displayCheckbox = index == rowsToPrint.size - 1 && labelContent.checkbox
+        if (displayCheckbox) {
+            it.setFont(font, offset.absoluteValue)
+            it.showText("\u2610")
+        }
+        val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
+        it.setFont(font, optimizedContent.second)
+        val text = if (displayCheckbox) {
+            " ${optimizedContent.first}"
+        } else {
+            optimizedContent.first
+        }
+        it.showText(text)
+    }
 }
 
 @Component
@@ -128,12 +149,7 @@ open class ZebraZD410: LabelTemplate {
             it.showText(secondRowContent.first)
 
             val maxLengthAdditionalRows = arrayOf(29 to 10F)
-            labelContent.additionalRows.orEmpty().take(3).forEach { content ->
-                val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
-                it.setFont(font, optimizedContent.second)
-                it.newLineAtOffset(0F, -20F)
-                it.showText(optimizedContent.first)
-            }
+            printAdditionalRows(labelContent.additionalRows.orEmpty().take(3), it, -20F, labelContent, font, maxLengthAdditionalRows)
 
             it.endText()
 
@@ -158,16 +174,19 @@ open class BixolonTX220: ZebraZD410() {
     override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-BXL-")
 }
 
+private val controlCharsFinder = Regex("\\p{C}")
+
 internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Float>>, compactText: Boolean = false): Pair<String, Float> {
+    val text = content.trim().replace(controlCharsFinder, "")
     val options = maxLengthForSize.size
     val sizes = maxLengthForSize.mapIndexed {
-        i, (maxLength, fontSize) -> checkTextLength(compactText, content, fontSize, maxLength, i == options - 1)
+        i, (maxLength, fontSize) -> checkTextLength(compactText, text, fontSize, maxLength, i == options - 1)
     }
     return Optional.ofNullable(sizes.firstOrNull { it.first })
         .map { it!!.second to it.third }
         .orElseGet {
             val conf = maxLengthForSize[maxLengthForSize.size - 1]
-            content.substring(0 until conf.first).trim().trim('\u200B', '\u200C', '\u200D') to conf.second
+            text.substring(0 until conf.first) to conf.second
         }
 }
 
@@ -221,7 +240,13 @@ private fun compact(text: String, maxLength: Int, lightOnly: Boolean = false): S
 }
 
 
-fun generatePDFLabel(firstName: String, lastName: String, additionalRows: List<String>, ticketUUID: String, qrCodeContent: String = ticketUUID, partialUUID: String): (LabelTemplate) -> ByteArray = { template ->
+fun generatePDFLabel(firstRow: String,
+                     secondRow: String,
+                     additionalRows: List<String>,
+                     ticketUUID: String,
+                     qrCodeContent: String = ticketUUID,
+                     partialUUID: String,
+                     checkbox: Boolean): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
     val out = ByteArrayOutputStream()
     document.use { pdDocument ->
@@ -230,7 +255,7 @@ fun generatePDFLabel(firstName: String, lastName: String, additionalRows: List<S
         pdDocument.addPage(page)
         val qr = LosslessFactory.createFromImage(pdDocument, generateQRCode(qrCodeContent))
         val contentStream = PDPageContentStream(pdDocument, page, PDPageContentStream.AppendMode.OVERWRITE, false)
-        template.writeContent(contentStream, pageWidth, LabelContent(firstName, lastName, additionalRows, qr, partialUUID)) {PDType0Font.load(document, it)}
+        template.writeContent(contentStream, pageWidth, LabelContent(firstRow, secondRow, additionalRows, qr, partialUUID, checkbox)) {PDType0Font.load(document, it)}
         pdDocument.save(out)
     }
     out.toByteArray()

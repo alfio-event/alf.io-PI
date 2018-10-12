@@ -208,6 +208,6 @@ data class RemotePrinter(val name: String, val remoteHost: String)
 
 data class LabelLayout(val qrCode: QRCode, val content: Content, val general: General) : Serializable
 data class QRCode(val additionalInfo: List<String>, val infoSeparator: String) : Serializable
-data class Content(val thirdRow: List<String>?, val additionalRows: List<String>?) : Serializable
+data class Content(val firstRow: String?, val secondRow: String?, val thirdRow: List<String>?, val additionalRows: List<String>?, val checkbox: Boolean?) : Serializable
 data class General(val printPartialID: Boolean) : Serializable
 

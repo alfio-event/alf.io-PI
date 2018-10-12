@@ -161,7 +161,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         } else {
             buildConfigurableLabelContent(labelConfiguration?.configuration?.layout, ticket)
         }
-        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows.orEmpty(), ticket.uuid, configurableContent.qrContent, configurableContent.partialID).invoke(labelTemplate)
+        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows.orEmpty(), ticket.uuid, configurableContent.qrContent, configurableContent.partialID, configurableContent.checkbox).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace(cmd)
         val print = Runtime.getRuntime().exec(cmd)
@@ -190,7 +190,10 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             } else {
                 ""
             }
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID)
+            val ticketInfo = getAllTicketInfo(ticket)
+            val firstRow = ticketInfo[layout.content.firstRow] ?: ticket.firstName
+            val secondRow = ticketInfo[layout.content.secondRow] ?: ticket.lastName
+            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID)
         } else {
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
         }
@@ -203,9 +206,11 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             .map { ticket.additionalInfo?.get(it).orEmpty() }.toList()
 
     private fun retrieveQRCodeContent(layout: LabelLayout, ticket: Ticket) : List<String> {
-        val info = ticket.additionalInfo.orEmpty().plus(getTicketBasicInfo(ticket))
+        val info = getAllTicketInfo(ticket)
         return layout.qrCode.additionalInfo.map { info[it].orEmpty() }
     }
+
+    private fun getAllTicketInfo(ticket: Ticket) = ticket.additionalInfo.orEmpty().plus(getTicketBasicInfo(ticket))
 
     private fun getTicketBasicInfo(ticket: Ticket) = listOf("firstName" to ticket.firstName,
             "lastName" to ticket.lastName,
@@ -311,7 +316,12 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     return this
 }
 
-data class ConfigurableLabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrContent: String, val partialID: String)
+data class ConfigurableLabelContent(val firstRow: String,
+                                    val secondRow: String,
+                                    val additionalRows: List<String>?,
+                                    val qrContent: String,
+                                    val partialID: String,
+                                    val checkbox: Boolean = false)
 
 
 
