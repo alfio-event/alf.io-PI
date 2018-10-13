@@ -186,7 +186,7 @@ internal fun optimizeText(content: String, maxLengthForSize: Array<Pair<Int, Flo
         .map { it!!.second to it.third }
         .orElseGet {
             val conf = maxLengthForSize[maxLengthForSize.size - 1]
-            text.substring(0 until conf.first) to conf.second
+            text.substring(0 until conf.first).trim() to conf.second
         }
 }
 
