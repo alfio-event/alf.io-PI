@@ -6,13 +6,14 @@ import { DateTime } from 'luxon';
   selector: 'alfio-sidebar-watch',
   template: `
     <div class="mt-2">
-      <h4>{{currentTime.toFormat('H:mm')}}</h4>
-      <small>{{currentTime.toFormat('yyyy-MM-dd')}}</small>
+      <h4>{{currentTime}}</h4>
+      <small>{{currentDate}}</small>
     </div>`
 })
 export class SidebarWatchComponent implements OnInit, OnDestroy {
 
-  currentTime: DateTime;
+  currentTime: string;
+  currentDate: string;
 
   @Input()
   timezone: string;
@@ -23,7 +24,9 @@ export class SidebarWatchComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.subscription = Observable.timer(100, 10000)
       .subscribe(t => {
-          this.currentTime = DateTime.local().setZone(this.timezone);
+          let dateTime = DateTime.local().setZone(this.timezone);
+          this.currentTime = dateTime.toFormat('H:mm');
+          this.currentDate = dateTime.toFormat('yyyy-MM-dd');
       })
   }
 
