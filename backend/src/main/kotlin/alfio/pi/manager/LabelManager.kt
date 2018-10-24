@@ -76,7 +76,11 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             it.newLineAtOffset(0F, -20F)
             it.showText(secondRowContent.first)
 
-            val maxLengthAdditionalRows = arrayOf(23 to 10F, 27 to 9F)
+            val checkboxChars = when(labelContent.checkbox) {
+                true -> 2
+                false -> 0
+            }
+            val maxLengthAdditionalRows = arrayOf(23 - checkboxChars to 10F, 28 - checkboxChars to 9F, 32 - checkboxChars to 8F, 38 - checkboxChars to 7F, 43 - checkboxChars to 6F)
             val offset = if(labelContent.additionalRows?.size ?: 0 > 1) {
                 -17F
             } else {

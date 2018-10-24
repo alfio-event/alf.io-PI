@@ -40,6 +40,7 @@ import {SettingsComponent} from "./components/settings/settings.component";
 import { VirtualKeyboardDirective } from './virtual-keyboard.directive';
 import {ConfigurationService} from "./shared/configuration/configuration.service";
 import { SystemInfoComponent } from './components/system-info/system-info.component';
+import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.component";
 
 @NgModule({
   declarations: [
@@ -67,7 +68,8 @@ import { SystemInfoComponent } from './components/system-info/system-info.compon
     CheckInComponent,
     ScanListenerDirective,
     VirtualKeyboardDirective,
-    SystemInfoComponent
+    SystemInfoComponent,
+    SidebarWatchComponent
   ],
   imports: [
     NgbModule.forRoot(),

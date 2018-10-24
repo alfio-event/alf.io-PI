@@ -160,7 +160,8 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
                 "location" to r.location,
                 "apiVersion" to r.apiVersion,
                 "oneDay" to r.oneDay,
-                "active" to l.active))
+                "active" to l.active,
+                "timezone" to r.timeZone))
         }.toTypedArray()
         if(!toBeUpdated.isEmpty()) {
             jdbc.batchUpdate(eventRepository.bulkUpdate(), toBeUpdated)
@@ -179,7 +180,8 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
                 "location" to r.location,
                 "apiVersion" to r.apiVersion,
                 "oneDay" to r.oneDay,
-                "active" to true))
+                "active" to true,
+                "timezone" to r.timeZone))
         }.toTypedArray()
         if(!toBeCreated.isEmpty()) {
             jdbc.batchUpdate(eventRepository.bulkInsert(), toBeCreated)

@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, Input, OnInit} from '@angular/core';
+import {Observable} from "rxjs";
+import {Event} from "../../shared/event/event.service";
 
 @Component({
   selector: 'alfio-responsive-layout',
@@ -6,6 +8,9 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./responsive-layout.component.css']
 })
 export class ResponsiveLayoutComponent implements OnInit {
+
+  @Input()
+  eventSelectionListener: Observable<Event>;
 
   constructor() { }
 

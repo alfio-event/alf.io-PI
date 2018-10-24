@@ -1,4 +1,4 @@
-<alfio-responsive-layout>
+<alfio-responsive-layout [eventSelectionListener]="eventSelectionListener">
   <alfio-key-listener tabindex="0" #keyListener (scanStream)="onScan($event)"></alfio-key-listener>
   <!-- -->
   <div *ngIf="testMode">

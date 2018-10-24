@@ -58,10 +58,10 @@ interface EventRepository {
     @Query("select * from event where key = :key")
     fun loadSingle(@Bind("key") eventName: String): Optional<Event>
 
-    @Query(type = QueryType.TEMPLATE, value = "insert into event(key, name, image_url, begin_ts, end_ts, location, api_version, one_day, active) values(:key, :name, :imageUrl, :begin, :end, :location, :apiVersion, :oneDay, :active)")
+    @Query(type = QueryType.TEMPLATE, value = "insert into event(key, name, image_url, begin_ts, end_ts, location, api_version, one_day, active, timezone) values(:key, :name, :imageUrl, :begin, :end, :location, :apiVersion, :oneDay, :active, :timezone)")
     fun bulkInsert(): String
 
-    @Query(type = QueryType.TEMPLATE, value = "update event set name = :name, image_url = :imageUrl, begin_ts = :begin, end_ts = :end, location = :location, api_version = :apiVersion, one_day = :oneDay where key = :key")
+    @Query(type = QueryType.TEMPLATE, value = "update event set name = :name, image_url = :imageUrl, begin_ts = :begin, end_ts = :end, location = :location, api_version = :apiVersion, one_day = :oneDay, timezone = :timezone where key = :key")
     fun bulkUpdate(): String
 
     @Query("update event set active = :state where key = :key")

@@ -6,7 +6,7 @@
         <p>Scan tickets offline and print badges for your event!</p>
       </div>
     </div>
-    <alfio-sidebar></alfio-sidebar>
+    <alfio-sidebar [event]="eventSelectionListener | async"></alfio-sidebar>
     <div class="ml-2 d-flex flex-column align-self-stretch w-100">
       <ng-content></ng-content>
     </div>

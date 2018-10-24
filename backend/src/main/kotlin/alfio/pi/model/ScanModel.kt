@@ -36,7 +36,8 @@ data class Event(@Column("key") val key: String,
                  @Column("location") val location: String?,
                  @Column("api_version") val apiVersion: Int,
                  @Column("active") val active: Boolean,
-                 @Column("last_update") val lastUpdate: ZonedDateTime?)
+                 @Column("last_update") val lastUpdate: ZonedDateTime?,
+                 @Column("timezone") val timezone: String?)
 
 
 data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean) : Comparable<Printer> {
@@ -172,6 +173,7 @@ class RemoteEvent {
     var oneDay: Boolean = false
     var location: String? = null
     var apiVersion: Int = 0
+    var timeZone: String? = null
 }
 
 class AdditionalServiceInfo {
