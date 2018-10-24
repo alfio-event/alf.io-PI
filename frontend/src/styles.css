@@ -32,3 +32,19 @@ md-dialog-container.mat-dialog-container {
 .h-15 {
   height: 15% !important;
 }
+
+.ui-keyboard-accept {
+  color: white;
+  font-weight: bold;
+  background: #5cb85c;
+}
+
+.ui-keyboard-cancel {
+  color: white;
+  font-weight: bold;
+  background: #d9534f;
+}
+
+.ui-keyboard-button {
+  margin: 3px;
+}
