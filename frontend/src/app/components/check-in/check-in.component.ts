@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import {Component, OnInit, ViewChild} from '@angular/core';
 import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
 import {Account} from "../../scan-module/account/account";
@@ -7,6 +7,7 @@ import {CheckInStatus, statusDescriptions, Ticket} from "../../scan-module/scan/
 import {ProgressManager} from "../../ProgressManager";
 import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
 import {ConfigurationService, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
+import {Observable, Subject} from "rxjs";
 
 @Component({
   selector: 'alfio-check-in',
@@ -29,6 +30,9 @@ export class CheckInComponent implements OnInit {
 
   @ViewChild('keyListener') keyListener;
 
+  eventSelectionListener: Observable<Event>;
+  private eventSelectionSubject: Subject<Event>;
+
   labelCounter: any;
   labelDefaultCounter: any;
 
@@ -39,7 +43,9 @@ export class CheckInComponent implements OnInit {
     this.account = new Account();
     this.account.url = '';
     this.progressManager = new ProgressManager();
-    this.progressManager.observable.subscribe(status => this.loading = status)
+    this.progressManager.observable.subscribe(status => this.loading = status);
+    this.eventSelectionSubject = new Subject();
+    this.eventSelectionListener = this.eventSelectionSubject.asObservable();
   }
 
   ngOnInit(): void {
@@ -96,6 +102,7 @@ export class CheckInComponent implements OnInit {
 
   setActiveEvent(event: Event) {
     this.activeEvent = event;
+    this.eventSelectionSubject.next(event);
   }
 
   confirmResetLabelCounter() {

@@ -7,9 +7,9 @@
       <div class="card-block">
         <table>
           <tbody>
-            <tr><th>Is leader:</th><td>{{isLeader}}</td></tr>
-            <tr><th>Name in cluster:</th><td>{{nameInCluster}}</td></tr>
-            <tr><th>Cluster members:</th><td>{{namesInCluster}}</td></tr>
+            <tr><th>Leader:</th><td [class.text-success]="isLeader"><i class="fa fa-check-circle" *ngIf="isLeader"></i></td></tr>
+            <tr><th>Name in cluster:</th><td><span class="badge badge-primary">{{nameInCluster}}</span></td></tr>
+            <tr><th>Cluster members:</th><td><span class="badge" *ngFor="let name of namesInCluster" [class.badge-primary]="name === nameInCluster" [class.badge-default]="name !== nameInCluster">{{name}}</span></td></tr>
             <tr><th>Ip addresses:</th><td>{{ipAddresses}}</td></tr>
             <tr><th>Attendee data count:</th><td>{{attendeeDataCount}}</td></tr>
           </tbody>
