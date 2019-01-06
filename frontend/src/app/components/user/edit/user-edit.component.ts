@@ -1,11 +1,11 @@
 import {Component, OnInit, Input, Output, EventEmitter} from "@angular/core";
 import {UserService, User, NewUser, UserWithPassword} from "../user.service";
-import "rxjs/add/operator/switchMap";
 import {isNullOrUndefined} from "util";
 import {FormBuilder, Validators, FormControl} from "@angular/forms";
 import {WindowRef} from "../../../window.service";
 import {ActivatedRoute, Params} from "@angular/router";
 import {UserNotifierService} from "../user-notifier.service";
+import { switchMap } from "rxjs/operators";
 
 @Component({
   selector: 'user-edit',
@@ -32,7 +32,7 @@ export class UserEditComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params
-      .switchMap((params: Params) => {
+      .pipe(switchMap((params: Params) => {
         let userId = params['userId'];
         this.existing = !isNullOrUndefined(userId);
         if(this.existing) {
@@ -40,7 +40,8 @@ export class UserEditComponent implements OnInit {
         } else {
           return Promise.resolve(new NewUser());
         }
-      }).subscribe((user: User) => {
+      }))
+      .subscribe((user: User) => {
         this.user = user;
         if(!(user instanceof NewUser)) {
           this.username.setValue(user.username);

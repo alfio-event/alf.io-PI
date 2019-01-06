@@ -1,11 +1,11 @@
 import {Component, Input, OnInit} from "@angular/core";
 import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
-import {Observable} from "rxjs";
+import {Observable, forkJoin} from "rxjs";
 import {Event, EventService} from "../../shared/event/event.service";
-import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
 import {EventType, ServerEventsService} from "../../server-events.service";
+import { map } from "rxjs/operators";
 
 @Component({
   selector: 'scan-log-entries',
@@ -50,17 +50,16 @@ export class ScanLogEntriesComponent implements OnInit {
   private loadData() {
     this.progressManager
       .monitorCall(() => {
-        return Observable.forkJoin(this.scanLogService.getEntries(this.currentPage - 1, this.pageSize, this.term),
+        return forkJoin(this.scanLogService.getEntries(this.currentPage - 1, this.pageSize, this.term),
           this.eventService.getAllEvents(),
           this.printerService.loadAllPrinters()
         );
-      })
-      .map(res => {
+      }).pipe(map(res => {
         let [entries, events, printers] = res;
         this.printers = printers.filter(p => p.active);
         this.found = entries.found;
         return entries.values.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.key === entry.eventKey)))
-      })
+      }))
       .subscribe(entries => {
         this.entries = entries
       });

@@ -1,13 +1,13 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, OnInit, ViewChild, ElementRef} from '@angular/core';
 import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
 import {Account} from "../../scan-module/account/account";
-import {isDefined} from "@ng-bootstrap/ng-bootstrap/util/util";
 import {CheckInStatus, statusDescriptions, Ticket} from "../../scan-module/scan/scan-common";
 import {ProgressManager} from "../../ProgressManager";
 import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
 import {ConfigurationService, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
 import {Observable, Subject} from "rxjs";
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'alfio-check-in',
@@ -28,7 +28,7 @@ export class CheckInComponent implements OnInit {
 
   testMode = false;
 
-  @ViewChild('keyListener') keyListener;
+  @ViewChild('keyListener') keyListener: ElementRef;
 
   eventSelectionListener: Observable<Event>;
   private eventSelectionSubject: Subject<Event>;
@@ -49,7 +49,8 @@ export class CheckInComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.progressManager.monitorCall(() => this.eventService.getAllEvents().map(l => l.filter(e => e.active)))
+    this.progressManager.monitorCall(() => this.eventService.getAllEvents()
+      .pipe(map(l => l.filter(e => e.active))))
       .subscribe(list => this.events = list);
 
     this.serverEventsService.events.subscribe(e => {
@@ -65,7 +66,7 @@ export class CheckInComponent implements OnInit {
 
   onScan(scan: string): void {
     this.toScan = scan;
-    if(isDefined(this.activeEvent)) {
+    if(this.activeEvent != null) {
       this.progressManager.monitorCall(() => this.scanService.checkIn(this.activeEvent.key, this.account, scan))
         .subscribe(result => {
           this.status = result.result.status;
@@ -84,11 +85,11 @@ export class CheckInComponent implements OnInit {
   }
 
   isStatusSuccess(): boolean {
-    return isDefined(this.status) && this.status == CheckInStatus.SUCCESS;
+    return this.status != null && this.status == CheckInStatus.SUCCESS;
   }
 
   isStatusError(): boolean {
-    return isDefined(this.status) && this.status != CheckInStatus.SUCCESS;//missing on site payment, as per https://github.com/exteso/alf.io-PI/issues/2
+    return this.status != null && this.status != CheckInStatus.SUCCESS;//missing on site payment, as per https://github.com/exteso/alf.io-PI/issues/2
   }
 
   getStatusMessage(): string {

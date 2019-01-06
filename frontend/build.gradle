@@ -5,8 +5,8 @@ plugins {
 apply plugin:'java'
 
 node {
-  version = '8.11.1'
-  npmVersion = '5.8.0'
+  version = '10.15.0'
+  npmVersion = '6.4.1'
   download = true
   workDir = file("${project.projectDir}/node")
   nodeModulesDir = file("${project.projectDir}/")

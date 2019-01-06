@@ -21,7 +21,7 @@ import {ProgressManager} from "../../../ProgressManager";
 import {Printer, PrinterService} from "../../printer/printer.service";
 import {ConfigurableLabelContent, ScanLogEntry, ScanLogService} from "../scan-log.service";
 import {EventService, Event} from "../../../shared/event/event.service";
-import {Observable} from "rxjs/Observable";
+import {Observable, forkJoin} from "rxjs";
 import {ActivatedRoute, Params} from "@angular/router";
 
 @Component({
@@ -56,7 +56,7 @@ export class ScanLogEntryReprintComponent implements OnInit {
   private loadData() {
     this.progressManager
       .monitorCall(() => {
-        return Observable.forkJoin(this.scanLogService.getReprintPreview(this.entryId, this.eventKey),
+        return forkJoin(this.scanLogService.getReprintPreview(this.entryId, this.eventKey),
           this.printerService.loadAllPrinters(),
           this.eventService.getSingleEvent(this.eventKey)
         );

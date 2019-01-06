@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import {Http} from "@angular/http";
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-system-info',
@@ -8,7 +8,7 @@ import {Http} from "@angular/http";
 })
 export class SystemInfoComponent implements OnInit {
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
   nameInCluster: string;
   namesInCluster: string;
@@ -17,11 +17,11 @@ export class SystemInfoComponent implements OnInit {
   isLeader:boolean;
 
   ngOnInit() {
-    this.http.get('/api/internal/system/cluster/me').map(res => res.text()).subscribe(r => this.nameInCluster = r);
-    this.http.get('/api/internal/system/cluster/all').map(res => res.json()).subscribe(r => this.namesInCluster = r);
-    this.http.get('/api/internal/system/cluster/is-leader').map(res => res.json()).subscribe(r => this.isLeader = r);
-    this.http.get('/api/internal/system/ip').map(res => res.json()).subscribe(r => this.ipAddresses = r.join(', '));
-    this.http.get('/api/internal/system/tables/attendee/count').map(res => res.json()).subscribe(r => this.attendeeDataCount = r);
+    this.http.get('/api/internal/system/cluster/me', {observe: 'response', responseType: 'text'}).subscribe(r => this.nameInCluster = r.body);
+    this.http.get<string>('/api/internal/system/cluster/all').subscribe(r => this.namesInCluster = r);
+    this.http.get<boolean>('/api/internal/system/cluster/is-leader').subscribe(r => this.isLeader = r);
+    this.http.get<Array<string>>('/api/internal/system/ip').subscribe(r => this.ipAddresses = r.join(', '));
+    this.http.get<number>('/api/internal/system/tables/attendee/count').subscribe(r => this.attendeeDataCount = r);
   }
 
 }

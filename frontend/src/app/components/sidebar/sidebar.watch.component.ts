@@ -1,5 +1,5 @@
 import {Component, Input, OnDestroy, OnInit} from '@angular/core';
-import {Observable, Subscription} from "rxjs";
+import {Subscription, timer} from "rxjs";
 import { DateTime } from 'luxon';
 
 @Component({
@@ -22,7 +22,7 @@ export class SidebarWatchComponent implements OnInit, OnDestroy {
   constructor() { }
 
   ngOnInit() {
-    this.subscription = Observable.timer(100, 10000)
+    this.subscription = timer(100, 10000)
       .subscribe(t => {
           let dateTime = DateTime.local().setZone(this.timezone);
           this.currentTime = dateTime.toFormat('H:mm');

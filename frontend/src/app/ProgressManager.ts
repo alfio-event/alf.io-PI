@@ -15,7 +15,7 @@
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {Observable, Subject} from "rxjs";
-import "rxjs/add/operator/do";
+import { tap } from "rxjs/operators"
 
 export class ProgressManager {
 
@@ -30,7 +30,7 @@ export class ProgressManager {
   monitorCall<T>(call: () => Observable<T>): Observable<T> {
     this.source.next(true);
     let observable: Observable<T> = call();
-    return observable.do(v => this.source.next(false), null, () => this.source.next(false));
+    return observable.pipe(tap(v => this.source.next(false), null, () => this.source.next(false)));
   }
 
 }

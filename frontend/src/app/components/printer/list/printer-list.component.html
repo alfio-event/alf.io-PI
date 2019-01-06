@@ -10,7 +10,7 @@
         <div class="d-flex flex-column w-100 justify-content-between">
           <div class="h5 mb-1">{{pu.printer.name}} <button class="btn btn-sm btn-outline-success" title="print test label" *ngIf="pu.printer.active" (click)="printTestPage(pu.printer)"><i class="fa fa-play-circle"></i></button></div>
           <div class="mb-1">
-            <div [dragula]="'users-bag'" class="w-100" [attr.printer-id]="pu.printer.id" [attr.drop-allowed]="pu.printer.active">
+            <div class="w-100" [attr.printer-id]="pu.printer.id" [attr.drop-allowed]="pu.printer.active">
               <span *ngIf="pu.users.length == 0 && pu.printer.active">Drop users here to link</span>
               <span *ngIf="!pu.printer.active">This printer is not active, therefore  <span *ngIf="pu.users.length > 0">you should move any linked users</span><span *ngIf="pu.users.length == 0">you cannot link users to it</span></span>
               <span class="draggable h5 mr-1" *ngFor="let user of pu.users" [attr.user-id]="user.id" [attr.printer-id]="pu.printer.id"><span class="handle badge" [class.badge-success]="pu.printer.active" [class.badge-default]="!pu.printer.active"><i class="fa fa-user"></i> {{user.username}}</span></span>

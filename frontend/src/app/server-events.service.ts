@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
-/// <reference path="../EventSource.d.ts"/>
 import {Injectable} from "@angular/core";
 import {Observable} from "rxjs";
+import {webSocket} from "rxjs/webSocket";
 import {WindowRef} from "./window.service";
 import {ScanLogEntry} from "./components/scan-log-entries/scan-log.service";
 import {Event} from "./shared/event/event.service";
@@ -29,7 +29,8 @@ export class ServerEventsService {
   constructor(private windowRef: WindowRef) {
     let $window = windowRef.nativeWindow;
     let wsProtocol = $window.location.protocol.includes('https') ? 'wss' : 'ws';
-    this.events = Observable.webSocket(`${wsProtocol}://${$window.location.host}/api/internal/ws/stream`).asObservable() as Observable<ServerEvent>;
+    
+    this.events = webSocket(`${wsProtocol}://${$window.location.host}/api/internal/ws/stream`).asObservable() as Observable<ServerEvent>;
   }
 }
 

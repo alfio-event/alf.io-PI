@@ -1,31 +1,26 @@
 import { Injectable } from '@angular/core';
-import {Http} from "@angular/http";
-import 'rxjs/add/operator/map';
 import {Observable} from "rxjs";
+import {HttpClient} from "@angular/common/http";
 
 @Injectable()
 export class UserService {
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
   getUser(userId: number): Observable<User> {
-    return this.http.get(`/api/internal/users/${userId}`)
-      .map(res => res.json())
+    return this.http.get<User>(`/api/internal/users/${userId}`);
   }
 
   getUsers(): Observable<Array<User>> {
-    return this.http.get('/api/internal/users')
-      .map(res => res.json())
+    return this.http.get<Array<User>>('/api/internal/users');
   }
 
   saveUser(username: String): Observable<UserWithPassword> {
-    return this.http.post('/api/internal/users/', {username: username})
-      .map(res => res.json())
+    return this.http.post<UserWithPassword>('/api/internal/users/', {username: username});
   }
 
   resetPassword(id: number): Observable<UserWithPassword> {
-    return this.http.post(`/api/internal/users/${id}/resetPassword`, {})
-      .map(res => res.json())
+    return this.http.post<UserWithPassword>(`/api/internal/users/${id}/resetPassword`, {});
   }
 
 }

@@ -15,8 +15,7 @@
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {Directive, Output, HostListener, OnInit} from "@angular/core";
-import {Observable} from "rxjs/Observable";
-import {Subject} from "rxjs/Subject";
+import {Observable, Subject} from "rxjs";
 @Directive({
   selector: 'alfio-key-listener'
 })
