@@ -141,19 +141,19 @@ open class ZebraZD410: LabelTemplate {
         val font = fontLoader.invoke(ZebraZD410::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
         stream.use {
             it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 26F, 12 to 24F, 14 to 22F, 15 to 20F, 17 to 18F), true)
+            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 26F, 12 to 24F, 14 to 22F, 15 to 20F, 16 to 18F, 17 to 17F), true)
             it.setFont(font, firstRowContent.second)
             it.beginText()
             it.newLineAtOffset(10F, 115F)
             it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 18F, 18 to 16F, 21 to 14F), true)
+            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 18F, 17 to 17F, 18 to 16F, 21 to 14F), true)
 
             it.setFont(font, secondRowContent.second)
             it.newLineAtOffset(0F, -25F)
             it.showText(secondRowContent.first)
 
-            val maxLengthAdditionalRows = arrayOf(29 to 10F)
-            printAdditionalRows(labelContent.additionalRows.orEmpty().take(3), it, -20F, labelContent, font, maxLengthAdditionalRows)
+            val maxLengthAdditionalRows = arrayOf(20 to 11F, 29 to 10F)
+            printAdditionalRows(labelContent.additionalRows.orEmpty().take(3), it, -25F, labelContent, font, maxLengthAdditionalRows)
 
             it.endText()
 

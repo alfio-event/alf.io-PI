@@ -41,6 +41,8 @@ import javax.jmdns.ServiceListener
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
+internal const val STATIC_TEXT_PREFIX = "static-text:"
+private const val MDNS_NAME = "alfio-server"
 
 private val logger = LoggerFactory.getLogger(PrintManager::class.java)
 
@@ -60,7 +62,6 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
                             private val gson: Gson) {
 
     private val masterUrl = AtomicReference<String>()
-    private val MDNS_NAME = "alfio-server"
 
     init {
 
@@ -193,17 +194,24 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             val ticketInfo = getAllTicketInfo(ticket)
             val firstRow = ticketInfo[layout.content.firstRow] ?: ticket.firstName
             val secondRow = ticketInfo[layout.content.secondRow] ?: ticket.lastName
-            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID)
+            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, layout.content.checkbox?:false)
         } else {
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase())
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase(), false)
         }
     }
 
-    private fun retrieveAllAdditionalInfo(layout: LabelLayout, ticket: Ticket) : List<String> =
-        layout.content.thirdRow.orEmpty().asSequence()
+    private fun retrieveAllAdditionalInfo(layout: LabelLayout, ticket: Ticket) : List<String> {
+        return layout.content.thirdRow.orEmpty().asSequence()
             .plus(layout.content.additionalRows.orEmpty())
             .filter { it.isNotEmpty() }
-            .map { ticket.additionalInfo?.get(it).orEmpty() }.toList()
+            .map {
+                if(it.startsWith(STATIC_TEXT_PREFIX)) {
+                    it.substringAfter(":", "")
+                } else {
+                    ticket.additionalInfo?.get(it).orEmpty()
+                }
+            }.toList()
+    }
 
     private fun retrieveQRCodeContent(layout: LabelLayout, ticket: Ticket) : List<String> {
         val info = getAllTicketInfo(ticket)
@@ -321,7 +329,7 @@ data class ConfigurableLabelContent(val firstRow: String,
                                     val additionalRows: List<String>?,
                                     val qrContent: String,
                                     val partialID: String,
-                                    val checkbox: Boolean = false)
+                                    val checkbox: Boolean)
 
 
 

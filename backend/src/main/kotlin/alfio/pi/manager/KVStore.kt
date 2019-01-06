@@ -5,12 +5,16 @@ import ch.digitalfondue.synckv.SyncKV
 import ch.digitalfondue.synckv.SyncKVTable
 import com.google.gson.Gson
 import org.jgroups.util.Tuple
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 import kotlin.collections.ArrayList
+
+private val logger: Logger = LoggerFactory.getLogger("alfio.pi.manager.KVStore")
 
 @Component
 open class KVStore(private val gson: Gson) {
@@ -259,6 +263,7 @@ open class KVStore(private val gson: Gson) {
 
     fun loadLabelConfiguration(eventKey: String) : Optional<LabelConfiguration> {
         val res = labelConfigurationTable.getAsString(eventKey)
+        logger.trace("loaded labelConfiguration: {}", res)
         return if (res == null) {
             Optional.empty()
         } else {

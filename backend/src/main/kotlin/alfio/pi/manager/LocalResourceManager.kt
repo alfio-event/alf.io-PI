@@ -116,7 +116,9 @@ fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: 
                     else -> Optional.empty()
                 }
             }.map { (printer, ticket, eventKey) ->
-                val labelConfiguration = kvStore.loadLabelConfiguration(eventKey).map { LabelConfigurationAndContent(it, content) }.orElse(LabelConfigurationAndContent(null, content))
+                val labelConfiguration = kvStore.loadLabelConfiguration(eventKey).map {
+                    LabelConfigurationAndContent(it, content?.copy(checkbox = it.layout?.content?.checkbox ?: false))
+                }.orElse(LabelConfigurationAndContent(null, content))
                 printManager.printLabel(printer, ticket, labelConfiguration)
             }.orElse(false)
     }, {

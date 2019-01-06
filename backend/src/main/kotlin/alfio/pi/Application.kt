@@ -478,9 +478,10 @@ private fun retrieveIPAddress(): String {
 
 private fun guessIPAddress(): String? {
     return NetworkInterface.getNetworkInterfaces().toList()
+    .filter { it.isUp }
     .flatMap { it.interfaceAddresses }
     .map {it.address}
-    .firstOrNull { it.isSiteLocalAddress && it.hostAddress.startsWith("192") }?.hostAddress
+    .firstOrNull { !it.isLoopbackAddress }?.hostAddress
 }
 
 private fun generateSslKeyPair(hostAddress: String) {

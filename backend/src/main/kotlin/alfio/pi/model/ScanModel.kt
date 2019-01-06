@@ -85,7 +85,9 @@ data class UserAndPrinter(@Column("username") private val username: String,
     val printer = Printer(printerId, printerName, printerDescription, printerActive)
 }
 
-data class LabelConfiguration(@Column("event_key_fk") val eventKey: String, @Column("json") val json: String?, @Column("enabled") val enabled: Boolean) : Serializable {
+data class LabelConfiguration(@Column("event_key_fk") val eventKey: String,
+                              @Column("json") val json: String?,
+                              @Column("enabled") val enabled: Boolean) : Serializable {
     val layout: LabelLayout? = GsonContainer.GSON?.fromJson(json, LabelLayout::class.java)
 }
 

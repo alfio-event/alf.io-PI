@@ -20,8 +20,7 @@ package alfio.pi.manager
 import alfio.pi.model.LabelLayout
 import alfio.pi.model.Ticket
 import com.google.gson.Gson
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import org.mockito.Mockito
 import java.util.*
@@ -113,6 +112,32 @@ class LabelManagerTest {
         assertEquals("thisIsTheFirstWord thisIsTheSecondWord thisIsTheThirdWord", result.additionalRows.orEmpty().joinToString(" "))
         assertEquals("${ticket.uuid}::${ticket.firstName}::${ticket.lastName}::${ticket.fullName}::${ticket.email.orEmpty()}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord", result.qrContent)
         assertTrue(result.partialID.isEmpty())
+    }
+
+    @Test
+    fun testBuildLabelWithStaticText() {
+        val localPrintManager = LocalPrintManager(emptyList(), Mockito.mock(SystemEventHandler::class.java), Mockito.mock(KVStore::class.java))
+        val jsonString = """
+            {
+              "qrCode": {
+                "additionalInfo": ["firstName", "lastName", "fullName", "emailAddress", "word1","word2","word3"],
+                "infoSeparator": "::"
+              },
+              "content": {
+                "additionalRows": ["word1", "${STATIC_TEXT_PREFIX}this is a test"]
+              },
+              "general": {
+                "printPartialID": true
+              }
+            }"""
+        val labelLayout = Gson().fromJson(jsonString, LabelLayout::class.java)
+        val ticket = ticket(mapOf("word1" to "thisIsTheFirstWord", "word2" to "thisIsTheSecondWord", "word3" to "thisIsTheThirdWord"))
+        val result = localPrintManager.buildConfigurableLabelContent(labelLayout, ticket)
+        assertEquals(ticket.firstName, result.firstRow)
+        assertEquals(ticket.lastName, result.secondRow)
+        assertEquals("thisIsTheFirstWord this is a test", result.additionalRows.orEmpty().joinToString(" "))
+        assertEquals("${ticket.uuid}::${ticket.firstName}::${ticket.lastName}::${ticket.fullName}::${ticket.email.orEmpty()}::thisIsTheFirstWord::thisIsTheSecondWord::thisIsTheThirdWord", result.qrContent)
+        assertFalse(result.partialID.isEmpty())
     }
 
     private fun ticket(additionalInfo: Map<String, String>? = mapOf("company" to "company")): Ticket = Ticket(uuid = "12345-678", firstName = "firstName", lastName = "lastName", additionalInfo = additionalInfo, email = null)
