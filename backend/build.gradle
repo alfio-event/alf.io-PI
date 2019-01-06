@@ -36,6 +36,7 @@ buildscript {
 
 plugins {
     id 'net.researchgate.release' version '2.7.0'
+    id "nebula.ospackage" version "6.1.1"
 }
 
 configure(allprojects) {
@@ -50,7 +51,7 @@ apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 
 jar {
-    baseName = 'alfio-pi'
+    archiveBaseName.set('alfio-pi')
     version = "${project.version}"
 }
 jar.dependsOn(":frontend:jar")
@@ -114,8 +115,6 @@ bootRun {
     systemProperties properties
     //jvmArgs = ["-DopenDBConsole=true"]
     //jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" ]
-
-
 }
 
 springBoot {
@@ -125,6 +124,7 @@ compileJava.dependsOn(processResources)
 
 release {
     tagTemplate = 'v$version'
+    buildTasks = ['packageDeb']
     git {
         requireBranch = ''
         pushToRemote = 'origin'
@@ -132,4 +132,43 @@ release {
     }
 }
 
+task packageDeb(type: Deb) {
+    packageName 'alf.io-pi'
+    release '1'
+    user 'pi'
+    group 'pi'
+    configurationFile('/home/pi/alfio.properties')
+
+    requires('nginx')
+    requires('cups')
+    requires('chromium-browser')
+    requires('zulu-embedded-8')
+
+    preInstall file('deb/scripts/preInstall.sh')
+    postInstall file('deb/scripts/postInstall.sh')
+    postUninstall file('deb/scripts/postUninstall.sh')
+
+    into '/'
+    from('deb/resources/etc') {
+        into 'etc'
+    }
+    from('deb/resources/opt') {
+        into 'opt'
+    }
+    from('deb/resources/var') {
+        into 'var'
+    }
+    from('deb/resources/home-pi-config') {
+        into 'home/pi/.config'
+    }
+
+    from(jar.outputs.files) {
+        createDirectoryEntry = true
+        into 'opt/alf.io/app'
+        fileMode = 755
+    }
+    ///home/pi/.config/lxsession/LXDE-pi
+}
+
+packageDeb.dependsOn(build)
 
