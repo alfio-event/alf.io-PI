@@ -134,6 +134,7 @@ release {
 
 task packageDeb(type: Deb) {
     packageName 'alf.io-pi'
+    version '0.99'
     release '1'
     user 'pi'
     group 'pi'
@@ -142,6 +143,7 @@ task packageDeb(type: Deb) {
     requires('nginx')
     requires('cups')
     requires('chromium-browser')
+    requires('printer-driver-dymo')
     requires('zulu-embedded-8')
 
     preInstall file('deb/scripts/preInstall.sh')
