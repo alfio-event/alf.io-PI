@@ -146,7 +146,7 @@ release {
 task packageDeb(type: Deb) {
     packageName 'alf.io-pi'
     version getVersionName().toString()
-    release project.version.toString().contains("SNAPSHOT") ? "5" : "1"
+    release project.version.toString().contains("SNAPSHOT") ? "6" : "1"
     user 'pi'
     group 'pi'
     configurationFile('/home/pi/alfio.properties')
@@ -178,7 +178,20 @@ task packageDeb(type: Deb) {
     from(jar.outputs.files) {
         createDirectoryEntry = true
         into 'opt/alf.io/app'
+        rename {
+            "alf.io-PI-${getVersionName()}-boot.jar"
+        }
     }
+
+    from('deb/resources/opt/alf.io/app') {
+        into 'opt/alf.io/app'
+        rename {
+            "alf.io-PI-${getVersionName()}-boot.conf"
+        }
+    }
+
+    link('/opt/alf.io/app/alfio-boot.jar', "/opt/alf.io/app/alf.io-PI-${getVersionName()}-boot.jar")
+
 }
 
 packageDeb.dependsOn(build)
