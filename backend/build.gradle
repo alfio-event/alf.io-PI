@@ -133,9 +133,10 @@ release {
 }
 
 task packageDeb(type: Deb) {
+    val version = project.version.toString()
     packageName 'alf.io-pi'
     version '0.99'
-    release '1'
+    release version.contains("SNAPSHOT") ? "5" : version
     user 'pi'
     group 'pi'
     configurationFile('/home/pi/alfio.properties')
@@ -147,8 +148,8 @@ task packageDeb(type: Deb) {
     requires('zulu-embedded-8')
 
     preInstall file('deb/scripts/preInstall.sh')
+    preUninstall file('deb/scripts/preUninstall.sh')
     postInstall file('deb/scripts/postInstall.sh')
-    postUninstall file('deb/scripts/postUninstall.sh')
 
     into '/'
     from('deb/resources/etc') {
@@ -167,9 +168,7 @@ task packageDeb(type: Deb) {
     from(jar.outputs.files) {
         createDirectoryEntry = true
         into 'opt/alf.io/app'
-        fileMode = 755
     }
-    ///home/pi/.config/lxsession/LXDE-pi
 }
 
 packageDeb.dependsOn(build)
