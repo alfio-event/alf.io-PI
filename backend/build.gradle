@@ -46,6 +46,17 @@ configure(allprojects) {
     apply plugin: 'propdeps-eclipse'
 }
 
+ext {
+    getVersionName = {
+        def currentVersion = project.version.toString()
+        if(currentVersion.contains("SNAPSHOT")) {
+            "0.99"
+        } else {
+            currentVersion
+        }
+    }
+}
+
 apply plugin: 'kotlin'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
@@ -134,8 +145,8 @@ release {
 
 task packageDeb(type: Deb) {
     packageName 'alf.io-pi'
-    version '0.99'
-    release project.version.toString().contains("SNAPSHOT") ? "5" : project.version.toString()
+    version getVersionName().toString()
+    release project.version.toString().contains("SNAPSHOT") ? "5" : "1"
     user 'pi'
     group 'pi'
     configurationFile('/home/pi/alfio.properties')
