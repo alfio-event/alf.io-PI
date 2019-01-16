@@ -133,10 +133,9 @@ release {
 }
 
 task packageDeb(type: Deb) {
-    val version = project.version.toString()
     packageName 'alf.io-pi'
     version '0.99'
-    release version.contains("SNAPSHOT") ? "5" : version
+    release project.version.toString().contains("SNAPSHOT") ? "5" : project.version.toString()
     user 'pi'
     group 'pi'
     configurationFile('/home/pi/alfio.properties')
