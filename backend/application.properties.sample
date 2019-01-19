@@ -17,11 +17,13 @@
 
 ## master server
 master.url=https://url-of-master
-master.username=pi-agent
-master.password=password
 
-# or, instead of username and password
-#master.apiKey=your api key
+# generate an API Key on your Alf.io instance and put it here:
+master.apiKey=your-api-key
+
+# [legacy mode] use username and password
+#master.username=pi-agent
+#master.password=password
 
 ##db config (HSQL)
 jdbc.url=jdbc:hsqldb:mem:db/alfio

@@ -1,6 +1,7 @@
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import org.apache.tools.ant.filters.ReplaceTokens
 
 /*
  * This file is part of alf.io.
@@ -53,6 +54,14 @@ ext {
             "0.99"
         } else {
             currentVersion
+        }
+    }
+
+    getBuildNumber = {
+        if(project.version.toString().contains("SNAPSHOT")) {
+            "7"
+        } else {
+            "1"
         }
     }
 }
@@ -135,7 +144,7 @@ compileJava.dependsOn(processResources)
 
 release {
     tagTemplate = 'v$version'
-    buildTasks = ['packageDeb']
+    buildTasks = ['generateScript']
     git {
         requireBranch = ''
         pushToRemote = 'origin'
@@ -146,7 +155,7 @@ release {
 task packageDeb(type: Deb) {
     packageName 'alf.io-pi'
     version getVersionName().toString()
-    release project.version.toString().contains("SNAPSHOT") ? "6" : "1"
+    release getBuildNumber()
     user 'pi'
     group 'pi'
     configurationFile('/home/pi/alfio.properties')
@@ -155,7 +164,7 @@ task packageDeb(type: Deb) {
     requires('cups')
     requires('chromium-browser')
     requires('printer-driver-dymo')
-    requires('zulu-embedded-8')
+    requires('openjdk-9-jdk')
 
     preInstall file('deb/scripts/preInstall.sh')
     preUninstall file('deb/scripts/preUninstall.sh')
@@ -173,6 +182,9 @@ task packageDeb(type: Deb) {
     }
     from('deb/resources/home-pi-config') {
         into 'home/pi/.config'
+    }
+    from('application.properties.sample') {
+        into 'home/pi/alfio.properties'
     }
 
     from(jar.outputs.files) {
@@ -196,3 +208,9 @@ task packageDeb(type: Deb) {
 
 packageDeb.dependsOn(build)
 
+task generateScript(type: Copy) {
+    from 'etc/get-alfio-pi.sh'
+    into "${buildDir}/distributions"
+    filter(ReplaceTokens, tokens: [ALFIO_VERSION: getVersionName(), ALFIO_BUILDNUM: getBuildNumber()])
+}
+generateScript.dependsOn(packageDeb)
