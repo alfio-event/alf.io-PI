@@ -28,9 +28,9 @@ processResources.dependsOn(npm_install)
 processResources.dependsOn(npm_run_build)
 
 jar {
-  baseName = 'alfio-pi-frontend'
+  archiveBaseName.set('alfio-pi-frontend')
   version = "${project.version}"
-  into("META-INF/resources/webjars/${baseName}/${project.version}") {
+  into("META-INF/resources/webjars/${archiveBaseName.get()}/${project.version}") {
       from 'dist'
   }
 }
