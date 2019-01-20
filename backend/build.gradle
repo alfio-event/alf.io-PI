@@ -175,6 +175,7 @@ task packageDeb(type: Deb) {
     configurationFile("/${CONFIG_FILE}")
 
     requires('nginx')
+    requires('cups-bsd')
     requires('cups')
     requires('chromium-browser')
     requires('printer-driver-dymo')
@@ -195,6 +196,7 @@ task packageDeb(type: Deb) {
         into UTILS_DIR
         createDirectoryEntry = true
         fileMode=0775
+        filter(ReplaceTokens, tokens: TOKENS)
     }
     from('deb/resources/var') {
         into 'var'

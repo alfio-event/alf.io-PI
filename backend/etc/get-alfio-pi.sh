@@ -45,7 +45,7 @@ print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes nginx cups chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget
+sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget
 print_bold "done."
 echo
 
@@ -53,6 +53,12 @@ print_bold "Updating default Java(tm) installation"
 sudo update-java-alternatives --set java-1.9.0-openjdk-armhf
 print_bold "done."
 echo
+
+print_bold "Downloading DYMO definitions (ppd)"
+wget http://download.dymo.com/dymo/Software/Download%20Drivers/Linux/Download/dymo-cups-drivers-1.4.0.tar.gz -P /tmp/
+tar -C /tmp/ -xzf /tmp/dymo-cups-drivers-1.4.0.tar.gz
+sudo cp /tmp/dymo-cups-drivers-1.4.*/ppd/*.ppd /usr/share/cups/model/
+print_bold "done."
 
 print_bold "Downloading Alf.io-PI v$ALFIO_VERSION"
 rm -f "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"

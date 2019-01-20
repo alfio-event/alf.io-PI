@@ -1,5 +1,5 @@
 #!/bin/bash
-device_name=$(/opt/alf.io/util/device-name.sh $1)
+device_name=$(@ALFIO_UTILS_DIR@/device-name.sh $1)
 if [[ "$2" == "ZD410" ]]; then
     /usr/sbin/lpadmin -E -p "Alfio-ZBR-${device_name}" -v "usb://Zebra%20Technologies/ZTC%20ZD410-203dpi%20ZPL?serial=$1" -m drv:///sample.drv/zebra.ppd -o printer-error-policy=abort-job -o printer-is-shared=false
     /usr/bin/lpoptions -p "Alfio-ZBR-${device_name}" -o usb-unidir-default=true -o Darkness=30 -o zePrintRate=4
