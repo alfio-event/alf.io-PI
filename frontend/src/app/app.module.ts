@@ -1,7 +1,6 @@
 import {BrowserModule} from "@angular/platform-browser";
 import {NgModule} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
-import {HttpModule} from "@angular/http";
 import {RouterModule} from "@angular/router";
 import {AppComponent} from "./app.component";
 import {UserEditComponent} from "./components/user/edit/user-edit.component";
@@ -16,7 +15,6 @@ import {PrinterService} from "./components/printer/printer.service";
 import {CloseDetailComponent} from "./components/close-detail/close-detail.component";
 import {KeysPipe} from "./keys.pipe";
 import {WindowRef} from "./window.service";
-import {DragulaModule} from "ng2-dragula";
 import {UserNotifierService} from "./components/user/user-notifier.service";
 import { LoadingIndicatorComponent } from './components/loading-indicator/loading-indicator.component';
 import { ScanLogEntriesComponent } from './components/scan-log-entries/scan-log-entries.component';
@@ -41,6 +39,7 @@ import { VirtualKeyboardDirective } from './virtual-keyboard.directive';
 import {ConfigurationService} from "./shared/configuration/configuration.service";
 import { SystemInfoComponent } from './components/system-info/system-info.component';
 import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.component";
+import {HttpClientModule} from "@angular/common/http";
 
 @NgModule({
   declarations: [
@@ -76,8 +75,7 @@ import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.componen
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,
-    HttpModule,
-    DragulaModule,
+    HttpClientModule,
     QRCodeModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, children: [

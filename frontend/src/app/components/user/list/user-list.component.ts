@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import {UserService, User} from "../user.service";
-import {DragulaService} from "ng2-dragula";
 import {UserNotifierService} from "../user-notifier.service";
 import {ProgressManager} from "../../../ProgressManager";
 
