@@ -152,13 +152,27 @@ release {
     }
 }
 
+def CONFIG_DIR = 'home/pi/.config/alf.io'
+def CONFIG_FILE = "${CONFIG_DIR}/application.properties"
+def HOME_DIR = 'opt/alf.io'
+def UTILS_DIR = "${HOME_DIR}/utils"
+def TOKENS = [
+    ALFIO_VERSION: getVersionName(),
+    ALFIO_BUILDNUM: getBuildNumber(),
+    ALFIO_CONFIG_DIR: "/${CONFIG_DIR}",
+    ALFIO_CONFIG_FILE: "/${CONFIG_FILE}",
+    ALFIO_HOME_DIR: "/${HOME_DIR}",
+    ALFIO_APP_DIR: "/${HOME_DIR}/app",
+    ALFIO_UTILS_DIR: "/${UTILS_DIR}"
+]
+
 task packageDeb(type: Deb) {
     packageName 'alf.io-pi'
     version getVersionName().toString()
     release getBuildNumber()
     user 'pi'
     group 'pi'
-    configurationFile('/home/pi/alfio.properties')
+    configurationFile("/${CONFIG_FILE}")
 
     requires('nginx')
     requires('cups')
@@ -173,9 +187,12 @@ task packageDeb(type: Deb) {
     into '/'
     from('deb/resources/etc') {
         into 'etc'
+        filter(ReplaceTokens, tokens: TOKENS)
     }
-    from('deb/resources/opt') {
-        into 'opt'
+    from('deb/resources/opt/alf.io/util') {
+        into UTILS_DIR
+        createDirectoryEntry = true
+        fileMode=0775
     }
     from('deb/resources/var') {
         into 'var'
@@ -184,7 +201,8 @@ task packageDeb(type: Deb) {
         into 'home/pi/.config'
     }
     from('application.properties.sample') {
-        into 'home/pi/alfio.properties'
+        into CONFIG_DIR
+        createDirectoryEntry = true
     }
 
     from(jar.outputs.files) {
@@ -202,7 +220,7 @@ task packageDeb(type: Deb) {
         }
     }
 
-    link('/opt/alf.io/app/alfio-boot.jar', "/opt/alf.io/app/alf.io-PI-${getVersionName()}-boot.jar")
+    link("/${HOME_DIR}/app/alfio-boot.jar", "/${HOME_DIR}/app/alf.io-PI-${getVersionName()}-boot.jar")
 
 }
 
@@ -211,6 +229,6 @@ packageDeb.dependsOn(build)
 task generateScript(type: Copy) {
     from 'etc/get-alfio-pi.sh'
     into "${buildDir}/distributions"
-    filter(ReplaceTokens, tokens: [ALFIO_VERSION: getVersionName(), ALFIO_BUILDNUM: getBuildNumber()])
+    filter(ReplaceTokens, tokens: TOKENS)
 }
 generateScript.dependsOn(packageDeb)

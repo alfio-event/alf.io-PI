@@ -2,59 +2,91 @@
 
 ALFIO_RELEASE="@ALFIO_VERSION@"
 ALFIO_VERSION="@ALFIO_VERSION@-@ALFIO_BUILDNUM@"
+CONFIG_TEMPLATE_PATH="@ALFIO_CONFIG_DIR@/application.properties.sample"
+CONFIG_FILE_PATH="@ALFIO_CONFIG_DIR@/application.properties"
+
+bold=$(tput bold)
+reset=$(tput sgr0)
 
 set -e
 
-echo "    _    _  __  _       "
-echo "   / \  | |/ _|(_) ___  "
-echo "  / _ \ | | |_ | |/ _ \ "
-echo " / ___ \| |  _|| | (_) |"
-echo "/_/   \_\_|_|(_)_|\___/ "
+function print_bold() {
+    echo "${bold}$1${reset}"
+}
+
+print_bold "    _    _  __  _       "
+print_bold "   / \  | |/ _|(_) ___  "
+print_bold "  / _ \ | | |_ | |/ _ \ "
+print_bold " / ___ \| |  _|| | (_) |"
+print_bold "/_/   \_\_|_|(_)_|\___/ "
 
 echo
 echo
 echo "This script installs Alf.io-PI on a brand-new Raspberry-PI"
-echo "Some steps require root privileges, so you will be prompted for your Password"
+echo "Some steps require root privileges, so you may be prompted for your Password"
 echo
 echo
-echo "Setting keyboard layout to en_US"
+print_bold "Setting keyboard layout to en_US"
 sudo sed -i 's|XKBLAYOUT=....|XKBLAYOUT="'us'"|g' /etc/default/keyboard
-echo "done."
+print_bold "done."
 echo
-echo "Updating repos data"
+print_bold "Updating repos data"
 sudo apt-get update
-echo "done."
+print_bold "done."
 echo
-echo "Installing dependencies"
-sudo apt-get install nginx cups chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget
-echo "done."
+print_bold "Installing dependencies"
+sudo apt-get install --assume-yes nginx cups chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget
+print_bold "done."
 echo
-echo "Updating default Java(tm) installation"
+print_bold "Updating default Java(tm) installation"
 sudo update-java-alternatives --set java-1.9.0-openjdk-armhf
-echo "done."
+print_bold "done."
 echo
-echo "Downloading Alf.io-PI v$ALFIO_VERSION"
+print_bold "Downloading Alf.io-PI v$ALFIO_VERSION"
 rm -f "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 wget "https://github.com/alfio-event/alf.io-PI/releases/download/v${ALFIO_RELEASE}/alf.io-pi_${ALFIO_VERSION}_all.deb" -P /tmp/
-echo "done."
+print_bold "done."
 echo
-echo "Installing Alf.io-PI v$ALFIO_VERSION"
+print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
 sudo dpkg -i "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
-echo "done."
+print_bold "done."
 echo
 if grep -q lcd_rotate /boot/config.txt; then
-    echo "Screen rotation OK"
+    print_bold "Screen rotation OK"
 else
-    echo "Set screen rotation"
-    sudo echo "lcd_rotate=2" >> /boot/config.txt
-    echo "done."
+    print_bold "Please fix screen rotation by adding the following line"
+    echo "   lcd_rotate=2"
+    print_bold "to /boot/config.txt"
 fi
 echo
-echo "Congratulations! Alf.io-PI has been successfully installed!"
+print_bold "Congratulations! Alf.io-PI has been successfully installed!"
 echo
-echo "Now it's time to edit the configuration."
-nano /home/pi/alfio.properties
-echo "Configuration complete."
+print_bold "Now it's time to edit the configuration..."
+
+# backing up existing file, if any
+mv ${CONFIG_FILE_PATH} "${CONFIG_FILE_PATH}.$(date '+%Y-%m-%dT%H%M%S')"
+cp ${CONFIG_TEMPLATE_PATH} ${CONFIG_FILE_PATH}
+NOW=`date '+%Y-%m-%d %H:%M:%S'`
+echo "# Edited by get-alfio-pi.sh on ${NOW}" >> ${CONFIG_FILE_PATH}
+
+master_url=$(whiptail --inputbox "Enter the Alf.io instance URL" 10 50 --ok-button Save --nocancel "https://" 3>&1 1>&2 2>&3)
+echo "master.url=${master_url}" >> ${CONFIG_FILE_PATH}
+
+authMethod=$(whiptail --radiolist "Authentication method" 30 50 2 --ok-button Save --nocancel "API Key" "(default)" 1 "Username/Password" "(legacy)" 0 3>&1 1>&2 2>&3)
+case ${authMethod} in
+  'Username/Password')
+    username=$(whiptail --inputbox "Enter the Username" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
+    echo "master.username=${username}" >> ${CONFIG_FILE_PATH}
+    password=$(whiptail --passwordbox "Enter the Password" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
+    echo "master.password=${password}" >> ${CONFIG_FILE_PATH}
+    ;;
+  *)
+    api_key=$(whiptail --inputbox "Enter the API Key" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
+    echo "master.apiKey=${api_key}" >> ${CONFIG_FILE_PATH}
+    ;;
+esac
+
+print_bold "Configuration complete."
 echo
-echo "Please run the following command to restart your PI:"
-echo "      sudo reboot"
+print_bold "Please run the following command to restart your PI:"
+print_bold "      sudo reboot"

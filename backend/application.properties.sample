@@ -15,18 +15,8 @@
 # along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-## master server
-master.url=https://url-of-master
-
-# generate an API Key on your Alf.io instance and put it here:
-master.apiKey=your-api-key
-
-# [legacy mode] use username and password
-#master.username=pi-agent
-#master.password=password
-
 ##db config (HSQL)
-jdbc.url=jdbc:hsqldb:mem:db/alfio
+jdbc.url=jdbc:hsqldb:file:data/alfio
 jdbc.username=sa
 jdbc.password=
 
@@ -47,3 +37,13 @@ checkIn.color.default=success
 #Ticket Categories Blacklist
 #if you want to disable offline check-in for some categories, enter their comma-separated keys (see checkIn.color for details), e.g.
 #checkIn.categories.blacklist=long-category-name-1,long-category-name-2
+
+## master server
+# master.url=https://url-of-master
+
+## generate an API Key on your Alf.io instance and put it here:
+# master.apiKey=your-api-key
+
+## [legacy mode] use username and password
+# master.username=pi-agent
+# master.password=password
