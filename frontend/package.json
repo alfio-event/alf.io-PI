@@ -40,7 +40,7 @@
     "virtual-keyboard": "1.28.7"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.11.0",
+    "@angular-devkit/build-angular": "^0.12.2",
     "@angular/cli": "^7.1.4",
     "@angular/compiler-cli": "^7.1.4",
     "@types/jasmine": "3.3.5",
