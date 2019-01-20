@@ -223,7 +223,7 @@ task packageDeb(type: Deb) {
     }
 
     link("/${HOME_DIR}/app/alfio-boot.jar", "/${HOME_DIR}/app/alf.io-PI-${getVersionName()}-boot.jar")
-
+    link("/etc/nginx/sites-enabled/alfio-pi", "/etc/nginx/sites-available/alfio-pi")
 }
 
 packageDeb.dependsOn(build)

@@ -63,7 +63,6 @@ echo
 print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
 sudo dpkg -i "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo ln -s /etc/nginx/sites-available/alfio-pi /etc/nginx/sites-enabled/alfio-pi
 print_bold "done."
 echo
 
