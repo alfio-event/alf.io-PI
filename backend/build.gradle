@@ -188,6 +188,8 @@ task packageDeb(type: Deb) {
     from('deb/resources/etc') {
         into 'etc'
         filter(ReplaceTokens, tokens: TOKENS)
+        fileMode=0644
+        user "root"
     }
     from('deb/resources/opt/alf.io/util') {
         into UTILS_DIR
