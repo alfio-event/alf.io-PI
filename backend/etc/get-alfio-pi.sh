@@ -62,10 +62,12 @@ echo
 
 print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
 sudo dpkg -i "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -s /etc/nginx/sites-available/alfio-pi /etc/nginx/sites-enabled/alfio-pi
 print_bold "done."
 echo
 
-if grep -q lcd_rotate /boot/config.txt; then
+if sudo grep -q lcd_rotate /boot/config.txt; then
     print_bold "Screen rotation OK"
 else
     print_bold "Please fix screen rotation by adding the following line"
