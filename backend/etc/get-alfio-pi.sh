@@ -45,7 +45,7 @@ print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes nginx cups chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget ntpdate
+sudo apt-get install --assume-yes nginx cups chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget
 print_bold "done."
 echo
 
