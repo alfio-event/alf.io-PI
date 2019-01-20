@@ -153,17 +153,17 @@ release {
 }
 
 def CONFIG_DIR = 'home/pi/.config/alf.io'
-def CONFIG_FILE = "${CONFIG_DIR}/application.properties"
+def CONFIG_FILE = "${CONFIG_DIR}/application.properties".toString()
 def HOME_DIR = 'opt/alf.io'
-def UTILS_DIR = "${HOME_DIR}/utils"
+def UTILS_DIR = "${HOME_DIR}/utils".toString()
 def TOKENS = [
     ALFIO_VERSION: getVersionName(),
     ALFIO_BUILDNUM: getBuildNumber(),
-    ALFIO_CONFIG_DIR: "/${CONFIG_DIR}",
-    ALFIO_CONFIG_FILE: "/${CONFIG_FILE}",
-    ALFIO_HOME_DIR: "/${HOME_DIR}",
-    ALFIO_APP_DIR: "/${HOME_DIR}/app",
-    ALFIO_UTILS_DIR: "/${UTILS_DIR}"
+    ALFIO_CONFIG_DIR: "/${CONFIG_DIR}".toString(),
+    ALFIO_CONFIG_FILE: "/${CONFIG_FILE}".toString(),
+    ALFIO_HOME_DIR: "/${HOME_DIR}".toString(),
+    ALFIO_APP_DIR: "/${HOME_DIR}/app".toString(),
+    ALFIO_UTILS_DIR: "/${UTILS_DIR}".toString()
 ]
 
 task packageDeb(type: Deb) {
