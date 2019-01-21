@@ -1,6 +1,7 @@
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import org.apache.tools.ant.filters.ReplaceTokens
 
 /*
  * This file is part of alf.io.
@@ -20,8 +21,8 @@ import java.time.format.DateTimeFormatter
  */
 buildscript {
     ext {
-        kotlinVersion = '1.2.71'
-        springBootVersion = '1.5.12.RELEASE'
+        kotlinVersion = '1.3.11'
+        springBootVersion = '1.5.18.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -36,6 +37,7 @@ buildscript {
 
 plugins {
     id 'net.researchgate.release' version '2.7.0'
+    id "nebula.ospackage" version "6.1.1"
 }
 
 configure(allprojects) {
@@ -45,12 +47,31 @@ configure(allprojects) {
     apply plugin: 'propdeps-eclipse'
 }
 
+ext {
+    getVersionName = {
+        def currentVersion = project.version.toString()
+        if(currentVersion.contains("SNAPSHOT")) {
+            "0.99"
+        } else {
+            currentVersion
+        }
+    }
+
+    getBuildNumber = {
+        if(project.version.toString().contains("SNAPSHOT")) {
+            "7"
+        } else {
+            "1"
+        }
+    }
+}
+
 apply plugin: 'kotlin'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 
 jar {
-    baseName = 'alfio-pi'
+    archiveBaseName.set('alfio-pi')
     version = "${project.version}"
 }
 jar.dependsOn(":frontend:jar")
@@ -114,8 +135,6 @@ bootRun {
     systemProperties properties
     //jvmArgs = ["-DopenDBConsole=true"]
     //jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" ]
-
-
 }
 
 springBoot {
@@ -125,6 +144,7 @@ compileJava.dependsOn(processResources)
 
 release {
     tagTemplate = 'v$version'
+    buildTasks = ['generateScript']
     git {
         requireBranch = ''
         pushToRemote = 'origin'
@@ -132,4 +152,87 @@ release {
     }
 }
 
+def CONFIG_DIR = 'home/pi/.config/alf.io'
+def CONFIG_FILE = "${CONFIG_DIR}/application.properties".toString()
+def HOME_DIR = 'opt/alf.io'
+def UTILS_DIR = "${HOME_DIR}/utils".toString()
+def TOKENS = [
+    ALFIO_VERSION: getVersionName(),
+    ALFIO_BUILDNUM: getBuildNumber(),
+    ALFIO_CONFIG_DIR: "/${CONFIG_DIR}".toString(),
+    ALFIO_CONFIG_FILE: "/${CONFIG_FILE}".toString(),
+    ALFIO_HOME_DIR: "/${HOME_DIR}".toString(),
+    ALFIO_APP_DIR: "/${HOME_DIR}/app".toString(),
+    ALFIO_UTILS_DIR: "/${UTILS_DIR}".toString()
+]
 
+task packageDeb(type: Deb) {
+    packageName 'alf.io-pi'
+    version getVersionName().toString()
+    release getBuildNumber()
+    user 'pi'
+    group 'pi'
+    configurationFile("/${CONFIG_FILE}")
+
+    requires('nginx')
+    requires('cups-bsd')
+    requires('cups')
+    requires('chromium-browser')
+    requires('printer-driver-dymo')
+    requires('openjdk-9-jdk')
+
+    preInstall file('deb/scripts/preInstall.sh')
+    preUninstall file('deb/scripts/preUninstall.sh')
+    postInstall file('deb/scripts/postInstall.sh')
+
+    into '/'
+    from('deb/resources/etc') {
+        into 'etc'
+        filter(ReplaceTokens, tokens: TOKENS)
+        fileMode=0644
+        user "root"
+    }
+    from('deb/resources/opt/alf.io/util') {
+        into UTILS_DIR
+        createDirectoryEntry = true
+        fileMode=0775
+        filter(ReplaceTokens, tokens: TOKENS)
+    }
+    from('deb/resources/var') {
+        into 'var'
+    }
+    from('deb/resources/home-pi-config') {
+        into 'home/pi/.config'
+    }
+    from('application.properties.sample') {
+        into CONFIG_DIR
+        createDirectoryEntry = true
+    }
+
+    from(jar.outputs.files) {
+        createDirectoryEntry = true
+        into 'opt/alf.io/app'
+        rename {
+            "alf.io-PI-${getVersionName()}-boot.jar"
+        }
+    }
+
+    from('deb/resources/opt/alf.io/app') {
+        into 'opt/alf.io/app'
+        rename {
+            "alf.io-PI-${getVersionName()}-boot.conf"
+        }
+    }
+
+    link("/${HOME_DIR}/app/alfio-boot.jar", "/${HOME_DIR}/app/alf.io-PI-${getVersionName()}-boot.jar")
+    link("/etc/nginx/sites-enabled/alfio-pi", "/etc/nginx/sites-available/alfio-pi")
+}
+
+packageDeb.dependsOn(build)
+
+task generateScript(type: Copy) {
+    from 'etc/get-alfio-pi.sh'
+    into "${buildDir}/distributions"
+    filter(ReplaceTokens, tokens: TOKENS)
+}
+generateScript.dependsOn(packageDeb)

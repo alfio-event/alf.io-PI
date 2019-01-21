@@ -19,7 +19,7 @@ After=syslog.target
 
 [Service]
 User=pi
-ExecStart=/home/pi/app/alfio-boot.jar
+ExecStart=@ALFIO_APP_DIR@/alfio-boot.jar --spring.config.location=classpath:/application.properties,file:@ALFIO_CONFIG_FILE@
 ExecStop=/bin/kill -TERM $MAINPID
 Restart=always
 SuccessExitStatus=143
