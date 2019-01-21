@@ -4,6 +4,10 @@
 @import "../node_modules/virtual-keyboard/dist/css/keyboard.min.css";
 @import "../node_modules/virtual-keyboard/dist/css/keyboard-basic.min.css";
 
+body {
+  font-family: 'DejaVu Sans', sans-serif;
+}
+
 .draggable {
   cursor: move;
   cursor: grab;
@@ -46,16 +50,4 @@ md-dialog-container.mat-dialog-container {
 
 .ui-keyboard-button {
   margin: 3px;
-}
-
-/* temporary until we include bootstrap v4.1 */
-
-.bg-dark {
-  background-color: #343a40;
-}
-
-.btn-dark {
-  color: #fff;
-  background-color: #343a40;
-  border-color: #343a40;
 }

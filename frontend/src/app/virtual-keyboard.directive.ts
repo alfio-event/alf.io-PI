@@ -1,4 +1,4 @@
-import {Directive, ElementRef, EventEmitter, Input, OnInit, Optional, Output} from '@angular/core';
+import {Directive, ElementRef, EventEmitter, OnInit, Optional, Output} from '@angular/core';
 import {NgModel} from "@angular/forms";
 import * as jQuery from 'jquery';
 import 'virtual-keyboard';
