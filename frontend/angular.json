@@ -29,7 +29,10 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/jquery/dist/jquery.min.js",
+              "node_modules/virtual-keyboard/dist/js/jquery.keyboard.js"
+            ]
           },
           "configurations": {
             "production": {
