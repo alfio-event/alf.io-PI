@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+/usr/sbin/lpadmin -E -p "Alfio-BXL-$2" -v "usb://BIXOLON/SLP-TX220?serial=$1" -P /usr/share/cups/model/Bixolon/SLPTX220_v1.1.0.ppd -o printer-error-policy=abort-job -o printer-is-shared=false
