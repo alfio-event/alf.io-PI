@@ -1,7 +1,7 @@
-ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} LW450T" SYMLINK+="usb/Alfio-DYM-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} LW450T"
-ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0a5f", ATTRS{idProduct}=="011c", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} ZD410" SYMLINK+="usb/Alfio-ZBR-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} ZD410"
-ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="1504", ATTRS{idProduct}=="0064", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} TX220" SYMLINK+="usb/Alfio-BXL-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} TX220"
+ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} LW450T" SYMLINK+="usb/Alfio-DYM-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} DYM"
+ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0a5f", ATTRS{idProduct}=="011c", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} ZD410" SYMLINK+="usb/Alfio-ZBR-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} ZBR"
+ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="1504", ATTRS{idProduct}=="0064", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} TX220" SYMLINK+="usb/Alfio-BXL-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} BXL"
 
-ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="0922", ENV{ID_MODEL_ID}=="0021", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT}"
-ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="0a5f", ENV{ID_MODEL_ID}=="011c", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT}"
-ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="1504", ENV{ID_MODEL_ID}=="0064", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT}"
+ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="0922", ENV{ID_MODEL_ID}=="0021", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT} DYM"
+ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="0a5f", ENV{ID_MODEL_ID}=="011c", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT} ZBR"
+ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="1504", ENV{ID_MODEL_ID}=="0064", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT} BXL"
