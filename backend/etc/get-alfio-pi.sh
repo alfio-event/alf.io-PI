@@ -45,7 +45,7 @@ print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget dirmngr software-properties-common dkpg-sig
+sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget dirmngr software-properties-common dpkg-sig
 sudo usermod -a -G lpadmin pi
 print_bold "done."
 echo
@@ -95,7 +95,7 @@ print_bold "Now it's time to edit the configuration..."
 sleep 2
 
 # backing up existing file, if any
-mv ${CONFIG_FILE_PATH} "${CONFIG_FILE_PATH}.$(date '+%Y-%m-%dT%H%M%S')"
+touch ${CONFIG_FILE_PATH} && mv ${CONFIG_FILE_PATH} "${CONFIG_FILE_PATH}.$(date '+%Y-%m-%dT%H%M%S')"
 cp ${CONFIG_TEMPLATE_PATH} ${CONFIG_FILE_PATH}
 NOW=`date '+%Y-%m-%d %H:%M:%S'`
 echo ""  >> ${CONFIG_FILE_PATH}
