@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+ALFIO_RELEASE="@ALFIO_VERSION@"
+ALFIO_VERSION="@ALFIO_VERSION@-@ALFIO_BUILDNUM@"
 CONFIG_TEMPLATE_PATH="@ALFIO_CONFIG_DIR@/application.properties.sample"
 CONFIG_FILE_PATH="@ALFIO_CONFIG_DIR@/application.properties"
 
@@ -43,7 +45,7 @@ print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget
+sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget dirmngr software-properties-common dkpg-sig
 sudo usermod -a -G lpadmin pi
 print_bold "done."
 echo
@@ -59,14 +61,21 @@ tar -C /tmp/ -xzf /tmp/dymo-cups-drivers-1.4.0.tar.gz
 sudo cp /tmp/dymo-cups-drivers-1.4.*/ppd/*.ppd /usr/share/cups/model/
 print_bold "done."
 
-print_bold "Importing Alf.io-PI repository"
-sudo apt-key adv --keyserver keyring.debian.org --recv-keys D959470077C4660E
-sudo add-apt-repository "deb https://repo.alf.io/ stretch main"
-sudo apt-get update
+print_bold "Importing Alf.io-PI key"
+sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0xD959470077C4660E
+#sudo add-apt-repository "deb https://repo.alf.io/ stretch main"
+#sudo apt-get update
 print_bold "done."
 
-print_bold "Installing latest version of Alf.io-PI"
-sudo apt-get install alf.io-pi
+print_bold "Downloading Alf.io-PI v$ALFIO_VERSION"
+rm -f "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
+wget "https://github.com/alfio-event/alf.io-PI/releases/download/v${ALFIO_RELEASE}/alf.io-pi_${ALFIO_VERSION}_all.deb" -P /tmp/
+sudo dpkg-sig --verify -k D959470077C4660E "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
+print_bold "done."
+
+print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
+sudo dpkg -i "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
+sudo rm -f /etc/nginx/sites-enabled/default
 print_bold "done."
 echo
 
