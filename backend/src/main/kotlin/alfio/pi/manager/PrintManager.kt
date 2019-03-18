@@ -29,6 +29,8 @@ import org.springframework.context.event.EventListener
 import org.springframework.core.env.Environment
 import org.springframework.stereotype.Component
 import java.net.InetAddress
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
@@ -52,6 +54,7 @@ interface PrintManager {
     fun printLabel(user: User, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): Boolean
     fun printTestLabel(printer: Printer): Boolean
     fun getLabelContent(ticket: Ticket, labelConfiguration: LabelConfiguration?): ConfigurableLabelContent
+    fun shutdown() {}
 }
 
 @Component
@@ -140,7 +143,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
 
     private val systemPrinterExtractor = Regex("printer (Alfio\\S+) .*")
 
-    private fun getCupsPrinters(): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
+    private fun getCupsPrinters(includeNotConnected: Boolean = false): List<SystemPrinter> = tryOrDefault<List<SystemPrinter>>().invoke({
         val process = Runtime.getRuntime().exec("/usr/bin/lpstat -p")
         process.inputStream.use { inputStream ->
             inputStream.bufferedReader().lines()
@@ -148,6 +151,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
                     val result = systemPrinterExtractor.find(it)
                     result?.groupValues?.get(1)
                 }.filter { it != null }
+                .filter { includeNotConnected || Files.exists(Paths.get("/dev/usb/", it)) }
                 .map { SystemPrinter(it!!) }
                 .collect(Collectors.toList<SystemPrinter>())
         }
@@ -224,6 +228,14 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             "lastName" to ticket.lastName,
             "fullName" to ticket.fullName,
             "emailAddress" to ticket.email)
+
+    override fun shutdown() {
+        logger.info("Shutting down PrintManager. Removing printers...")
+        getCupsPrinters(true).forEach {
+            logger.info("Removing $it")
+            Runtime.getRuntime().exec("/usr/sbin/lpadmin -x $it").waitFor()
+        }
+    }
 }
 
 /**

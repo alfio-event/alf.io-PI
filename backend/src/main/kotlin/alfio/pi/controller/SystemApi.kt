@@ -40,6 +40,7 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
         if(!isLocalAddress(servletRequest.remoteAddr)) {
             return ResponseEntity(HttpStatus.NOT_MODIFIED)
         }
+        printManager.shutdown()
         val result = Runtime.getRuntime().exec("sudo poweroff").waitFor()
         return if(result == 0) {
             ResponseEntity.ok("shutting down...")

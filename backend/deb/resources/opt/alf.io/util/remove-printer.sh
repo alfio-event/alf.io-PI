@@ -8,4 +8,4 @@
 # {prefix}: device name prefix (e.g. DYM for Dymo printers)
 #
 device_name=$(@ALFIO_UTILS_DIR@/device-name.sh $1)
-nohup /usr/sbin/lpadmin -x "Alfio-$2-${device_name}" &
+systemd-run --uid=pi --no-block --on-active=10 /usr/sbin/lpadmin -x "Alfio-$2-${device_name}"
