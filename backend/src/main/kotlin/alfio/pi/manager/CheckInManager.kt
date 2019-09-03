@@ -125,7 +125,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return if (checkInForcePaymentOnSite) result.result.status == MUST_PAY else false
     }
 
-    private fun doPerformCheckIn(eventName: String, hmac: String, username: String, uuid: String): CheckInResponse {
+    internal fun doPerformCheckIn(eventName: String, hmac: String, username: String, uuid: String): CheckInResponse {
         return eventRepository.loadSingle(eventName)
             .flatMap { event -> userRepository.findByUsername(username).map { user -> event to user } }
             .map { (event, user) ->
@@ -136,23 +136,26 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
                         if (localDataResult.isSuccessful() || checkBypassSuccessTicketState(localDataResult)) {
                             localDataResult as TicketAndCheckInResult
-                            val who = Optional.ofNullable(printManager.getAvailablePrinters())
-                                .filter { it.size == 1 }
-                                .map { it.first().name }
-                                .orElse(username)
-                            val remoteResult = EmptyTicketResult(CheckInResult(CheckInStatus.RETRY))
-                            val localResult = checkValidity(localDataResult)
+                            // FIXME restore printer name for auditing
+//                            val who = Optional.ofNullable(printManager.getAvailablePrinters())
+//                                .filter { it.size == 1 }
+//                                .map { it.first().name }
+//                                .orElse(username)
+                            val remoteResult = EmptyTicketResult(CheckInResult(RETRY))
+                            val localStatus = checkValidity(localDataResult)
                             val ticket = localDataResult.ticket!!
                             val configuration = kvStore.loadLabelConfiguration(eventKey).orElse(null)
                             val printingEnabled = configuration?.enabled ?: false
                             if(!printingEnabled) {
                                 logger.info("label printing disabled for event {}", eventName)
                             }
-                            val labelPrinted = remoteResult.isSuccessfulOrRetry() && localResult != INVALID_TICKET_CATEGORY_CHECK_IN_DATE && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
-                            val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
-                            kvStore.insertScanLog(eventKey, uuid, user.id, localResult, remoteResult.result.status, labelPrinted, jsonPayload)
-                            logger.trace("returning status $localResult for ticket $uuid (${ticket.fullName})")
-                            TicketAndCheckInResult(ticket, CheckInResult(localResult, boxColorClass = categoryColorConfiguration.getColorFor(ticket.categoryName)))
+                            if(localStatus != INVALID_TICKET_CATEGORY_CHECK_IN_DATE) {
+                                val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
+                                val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
+                                kvStore.insertScanLog(eventKey, uuid, user.id, localStatus, remoteResult.result.status, labelPrinted, jsonPayload)
+                            }
+                            logger.trace("returning status $localStatus for ticket $uuid (${ticket.fullName})")
+                            TicketAndCheckInResult(ticket, CheckInResult(localStatus, boxColorClass = categoryColorConfiguration.getColorFor(ticket.categoryName)))
                         } else {
                             localDataResult
                         }
@@ -196,7 +199,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             }
         }
 
-        return CheckInStatus.SUCCESS
+        return SUCCESS
     }
 
     private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
@@ -405,7 +408,7 @@ private fun decrypt(key: String, payload: String): String {
     }
 }
 
-private fun getCypher(key: String): Pair<Cipher, SecretKeySpec> {
+internal fun getCypher(key: String): Pair<Cipher, SecretKeySpec> {
     try {
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
         val iterations = 1000

@@ -101,7 +101,7 @@ open class KVStore(private val gson: Gson) {
         return res
     }
 
-    fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
+    open fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
         val timestamp = ZonedDateTime.now()
         val key = System.nanoTime().toString() + UUID.randomUUID().toString()
         val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventKey, uuid, userId,
@@ -200,7 +200,7 @@ open class KVStore(private val gson: Gson) {
         return remoteFailures
     }
 
-    fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
+    open fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
         val found = findAllIdsWith(arrayOf(Pair("ticket_uuid", ticketUuid),
             Pair("local_result", CheckInStatus.SUCCESS.toString()),
             Pair("event_key", eventKey)))
@@ -261,7 +261,7 @@ open class KVStore(private val gson: Gson) {
         labelConfigurationTable.put(eventKey, gson.toJson(toSave))
     }
 
-    fun loadLabelConfiguration(eventKey: String) : Optional<LabelConfiguration> {
+    open fun loadLabelConfiguration(eventKey: String) : Optional<LabelConfiguration> {
         val res = labelConfigurationTable.getAsString(eventKey)
         logger.trace("loaded labelConfiguration: {}", res)
         return if (res == null) {
