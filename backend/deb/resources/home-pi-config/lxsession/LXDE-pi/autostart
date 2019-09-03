@@ -2,7 +2,7 @@
 #@pcmanfm --desktop --profile LXDE-pi
 @xscreensaver -no-splash
 #@point-rpi
-@unclutter -display :0 -noevents -grab
+@unclutter -display :0 -noevents -grab -idle 0.1
 @xset s off
 @xset s noblank
 @xset -dpms
