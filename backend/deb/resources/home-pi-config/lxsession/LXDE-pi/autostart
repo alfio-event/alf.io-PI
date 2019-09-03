@@ -6,4 +6,4 @@
 @xset s off
 @xset s noblank
 @xset -dpms
-@/usr/bin/chromium-browser --kiosk --start-maximized --allow-running-insecure-content --allow-insecure-localhost --remember-cert-error-decisions --no-default-browser-check --incognito http://localhost
+@/usr/bin/chromium-browser --kiosk --start-maximized --allow-running-insecure-content --allow-insecure-localhost --remember-cert-error-decisions --no-default-browser-check --disable-pinch --overscroll-history-navigation=0 --incognito http://localhost
