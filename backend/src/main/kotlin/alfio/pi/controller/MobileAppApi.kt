@@ -35,6 +35,7 @@ import java.util.*
 @Profile("server", "full")
 @RequestMapping("/admin/api/check-in")
 open class CheckInApi(private val checkInDataManager: CheckInDataManager,
+                      private val badgeScanManager: BadgeScanManager,
                       private val environment: Environment) {
 
     @RequestMapping(value = ["/event/{eventName}/ticket/{ticketIdentifier:.+}"], method = [(RequestMethod.POST)])
@@ -46,7 +47,12 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
         val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
         return Optional.ofNullable(username)
             .map {
-                ResponseEntity.ok(checkInDataManager.performCheckIn(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!))
+                val code = ticketCode.code
+                if(code == null) {
+                    ResponseEntity.ok(badgeScanManager.performBadgeScan(eventName, ticketIdentifier, it))
+                } else {
+                    ResponseEntity.ok(checkInDataManager.performCheckIn(eventName, ticketIdentifier, code.substringAfter('/'), it))
+                }
             }.orElseGet {
                 ResponseEntity(HttpStatus.UNAUTHORIZED)
             }

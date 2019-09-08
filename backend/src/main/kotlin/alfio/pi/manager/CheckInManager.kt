@@ -43,6 +43,8 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -67,7 +69,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                               private val publisher: SystemEventHandler,
                               @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
                               @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
-                              private val categoryColorConfiguration: CategoryColorConfiguration) {
+                              private val categoryColorConfiguration: CategoryColorConfiguration,
+                              private val remoteCheckInExecutor: RemoteCheckInExecutor) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -101,6 +104,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     categoryName = ticketData.category,
                     validCheckInFrom = ticketData.validCheckInFrom,
                     validCheckInTo = ticketData.validCheckInTo,
+                    checkInStrategy = ticketData.categoryCheckInStrategy ?: CheckInStrategy.ONCE_PER_EVENT,
                     additionalServicesInfo = ticketData.additionalServicesInfo)
                 checkIfBlacklisted(TicketAndCheckInResult(ticket, CheckInResult(ticketData.checkInStatus)))
             } else {
@@ -153,6 +157,13 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                                 val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                                 val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                                 kvStore.insertScanLog(eventKey, uuid, user.id, localStatus, remoteResult.result.status, labelPrinted, jsonPayload)
+                                val badgeScan = BadgeScan(uuid, SUCCESS, ZonedDateTime.now(ZoneId.of(event.timezone!!)),
+                                    toZonedDateTimeOrElse(ticket.ticketValidityStart, event.timezone, event.begin),
+                                    toZonedDateTimeOrElse(ticket.ticketValidityEnd, event.timezone, event.end),
+                                    ticket.categoryName.orEmpty(),
+                                    ticket.checkInStrategy
+                                )
+                                kvStore.insertBadgeScan(eventKey, badgeScan)
                             }
                             logger.trace("returning status $localStatus for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localStatus, boxColorClass = categoryColorConfiguration.getColorFor(ticket.categoryName)))
@@ -162,6 +173,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     }
             }.orElseGet{ EmptyTicketResult() }
     }
+
+    private fun toZonedDateTimeOrElse(ms: String?, timeZone: String, default: ZonedDateTime): ZonedDateTime =
+        if(ms.isNullOrBlank()) {
+            default
+        } else {
+            Instant.ofEpochMilli(ms.toLong()).atZone(ZoneId.of(timeZone))
+        }
+
 
     private fun checkIfBlacklisted(localResult: TicketAndCheckInResult): CheckInResponse = if(isBlacklisted(localResult)) {
         logger.warn("Scanned blacklisted category [${localResult.ticket?.categoryName}]")
@@ -303,37 +322,6 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         })
     }
 
-    open fun remoteBulkCheckIn(eventKey: String, identifierCodes: List<Map<String, String?>>, username: String) : Map<String, TicketAndCheckInResult> {
-
-        return tryOrDefault<Map<String, TicketAndCheckInResult>>().invoke({
-            val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(identifierCodes))
-            var url = "${master.url}/admin/api/check-in/event/$eventKey/bulk?offlineUser=$username"
-            if(checkInForcePaymentOnSite) {
-                url += "&forceCheckInPaymentOnSite=true"
-            }
-            val request = Request.Builder()
-                .addHeader("Authorization", master.authenticationHeaderValue())
-                .post(requestBody)
-                .url(url)
-                .build()
-            logger.debug("Will call remote url {}", url)
-            httpClientWithCustomTimeout(100L to TimeUnit.MILLISECONDS, 1L to TimeUnit.SECONDS)
-                .invoke(httpClient)
-                .newCall(request)
-                .execute()
-                .use { resp ->
-                    if (resp.isSuccessful) {
-                        gson.fromJson(resp.body()!!.string(), object : TypeToken<Map<String, TicketAndCheckInResult>>() {}.type)
-                    } else {
-                        emptyMap()
-                    }
-                }
-        }, {
-            logger.warn("got Exception while performing remote check-in ($it)")
-            emptyMap()
-        })
-    }
-
     @Scheduled(fixedDelay = 15000L)
     open fun processPendingEntries() {
         if(kvStore.isLeader()) {
@@ -352,15 +340,14 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         tryOrDefault<Unit>().invoke({
             val event = entry.key.get()
             val scanLogEntries = entry.value.filter { it.ticket != null }
-            val username = userRepository.findById(scanLogEntries.first { userRepository.findById(it.userId).isPresent }.userId).get().username
-            val body = scanLogEntries.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket.hmac}")}
             val ticketIdToScanLogId = scanLogEntries.associate { it.ticket!!.uuid to it.id }
-
-            val response = remoteBulkCheckIn(event.key, body, username)
+            val response = remoteCheckInExecutor.remoteBulkCheckIn(event.key, scanLogEntries) { list -> list.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket.hmac}")}}
 
             response.forEach {
-                logger.trace("response is ${it.key} ${gson.toJson(it.value)}")
-                kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key]!!)
+                if(logger.isTraceEnabled) {
+                    logger.trace("upload entries response is ${it.key} ${gson.toJson(it.value)}")
+                }
+                kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key] ?: error("Unexpected error during check-in upload"))
             }
         }, { logger.error("unable to upload pending check-in", it)})
         logger.info("******** upload completed **********")

@@ -55,6 +55,7 @@ class CheckInDataManagerTest {
         assertEquals(CheckInStatus.SUCCESS, response.result.status)
         assertNotNull(response.ticket)
         verify(mockKVStore).insertScanLog(eq(eventId), eq(ticketUUid), any(), eq(CheckInStatus.SUCCESS), eq(CheckInStatus.RETRY), eq(false), any())
+        verify(mockKVStore).insertBadgeScan(eq(eventId), any())
         verify(mockPrintManager, never()).printLabel(any<User>(), any(), any())
     }
 
@@ -69,6 +70,7 @@ class CheckInDataManagerTest {
         assertEquals(CheckInStatus.SUCCESS, response.result.status)
         assertNotNull(response.ticket)
         verify(mockKVStore).insertScanLog(eq(eventId), eq(ticketUUid), any(), eq(CheckInStatus.SUCCESS), eq(CheckInStatus.RETRY), eq(true), any())
+        verify(mockKVStore).insertBadgeScan(eq(eventId), any())
         verify(mockPrintManager).printLabel(any<User>(), any(), any())
     }
 
@@ -96,6 +98,7 @@ class CheckInDataManagerTest {
         assertEquals(CheckInStatus.INVALID_TICKET_CATEGORY_CHECK_IN_DATE, response.result.status)
         assertNotNull(response.ticket)
         verify(mockKVStore, never()).insertScanLog(eq(eventId), eq(ticketUUid), any(), eq(CheckInStatus.INVALID_TICKET_CATEGORY_CHECK_IN_DATE), eq(CheckInStatus.RETRY), eq(false), any())
+        verify(mockKVStore, never()).insertBadgeScan(eq(eventId), any())
         verify(mockPrintManager, never()).printLabel(any<User>(), any(), any())
     }
 
@@ -109,6 +112,7 @@ class CheckInDataManagerTest {
         assertEquals(CheckInStatus.INVALID_TICKET_CATEGORY_CHECK_IN_DATE, response.result.status)
         assertNotNull(response.ticket)
         verify(mockKVStore, never()).insertScanLog(eq(eventId), eq(ticketUUid), any(), eq(CheckInStatus.INVALID_TICKET_CATEGORY_CHECK_IN_DATE), eq(CheckInStatus.RETRY), eq(false), any())
+        verify(mockKVStore, never()).insertBadgeScan(eq(eventId), any())
         verify(mockPrintManager, never()).printLabel(any<User>(), any(), any())
     }
 
@@ -128,6 +132,9 @@ class CheckInDataManagerTest {
             null,
             checkInAllowedFrom.toEpochSecond().toString(),
             checkInAllowedTo.toEpochSecond().toString(),
+            CheckInStrategy.ONCE_PER_EVENT,
+            null,
+            null,
             null)
 
         val mockKVStore = mock<KVStore> {
@@ -136,7 +143,7 @@ class CheckInDataManagerTest {
             on { getAttendeeData(eq(eventId), eq(hashedHmac)) } doReturn encrypt("$ticketUUid/$hmac", Gson().toJson(ticketData))
             on { loadLabelConfiguration(eq(eventId)) } doReturn Optional.ofNullable(labelConfiguration)
         }
-        val mockEvent = Event(eventId, "name", null, ZonedDateTime.now().plusHours(1), ZonedDateTime.now().plusHours(10), null, 17, true, null, null)
+        val mockEvent = Event(eventId, "name", null, ZonedDateTime.now().plusHours(1), ZonedDateTime.now().plusHours(10), null, 17, true, null, "UTC")
         val mockUser = User(1, "test")
         val mockEventRepository = mock<EventRepository> {
             on { loadSingle(any()) } doReturn Optional.of(mockEvent)
@@ -150,7 +157,7 @@ class CheckInDataManagerTest {
         if(labelConfiguration != null) {
             whenever(mockPrintManager.printLabel(any<User>(), any(), any())).thenReturn(labelConfiguration.enabled)
         }
-        val checkInDataManager = CheckInDataManager(masterConfiguration, mockEventRepository, mockKVStore, mockUserRepository, mock(), Gson(), mock(), mockPrintManager, mock(), true, null, categoryColorConfiguration)
+        val checkInDataManager = CheckInDataManager(masterConfiguration, mockEventRepository, mockKVStore, mockUserRepository, mock(), Gson(), mock(), mockPrintManager, mock(), true, null, categoryColorConfiguration, mock())
         return Triple(mockKVStore, mockPrintManager, checkInDataManager)
     }
 
