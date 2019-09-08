@@ -105,6 +105,9 @@ open class Ticket(val uuid: String,
                   val categoryName: String? = null,
                   val validCheckInFrom: String? = null,
                   val validCheckInTo: String? = null,
+                  val checkInStrategy: CheckInStrategy = CheckInStrategy.ONCE_PER_EVENT,
+                  val ticketValidityStart: String? = null,
+                  val ticketValidityEnd: String? = null,
                   val additionalServicesInfo: List<AdditionalServiceInfo> = emptyList()) : Serializable
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", emptyMap())
@@ -122,13 +125,17 @@ class CheckInForbidden(result: CheckInResult = CheckInResult(status = CheckInSta
 
 class DuplicateScanResult(result: CheckInResult = CheckInResult(CheckInStatus.ALREADY_CHECK_IN, boxColorClass = "danger"), val originalScanLog: ScanLog) : CheckInResponse(result, originalScanLog.ticket), Serializable
 
+class BadgeScanSuccess : CheckInResponse(CheckInResult(status = CheckInStatus.BADGE_SCAN_SUCCESS, boxColorClass = "success"), null), Serializable
+
+class DuplicatedBadgeScan: CheckInResponse(CheckInResult(status = CheckInStatus.BADGE_SCAN_ALREADY_DONE, boxColorClass = "warning"), null), Serializable
+
 data class CheckInResult(val status: CheckInStatus = CheckInStatus.TICKET_NOT_FOUND,
                          val message: String? = null,
                          val dueAmount: BigDecimal = BigDecimal.ZERO,
                          val currency: String = "",
                          val boxColorClass: String = ""): Serializable
 
-enum class CheckInStatus(val successful: Boolean = false) {
+enum class CheckInStatus(val successful: Boolean = false, val warning: Boolean = false) {
     RETRY(),
     EVENT_NOT_FOUND(),
     TICKET_NOT_FOUND(),
@@ -139,7 +146,22 @@ enum class CheckInStatus(val successful: Boolean = false) {
     MUST_PAY(),
     OK_READY_TO_BE_CHECKED_IN(true),
     SUCCESS(true),
+    BADGE_SCAN_ALREADY_DONE(warning = true),
+    BADGE_SCAN_SUCCESS(true),
     INVALID_TICKET_CATEGORY_CHECK_IN_DATE();
+
+    companion object {
+        fun safeValueOf(v: String?): CheckInStatus? {
+            if(v.isNullOrBlank()) {
+                return null
+            }
+            return valueOf(v)
+        }
+    }
+}
+
+enum class CheckInStrategy {
+    ONCE_PER_EVENT, ONCE_PER_DAY
 }
 
 data class TicketData(val firstName: String,
@@ -150,6 +172,9 @@ data class TicketData(val firstName: String,
                       private val additionalInfoJson: String?,
                       val validCheckInFrom: String?,
                       val validCheckInTo: String?,
+                      val categoryCheckInStrategy: CheckInStrategy?,
+                      val ticketValidityFrom: ZonedDateTime?,
+                      val ticketValidityTo: ZonedDateTime?,
                       private val additionalServicesInfoJson: String?) {
     val checkInStatus: CheckInStatus
         get() = when(status) {
@@ -214,4 +239,11 @@ data class LabelLayout(val qrCode: QRCode, val content: Content, val general: Ge
 data class QRCode(val additionalInfo: List<String>, val infoSeparator: String) : Serializable
 data class Content(val firstRow: String?, val secondRow: String?, val thirdRow: List<String>?, val additionalRows: List<String>?, val checkbox: Boolean?) : Serializable
 data class General(val printPartialID: Boolean) : Serializable
+data class BadgeScan(val ticketIdentifier: String,
+                     val localStatus: CheckInStatus,
+                     val timestamp: ZonedDateTime,
+                     val ticketValidityFrom: ZonedDateTime,
+                     val ticketValidityTo: ZonedDateTime,
+                     val categoryName: String,
+                     val checkInStrategy: CheckInStrategy): Serializable
 

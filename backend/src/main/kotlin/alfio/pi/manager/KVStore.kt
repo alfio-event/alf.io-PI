@@ -13,6 +13,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
 import kotlin.collections.ArrayList
+import ch.digitalfondue.synckv.SyncKVStructuredTable
+import java.util.stream.Collectors
+
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.pi.manager.KVStore")
 
@@ -30,6 +33,8 @@ open class KVStore(private val gson: Gson) {
     //
     private val labelConfigurationTable: SyncKVTable
     private val remainingLabels: SyncKVTable
+    private val badgeScanTable: SyncKVStructuredTable<BadgeScan>
+    private val badgeScanLogTable: SyncKVStructuredTable<ScanLog>
 
 
     init {
@@ -41,7 +46,57 @@ open class KVStore(private val gson: Gson) {
         //
         labelConfigurationTable = store.getTable("label_configuration")
         remainingLabels = store.getTable("printer_remaining_labels")
+
+        badgeScanTable = store.getTable("badge_scan")
+            .toStructured(BadgeScan::class.java, { data ->
+                BadgeScan(
+                    data.readUTF(),
+                    CheckInStatus.valueOf(data.readUTF()),
+                    ZonedDateTime.parse(data.readUTF()),
+                    ZonedDateTime.parse(data.readUTF()),
+                    ZonedDateTime.parse(data.readUTF()),
+                    data.readUTF(),
+                    CheckInStrategy.valueOf(data.readUTF())
+                )
+            }, { badgeScan, out ->
+                out.writeUTF(badgeScan.ticketIdentifier)
+                out.writeUTF(badgeScan.localStatus.name)
+                out.writeUTF(badgeScan.timestamp.toString())
+                out.writeUTF(badgeScan.ticketValidityFrom.toString())
+                out.writeUTF(badgeScan.ticketValidityTo.toString())
+                out.writeUTF(badgeScan.categoryName)
+                out.writeUTF(badgeScan.checkInStrategy.name)
+            })
+
+        badgeScanLogTable = store.getTable("badge_scan_log")
+            .toStructured(ScanLog::class.java,
+                {data ->
+                    ScanLog(
+                        data.readUTF(),
+                        ZonedDateTime.parse(data.readUTF()),
+                        data.readUTF(),
+                        data.readUTF(),
+                        data.readUTF().toInt(),
+                        CheckInStatus.valueOf(data.readUTF()),
+                        CheckInStatus.valueOf(data.readUTF()),
+                        data.readUTF().toBoolean(),
+                        nullIfEmpty(data.readUTF())
+                    )
+                },
+                {scanLog, out ->
+                    out.writeUTF(scanLog.id)
+                    out.writeUTF(scanLog.timestamp.toString())
+                    out.writeUTF(scanLog.eventKey)
+                    out.writeUTF(scanLog.ticketUuid)
+                    out.writeUTF(scanLog.userId.toString())
+                    out.writeUTF(scanLog.localResult.name)
+                    out.writeUTF(scanLog.remoteResult.name)
+                    out.writeUTF(scanLog.badgePrinted.toString())
+                    out.writeUTF(scanLog.ticketData.orEmpty())
+                })
     }
+
+    private fun nullIfEmpty(s: String): String? = if (s.isEmpty()) null else s
 
     data class ScanLogToPersist(val id: String,
                                 val timestamp: Long,
@@ -103,11 +158,30 @@ open class KVStore(private val gson: Gson) {
 
     open fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
         val timestamp = ZonedDateTime.now()
-        val key = System.nanoTime().toString() + UUID.randomUUID().toString()
+        val key = scanLogId()
         val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventKey, uuid, userId,
             localResult, remoteResult, badgePrinted, jsonPayload)
         putScanLong(scanLogWithKey)
     }
+
+    open fun insertBadgeScan(eventKey: String, badgeScan: BadgeScan) =
+        badgeScanTable.put(attendeeKey(eventKey, badgeScan.ticketIdentifier), badgeScan)
+
+    open fun retrieveBadgeScan(eventKey: String, ticketUuid: String): BadgeScan? =
+        badgeScanTable.get(attendeeKey(eventKey, ticketUuid))
+
+    open fun insertBadgeScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, timestamp: ZonedDateTime) {
+        val scanLogId = scanLogId()
+        val scanLog = ScanLog(scanLogId, timestamp, eventKey, uuid, userId, localResult, remoteResult, false, null)
+        badgeScanLogTable.put(scanLogId, scanLog)
+    }
+
+
+    open fun selectBadgeScanToSynchronize() = badgeScanLogTable.stream()
+        .filter { it.value.remoteResult == CheckInStatus.RETRY }
+        .map { it.value }
+        .limit(100)
+        .collect(Collectors.toList())
 
     private fun putScanLong(scanLog: ScanLogToPersist) {
 
@@ -285,6 +359,6 @@ open class KVStore(private val gson: Gson) {
     }
 }
 
-private fun attendeeKey(event: String, identifier: String): String {
-    return event + "_" + identifier
-}
+private fun attendeeKey(event: String, identifier: String) = "${event}_$identifier"
+
+private fun scanLogId() = System.currentTimeMillis().toString() + UUID.randomUUID().toString()
