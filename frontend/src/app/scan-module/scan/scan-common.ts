@@ -61,7 +61,9 @@ export class CheckInResult {
 }
 
 export type CheckInStatus = "EVENT_NOT_FOUND" | "TICKET_NOT_FOUND" | "EMPTY_TICKET_CODE"
-  | "INVALID_TICKET_CODE" | "INVALID_TICKET_STATE" | "ALREADY_CHECK_IN" | "MUST_PAY" | "OK_READY_TO_BE_CHECKED_IN" | "SUCCESS" | "ERROR" | "INVALID_TICKET_CATEGORY_CHECK_IN_DATE";
+  | "INVALID_TICKET_CODE" | "INVALID_TICKET_STATE" | "ALREADY_CHECK_IN" | "MUST_PAY"
+  | "OK_READY_TO_BE_CHECKED_IN" | "SUCCESS" | "ERROR" | "INVALID_TICKET_CATEGORY_CHECK_IN_DATE"
+  | "BADGE_SCAN_SUCCESS" | "BADGE_SCAN_ALREADY_DONE";
 
 export const CheckInStatus = {
   SUCCESS: "SUCCESS" as CheckInStatus,
@@ -74,21 +76,28 @@ export const CheckInStatus = {
   INVALID_TICKET_CODE: "INVALID_TICKET_CODE" as CheckInStatus,
   INVALID_TICKET_STATE: "INVALID_TICKET_STATE" as CheckInStatus,
   OK_READY_TO_BE_CHECKED_IN: "OK_READY_TO_BE_CHECKED_IN" as CheckInStatus,
-  INVALID_TICKET_CATEGORY_CHECK_IN_DATE: "INVALID_TICKET_CATEGORY_CHECK_IN_DATE" as CheckInStatus
+  INVALID_TICKET_CATEGORY_CHECK_IN_DATE: "INVALID_TICKET_CATEGORY_CHECK_IN_DATE" as CheckInStatus,
+  BADGE_SCAN_SUCCESS: "BADGE_SCAN_SUCCESS" as CheckInStatus,
+  BADGE_SCAN_ALREADY_DONE: "BADGE_SCAN_ALREADY_DONE" as CheckInStatus
 };
+
+export const SuccessStatuses: Array<CheckInStatus> = [CheckInStatus.SUCCESS, CheckInStatus.BADGE_SCAN_SUCCESS];
+export const ForceBadgePrintIsAllowed: Array<CheckInStatus> = [CheckInStatus.ALREADY_CHECK_IN];
 
 
 export const statusDescriptions: {[status: string] : string} = {
     "SUCCESS": "Success",
     "MUST_PAY": "Outstanding payment:",
-    "ALREADY_CHECK_IN": "Ticket already checked in!!",
-    "ERROR": "An error has occurred. Please try to reload the application.",
-    "EVENT_NOT_FOUND": "Event not found. Please try to reload the application.",
-    "TICKET_NOT_FOUND": "This Ticket does not belong to the current event. Please check the event name on the Ticket",
-    "EMPTY_TICKET_CODE": "Invalid ticket code. Please scan the QR-Code again.",
-    "INVALID_TICKET_CODE": "Invalid ticket code. Please report the issue to the organizers.",
-    "INVALID_TICKET_STATE": "This ticket cannot be checked in. Please report the issue to the organizers.",
+    "ALREADY_CHECK_IN": "Ticket already checked in!",
+    "ERROR": "An error has occurred. Please retry",
+    "EVENT_NOT_FOUND": "Event not found. Please try to reload the application",
+    "TICKET_NOT_FOUND": "Ticket not found for the current event. Please double-check the event name",
+    "EMPTY_TICKET_CODE": "The scanned code is not valid",
+    "INVALID_TICKET_CODE": "Invalid ticket code. Please report the issue to the organizers",
+    "INVALID_TICKET_STATE": "This ticket cannot be checked in. Please report the issue to the organizers",
     "OK_READY_TO_BE_CHECKED_IN": "OK_READY_TO_BE_CHECKED_IN",
-    "INVALID_TICKET_CATEGORY_CHECK_IN_DATE" : "This Ticket cannot be checked in. Invalid check in time for this ticket category."
+    "INVALID_TICKET_CATEGORY_CHECK_IN_DATE" : "This Ticket cannot be checked in now. Please check the validity on the ticket",
+    "BADGE_SCAN_SUCCESS": "Badge scan successful",
+    "BADGE_SCAN_ALREADY_DONE": "This Badge has already been scanned today"
 };
 

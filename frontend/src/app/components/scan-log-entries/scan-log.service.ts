@@ -19,6 +19,7 @@ import {Injectable} from "@angular/core";
 import {Http} from "@angular/http";
 import {Observable} from "rxjs";
 import {Printer} from "../printer/printer.service";
+import {CheckInStatus} from "../../scan-module/scan/scan-common";
 
 @Injectable()
 export class ScanLogService {
@@ -78,12 +79,3 @@ export class ConfigurableLabelContent {
               public qrContent: string,
               public partialID: string) {}
 }
-
-
-export type CheckInStatus = "RETRY" | "EVENT_NOT_FOUND" | "TICKET_NOT_FOUND" | "EMPTY_TICKET_CODE"
-  | "INVALID_TICKET_CODE" | "INVALID_TICKET_STATE" | "ALREADY_CHECK_IN" | "MUST_PAY" | "OK_READY_TO_BE_CHECKED_IN" | "SUCCESS" | "INVALID_TICKET_CATEGORY_CHECK_IN_DATE";
-
-export const CheckInStatus = {
-  SUCCESS: "SUCCESS" as CheckInStatus,
-  MUST_PAY: "MUST_PAY" as CheckInStatus
-};

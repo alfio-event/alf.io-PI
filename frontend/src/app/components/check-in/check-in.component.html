@@ -6,7 +6,7 @@
     <button type="button" (click)="onScan(toScan)">Scan</button>
   </div>
   <div class="h-100 mt-2 pl-2 mb-2 d-flex flex-column align-content-between">
-    <div class="align-self-center mb-2" [ngClass]="{'h-15': loading || !isStatusSuccess() || ticket.additionalServicesInfo.length == 0}">
+    <div class="align-self-center mb-2" [ngClass]="{'h-15': loading || !isStatusSuccess() || ticket == null || ticket.additionalServicesInfo.length == 0}">
       <div ngbDropdown *ngIf="!status">
         <button class="btn btn-lg btn-outline-success" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-qrcode"></i> <span *ngIf="!activeEvent">Select Event</span><span *ngIf="activeEvent">Check-in for: {{activeEvent.name}}</span></button>
         <div class="dropdown-menu w-100" aria-labelledby="dropdownMenu1">
@@ -25,13 +25,12 @@
       <div *ngIf="!loading && isStatusSuccess()" class="d-flex flex-column align-content-center w-100">
         <div class="card" [ngClass]="'card-outline-'+boxColorClass">
           <div class="card-header text-center text-white" [ngClass]="'bg-'+boxColorClass">
-            <h2><i class="fa fa-check"></i> {{ticket.categoryName}}</h2>
+            <h2><i class="fa fa-check"></i> <ng-container *ngIf="ticket != null">{{ticket.categoryName}}</ng-container><ng-container *ngIf="ticket == null">Scan Successful</ng-container></h2>
           </div>
           <div class="card-body card-block">
             <div class="text-center">
               <div class="d-flex flex-column">
                 <h4>{{ticket.firstName}} {{ticket.lastName}}</h4>
-                <span>{{ticket.email}}</span>
                 <small>{{ticket.uuid}}</small>
               </div>
             </div>
@@ -61,18 +60,23 @@
           </div>
         </div>
       </div>
+      <div class="text-center mt-2 text-warning" *ngIf="!loading && isStatusWarning()">
+        <i class="fa fa-exclamation-triangle fa-4x"></i>
+        <h3 class="mt-5">{{getStatusMessage()}}</h3>
+        <button class="btn btn-warning btn-lg mt-5" (click)="nextScan()">dismiss</button>
+      </div>
       <div class="text-center mt-2 text-danger" *ngIf="!loading && isStatusError()">
         <i class="fa fa-exclamation-circle fa-4x mb-2"></i>
         <h3>{{getStatusMessage()}}</h3>
         <hr *ngIf="ticket" />
         <div class="text-center" *ngIf="ticket">
           <div class="d-flex flex-column">
+            <h5>{{ticket.categoryName}}</h5>
             <h5>{{ticket.firstName}} {{ticket.lastName}}</h5>
-            <span>{{ticket.email}}</span>
             <small>{{ticket.uuid}}</small>
           </div>
         </div>
-        <button class="btn btn-danger btn-lg mt-5" (click)="forcePrint()" *ngIf="ticket">force print label</button>
+        <button class="btn btn-danger btn-lg mt-5" (click)="forcePrint()" *ngIf="canPrintLabel()">force print label</button>
         <button class="btn btn-danger btn-lg mt-5" (click)="nextScan()">dismiss</button>
       </div>
       <div class="mt-auto mb-auto text-center">

@@ -3,7 +3,13 @@ import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
 import {Account} from "../../scan-module/account/account";
 import {isDefined} from "@ng-bootstrap/ng-bootstrap/util/util";
-import {CheckInStatus, statusDescriptions, Ticket} from "../../scan-module/scan/scan-common";
+import {
+  CheckInStatus,
+  ForceBadgePrintIsAllowed,
+  statusDescriptions,
+  SuccessStatuses,
+  Ticket
+} from "../../scan-module/scan/scan-common";
 import {ProgressManager} from "../../ProgressManager";
 import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
 import {ConfigurationService, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
@@ -84,11 +90,21 @@ export class CheckInComponent implements OnInit {
   }
 
   isStatusSuccess(): boolean {
-    return isDefined(this.status) && this.status == CheckInStatus.SUCCESS;
+    return isDefined(this.status) && SuccessStatuses.indexOf(this.status) > -1;
+  }
+
+  isStatusWarning(): boolean {
+    return isDefined(this.status) && this.status == CheckInStatus.BADGE_SCAN_ALREADY_DONE;
+  }
+
+  canPrintLabel(): boolean {
+    return isDefined(this.status) && this.ticket != null && ForceBadgePrintIsAllowed.indexOf(this.status) > -1;
   }
 
   isStatusError(): boolean {
-    return isDefined(this.status) && this.status != CheckInStatus.SUCCESS;//missing on site payment, as per https://github.com/exteso/alf.io-PI/issues/2
+    return isDefined(this.status)
+      && !this.isStatusSuccess()
+      && !this.isStatusWarning();//missing on site payment, as per https://github.com/exteso/alf.io-PI/issues/2
   }
 
   getStatusMessage(): string {

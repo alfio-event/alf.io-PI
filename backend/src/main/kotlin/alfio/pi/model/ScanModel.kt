@@ -25,19 +25,26 @@ import org.springframework.context.ApplicationEvent
 import org.springframework.stereotype.Component
 import java.io.Serializable
 import java.math.BigDecimal
+import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.*
 
 enum class Role {ADMIN, OPERATOR}
 data class Event(@Column("key") val key: String,
                  @Column("name") val name: String,
                  @Column("image_url") val imageUrl: String?,
-                 @Column("begin_ts") val begin: ZonedDateTime,
-                 @Column("end_ts") val end: ZonedDateTime,
+                 @Column("begin_ts") private val beginDate: Date,
+                 @Column("end_ts") private val endDate: Date,
                  @Column("location") val location: String?,
                  @Column("api_version") val apiVersion: Int,
                  @Column("active") val active: Boolean,
                  @Column("last_update") val lastUpdate: ZonedDateTime?,
-                 @Column("timezone") val timezone: String?)
+                 @Column("timezone") val timezone: String?) {
+
+    val begin: ZonedDateTime = ZonedDateTime.ofInstant(beginDate.toInstant(), ZoneId.of(timezone))
+    val end: ZonedDateTime = ZonedDateTime.ofInstant(endDate.toInstant(), ZoneId.of(timezone))
+
+}
 
 
 data class Printer(@Column("id") val id: Int, @Column("name") val name: String, @Column("description") val description: String?, @Column("active") val active: Boolean) : Comparable<Printer> {

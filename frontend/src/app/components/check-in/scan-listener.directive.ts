@@ -43,6 +43,7 @@ export class ScanListenerDirective {
       this.buffer.push(event.key);
     }
     event.stopImmediatePropagation();
+    event.preventDefault();
   }
 
 }

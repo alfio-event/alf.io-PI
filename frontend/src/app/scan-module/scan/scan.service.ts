@@ -26,6 +26,10 @@ export class ScanService {
     }
 
     private performCheckIn(account: Account, url: string, scan: string): Observable<TicketAndCheckInResult> {
-        return this.http.post(url, {"code": scan}).map(r => r.json());
+        let code = scan;
+        if(scan.indexOf('/') == -1) {
+          code = null;
+        }
+        return this.http.post(url, {"code": code}).map(r => r.json());
     }
 }

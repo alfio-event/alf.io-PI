@@ -38,6 +38,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -155,15 +156,15 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
                 "key" to r.key,
                 "name" to r.name,
                 "imageUrl" to r.imageUrl,
-                "begin" to Date.from(ZonedDateTime.parse(r.begin).toInstant()),
-                "end" to Date.from(ZonedDateTime.parse(r.end).toInstant()),
+                "begin" to Date.from(ZonedDateTime.parse(r.begin).withZoneSameInstant(ZoneOffset.UTC).toInstant()),
+                "end" to Date.from(ZonedDateTime.parse(r.end).withZoneSameInstant(ZoneOffset.UTC).toInstant()),
                 "location" to r.location,
                 "apiVersion" to r.apiVersion,
                 "oneDay" to r.oneDay,
                 "active" to l.active,
                 "timezone" to r.timeZone))
         }.toTypedArray()
-        if(!toBeUpdated.isEmpty()) {
+        if(toBeUpdated.isNotEmpty()) {
             jdbc.batchUpdate(eventRepository.bulkUpdate(), toBeUpdated)
         }
     }
@@ -174,16 +175,15 @@ open class EventSynchronizer(private val remoteResourceManager: RemoteResourceMa
                 "key" to r.key,
                 "name" to r.name,
                 "imageUrl" to r.imageUrl,
-
-                "begin" to Date.from(ZonedDateTime.parse(r.begin).toInstant()),
-                "end" to Date.from(ZonedDateTime.parse(r.end).toInstant()),
+                "begin" to Date.from(ZonedDateTime.parse(r.begin).withZoneSameInstant(ZoneOffset.UTC).toInstant()),
+                "end" to Date.from(ZonedDateTime.parse(r.end).withZoneSameInstant(ZoneOffset.UTC).toInstant()),
                 "location" to r.location,
                 "apiVersion" to r.apiVersion,
                 "oneDay" to r.oneDay,
                 "active" to true,
                 "timezone" to r.timeZone))
         }.toTypedArray()
-        if(!toBeCreated.isEmpty()) {
+        if(toBeCreated.isNotEmpty()) {
             jdbc.batchUpdate(eventRepository.bulkInsert(), toBeCreated)
         }
     }

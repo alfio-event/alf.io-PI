@@ -48,7 +48,7 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
         return Optional.ofNullable(username)
             .map {
                 val code = ticketCode.code
-                if(code == null) {
+                if(code == null || code.indexOf('/') == -1) {
                     ResponseEntity.ok(badgeScanManager.performBadgeScan(eventName, ticketIdentifier, it))
                 } else {
                     ResponseEntity.ok(checkInDataManager.performCheckIn(eventName, ticketIdentifier, code.substringAfter('/'), it))

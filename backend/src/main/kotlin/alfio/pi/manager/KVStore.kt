@@ -177,7 +177,7 @@ open class KVStore(private val gson: Gson) {
     }
 
 
-    open fun selectBadgeScanToSynchronize() = badgeScanLogTable.stream()
+    open fun selectBadgeScanToSynchronize(): MutableList<ScanLog> = badgeScanLogTable.stream()
         .filter { it.value.remoteResult == CheckInStatus.RETRY }
         .map { it.value }
         .limit(100)

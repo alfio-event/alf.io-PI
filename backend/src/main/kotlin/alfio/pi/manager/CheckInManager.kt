@@ -135,7 +135,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             .map { (event, user) ->
                 val eventKey = event.key
                 kvStore.loadSuccessfulScanForTicket(eventKey, uuid)
-                    .map(fun(existing: ScanLog) : CheckInResponse = DuplicateScanResult(originalScanLog = existing))
+                    .map(buildDuplicateScanResult(eventKey, event))
                     .orElseGet {
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
                         if (localDataResult.isSuccessful() || checkBypassSuccessTicketState(localDataResult)) {
@@ -157,13 +157,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                                 val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                                 val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                                 kvStore.insertScanLog(eventKey, uuid, user.id, localStatus, remoteResult.result.status, labelPrinted, jsonPayload)
-                                val badgeScan = BadgeScan(uuid, SUCCESS, ZonedDateTime.now(ZoneId.of(event.timezone!!)),
-                                    toZonedDateTimeOrElse(ticket.ticketValidityStart, event.timezone, event.begin),
-                                    toZonedDateTimeOrElse(ticket.ticketValidityEnd, event.timezone, event.end),
-                                    ticket.categoryName.orEmpty(),
-                                    ticket.checkInStrategy
-                                )
-                                kvStore.insertBadgeScan(eventKey, badgeScan)
+                                kvStore.insertBadgeScan(eventKey, badgeScanFromTicket(uuid, event, ticket))
                             }
                             logger.trace("returning status $localStatus for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localStatus, boxColorClass = categoryColorConfiguration.getColorFor(ticket.categoryName)))
@@ -174,12 +168,34 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             }.orElseGet{ EmptyTicketResult() }
     }
 
-    private fun toZonedDateTimeOrElse(ms: String?, timeZone: String, default: ZonedDateTime): ZonedDateTime =
-        if(ms.isNullOrBlank()) {
-            default
-        } else {
-            Instant.ofEpochMilli(ms.toLong()).atZone(ZoneId.of(timeZone))
+    private fun buildDuplicateScanResult(eventKey: String, event: Event): (ScanLog) -> CheckInResponse {
+        return fun(existing: ScanLog): CheckInResponse {
+            if (existing.ticket != null) {
+                kvStore.insertBadgeScan(eventKey, badgeScanFromTicket(existing.ticketUuid, event, existing.ticket))
+            }
+            return DuplicateScanResult(originalScanLog = existing)
         }
+    }
+
+
+    private fun badgeScanFromTicket(uuid: String, event: Event, ticket: Ticket): BadgeScan {
+        val timezone = event.timezone!!
+        return BadgeScan(uuid, SUCCESS, ZonedDateTime.now(ZoneId.of(timezone)),
+            toZonedDateTimeOrElse(ticket.ticketValidityStart, timezone, event.begin),
+            toZonedDateTimeOrElse(ticket.ticketValidityEnd, timezone, event.end),
+            ticket.categoryName.orEmpty(),
+            ticket.checkInStrategy
+        )
+    }
+
+    private fun toZonedDateTimeOrElse(ms: String?, timeZone: String, default: ZonedDateTime): ZonedDateTime {
+        val tz = ZoneId.of(timeZone)
+        return if(ms.isNullOrBlank()) {
+            default.withZoneSameInstant(tz)
+        } else {
+            Instant.ofEpochMilli(ms.toLong()).atZone(tz)
+        }
+    }
 
 
     private fun checkIfBlacklisted(localResult: TicketAndCheckInResult): CheckInResponse = if(isBlacklisted(localResult)) {
@@ -275,7 +291,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
                 logger.debug("found ${ids.size} for event $eventName")
 
-                if(!ids.isEmpty()) {
+                if(ids.isNotEmpty()) {
                     ids.partitionWithSize(200).forEach { partitionedIds ->
                         logger.debug("loading ${partitionedIds.size}")
                         val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map { Attendee(eventName, it.key, it.value, idsAndTime.second) }

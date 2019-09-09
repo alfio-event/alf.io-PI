@@ -30,7 +30,7 @@ export class ProgressManager {
   monitorCall<T>(call: () => Observable<T>): Observable<T> {
     this.source.next(true);
     let observable: Observable<T> = call();
-    return observable.do(v => this.source.next(false), null, () => this.source.next(false));
+    return observable.do(v => this.source.next(false), () => this.source.next(false), () => this.source.next(false));
   }
 
 }
