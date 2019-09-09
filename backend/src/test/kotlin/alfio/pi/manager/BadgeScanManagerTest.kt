@@ -115,7 +115,7 @@ class BadgeScanManagerTest {
         val mockKVStore = mock<KVStore> {
             on { retrieveBadgeScan(eq(eventId), eq(ticketUUid)) } doReturn if(badgeScanExists) mockBadgeScan else null
         }
-        val mockEvent = Event(eventId, "name", null, ZonedDateTime.now().plusHours(1), ZonedDateTime.now().plusHours(10), null, 17, true, null, "UTC")
+        val mockEvent = Event(eventId, "name", null, Date.from(ZonedDateTime.now().plusHours(1).toInstant()), Date.from(ZonedDateTime.now().plusHours(10).toInstant()), null, 17, true, null, "UTC")
         val mockUser = User(1, "test")
         val mockEventRepository = mock<EventRepository> {
             on { loadSingle(any()) } doReturn Optional.of(mockEvent)

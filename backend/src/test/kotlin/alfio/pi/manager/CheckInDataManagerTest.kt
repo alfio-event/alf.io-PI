@@ -143,7 +143,7 @@ class CheckInDataManagerTest {
             on { getAttendeeData(eq(eventId), eq(hashedHmac)) } doReturn encrypt("$ticketUUid/$hmac", Gson().toJson(ticketData))
             on { loadLabelConfiguration(eq(eventId)) } doReturn Optional.ofNullable(labelConfiguration)
         }
-        val mockEvent = Event(eventId, "name", null, ZonedDateTime.now().plusHours(1), ZonedDateTime.now().plusHours(10), null, 17, true, null, "UTC")
+        val mockEvent = Event(eventId, "name", null, Date.from(ZonedDateTime.now().plusHours(1).toInstant()), Date.from(ZonedDateTime.now().plusHours(10).toInstant()), null, 17, true, null, "UTC")
         val mockUser = User(1, "test")
         val mockEventRepository = mock<EventRepository> {
             on { loadSingle(any()) } doReturn Optional.of(mockEvent)
