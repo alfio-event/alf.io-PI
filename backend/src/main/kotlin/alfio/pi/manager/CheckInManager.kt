@@ -239,7 +239,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
 
     private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
         if(remoteResult.result.status == RETRY) {
-            Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.additionalInfo, hmac = hmac)
+            Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.additionalInfo,
+                categoryName = ticket.categoryName, checkInStrategy = ticket.checkInStrategy, hmac = hmac)
         } else {
             ticket
         }
