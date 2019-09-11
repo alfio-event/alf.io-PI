@@ -294,6 +294,10 @@ open class KVStore(private val gson: Gson) {
         }
     }
 
+    open fun updateBadgeScanRemoteResult(remoteResult: CheckInStatus, badgeScanLog: ScanLog) {
+        badgeScanLogTable.put(badgeScanLog.id, badgeScanLog.copy(remoteResult = remoteResult))
+    }
+
     fun loadNew(timestamp: Date): List<ScanLog> {
 
         val timestampConverted = timestamp.toInstant().toEpochMilli()

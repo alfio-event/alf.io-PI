@@ -100,14 +100,14 @@ open class BadgeScanManager(private val eventRepository: EventRepository,
             val event = entry.key.get()
             logger.info("******** uploading badge scan for event ${event.key} **********")
             val scanLogEntries = entry.value
-            val ticketIdToScanLogId = scanLogEntries.associate { it.ticketUuid to it.id }
+            val ticketIdToScanLogId = scanLogEntries.associateBy { it.ticketUuid }
             val response = remoteCheckInExecutor.remoteBulkCheckIn(event.key, scanLogEntries) {list -> list.map { mapOf("identifier" to it.ticketUuid, "code" to null)}}
 
             response.forEach {
                 if(logger.isTraceEnabled) {
                     logger.trace("response is ${it.key} ${gson.toJson(it.value)}")
                 }
-                kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key] ?: error("Unexpected error during badge scan upload"))
+                kvStore.updateBadgeScanRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key] ?: error("Unexpected error during badge scan upload"))
             }
             logger.info("******** upload completed (${event.key}: ${response.size}) **********")
         }, { logger.error("unable to upload pending badge scan", it)})
