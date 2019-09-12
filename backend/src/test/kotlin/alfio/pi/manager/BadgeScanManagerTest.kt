@@ -34,11 +34,15 @@ class BadgeScanManagerTest {
     @Test
     fun testPerformBadgeScanSuccessful() {
         val uuid = UUID.randomUUID().toString()
-        val (store, scanManager) = buildBadgeScanManager(uuid)
+        val (store, scanManager) = buildBadgeScanManager(uuid, badgeScanTimestamp = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
         val response = scanManager.performBadgeScan(eventId, uuid, "test")
         assertTrue(response.isSuccessful())
         assertEquals(CheckInStatus.BADGE_SCAN_SUCCESS, response.result.status)
-        assertNull(response.ticket)
+        assertNotNull(response.ticket)
+        assertEquals("", response.ticket?.firstName)
+        assertEquals("", response.ticket?.lastName)
+        assertNull("", response.ticket?.email)
+        assertEquals(uuid, response.ticket?.uuid)
         verify(store).insertBadgeScan(eq(eventId), any())
         verify(store).insertBadgeScanLog(eq(eventId), eq(uuid), eq(1), eq(CheckInStatus.BADGE_SCAN_SUCCESS), eq(CheckInStatus.RETRY), any())
     }

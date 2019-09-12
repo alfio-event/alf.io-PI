@@ -34,10 +34,10 @@
                 <small>{{ticket.uuid}}</small>
               </div>
             </div>
-            <div *ngIf="ticket.additionalServicesInfo.length > 0" class="text-center mt-1">
+            <div *ngIf="ticket != null && ticket.additionalServicesInfo.length > 0" class="text-center mt-1">
               <i class="fa fa-plus text-muted"></i>
             </div>
-            <div *ngIf="ticket.additionalServicesInfo.length > 0" class="mt-1 card-group">
+            <div *ngIf="ticket != null && ticket.additionalServicesInfo.length > 0" class="mt-1 card-group">
               <div class="card" *ngFor="let additionalService of ticket.additionalServicesInfo">
                 <div class="card-header">
                   <h5>{{additionalService.count}} x {{additionalService.name}}</h5>

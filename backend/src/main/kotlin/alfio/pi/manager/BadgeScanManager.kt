@@ -57,12 +57,12 @@ open class BadgeScanManager(private val eventRepository: EventRepository,
                     if(now.isBefore(badgeScan.ticketValidityFrom) || now.isAfter(badgeScan.ticketValidityTo)) {
                         return CheckInForbidden(CheckInResult(INVALID_TICKET_CATEGORY_CHECK_IN_DATE))
                     }
-                    return if(ChronoUnit.DAYS.between(badgeScan.timestamp, now) == 0L) {
+                    return if(ChronoUnit.DAYS.between(badgeScan.timestamp.truncatedTo(ChronoUnit.DAYS), now.truncatedTo(ChronoUnit.DAYS)) == 0L) {
                         registerBadgeScan(eventName, badgeScan, now, username, uuid, BADGE_SCAN_ALREADY_DONE)
                         DuplicatedBadgeScan()
                     } else {
                         registerBadgeScan(eventName, badgeScan, now, username, uuid, BADGE_SCAN_SUCCESS)
-                        BadgeScanSuccess()
+                        BadgeScanSuccess(badgeScan)
                     }
                 }
                 else -> EmptyTicketResult()
