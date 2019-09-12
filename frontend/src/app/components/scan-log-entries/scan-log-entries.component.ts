@@ -59,7 +59,10 @@ export class ScanLogEntriesComponent implements OnInit {
         let [entries, events, printers] = res;
         this.printers = printers.filter(p => p.active);
         this.found = entries.found;
-        return entries.values.map(entry => new ScanLogEntryWithEvent(entry, events.find(e => e.key === entry.eventKey)))
+        return entries.values.map(entryWithBoxClass => {
+          const entry = entryWithBoxClass.scanLog;
+          return new ScanLogEntryWithEvent(entry, events.find(e => e.key === entry.eventKey), entryWithBoxClass.boxColorClass);
+        })
       })
       .subscribe(entries => {
         this.entries = entries
@@ -82,5 +85,5 @@ export class ScanLogEntriesComponent implements OnInit {
 }
 
 export class ScanLogEntryWithEvent {
-  constructor(public entry: ScanLogEntry, public event: Event) {}
+  constructor(public entry: ScanLogEntry, public event: Event, public boxColorClass) {}
 }

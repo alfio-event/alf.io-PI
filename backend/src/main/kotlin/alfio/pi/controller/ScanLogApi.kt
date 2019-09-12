@@ -18,9 +18,11 @@
 package alfio.pi.controller
 
 import alfio.pi.Application
+import alfio.pi.CategoryColorConfiguration
 import alfio.pi.manager.*
 import alfio.pi.model.Event
 import alfio.pi.model.ScanLog
+import alfio.pi.model.ScanLogWithCategoryClass
 import alfio.pi.repository.*
 import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
@@ -38,15 +40,16 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
                        private val printManager: PrintManager,
                        private val printerRepository: PrinterRepository,
                        private val userRepository: UserRepository,
-                       private val environment: Environment) {
+                       private val environment: Environment,
+                       private val categoryColorConfiguration: CategoryColorConfiguration) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
                      @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
-                     @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLog>> {
+                     @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLogWithCategoryClass>> {
         val searchTrimmed = if (search.trim().isEmpty()) null else (search.trim())
         val pageAndTotalCount = scanLogRepository.loadPageAndTotalCount(page * pageSize, pageSize, searchTrimmed)
-        return PaginatedResult(page, pageAndTotalCount.first, pageAndTotalCount.second)
+        return PaginatedResult(page, pageAndTotalCount.first.map { ScanLogWithCategoryClass(categoryColorConfiguration.getColorFor(it.ticket?.categoryName), it) }, pageAndTotalCount.second)
     }
 
     @RequestMapping("/event/{eventKey}")

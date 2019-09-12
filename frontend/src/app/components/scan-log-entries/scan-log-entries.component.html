@@ -16,6 +16,7 @@
     <table class="table table-striped w-100">
       <thead class="thead-default">
         <tr>
+          <th></th>
           <th>&nbsp;</th>
           <th class="hidden-md-down">Event</th>
           <th>First Name</th>
@@ -27,6 +28,7 @@
         </tr>
       </thead>
       <tr *ngFor="let ee of entries">
+        <td style="width: 5px" [ngClass]="'bg-' + ee.boxColorClass"></td>
         <td>
             <div ngbDropdown class="hidden-md-down">
               <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>

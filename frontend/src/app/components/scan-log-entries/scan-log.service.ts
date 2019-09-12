@@ -47,7 +47,7 @@ export class ScanLogService {
 
 export class PaginatedResult {
   constructor(public page: number,
-              public values: Array<ScanLogEntry>,
+              public values: Array<ScanLogWithCategoryClass>,
               public found: number) {
   }
 }
@@ -63,6 +63,10 @@ export class ScanLogEntry {
               public badgePrinted: boolean,
               public ticket: Ticket) {
   }
+}
+
+export class ScanLogWithCategoryClass {
+  constructor(public scanLog: ScanLogEntry, public boxColorClass: string) {}
 }
 
 export class Ticket {
