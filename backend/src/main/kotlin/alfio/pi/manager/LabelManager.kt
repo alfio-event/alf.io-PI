@@ -68,7 +68,9 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(10 to 24F, 11 to 22F, 12 to 20F, 14 to 18F), true)
             it.setFont(font, firstRowContent.second)
             it.beginText()
-            it.newLineAtOffset(10F, 70F)
+            val numberOfAdditionalRows = labelContent.additionalRows?.size ?: 0
+            val firstRowOffset = if(numberOfAdditionalRows > 2) 85F else 70F
+            it.newLineAtOffset(10F, firstRowOffset)
             it.showText(firstRowContent.first)
             val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(15 to 16F, 17 to 14F), true)
 
@@ -81,13 +83,13 @@ open class DymoLW450Turbo41x89: LabelTemplate {
                 false -> 0
             }
             val maxLengthAdditionalRows = arrayOf(23 - checkboxChars to 10F, 28 - checkboxChars to 9F, 32 - checkboxChars to 8F, 38 - checkboxChars to 7F, 43 - checkboxChars to 6F)
-            val offset = if(labelContent.additionalRows?.size ?: 0 > 1) {
-                -17F
-            } else {
-                -20F
+            val offsets = when(numberOfAdditionalRows) {
+                2 -> arrayOf(-17F, -17F)
+                3 -> arrayOf(-20F, -15F, -15F)
+                else -> arrayOf(-20F)
             }
-            val additionalRows = labelContent.additionalRows.orEmpty().take(2)
-            printAdditionalRows(additionalRows, it, offset, labelContent, font, maxLengthAdditionalRows)
+            val additionalRows = labelContent.additionalRows.orEmpty().take(3)
+            printAdditionalRows(additionalRows, it, offsets, labelContent, font, maxLengthAdditionalRows)
 
             it.endText()
             it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
@@ -101,17 +103,18 @@ open class DymoLW450Turbo41x89: LabelTemplate {
     override fun supportsPrinter(name: String): Boolean = name.matches(Regex("^Alfio(-DYM)?-[A-Z0-9]+$"))
 }
 
-private fun printAdditionalRows(additionalRows: List<String>, it: PDPageContentStream, offset: Float, labelContent: LabelContent, font: PDFont, maxLengthAdditionalRows: Array<Pair<Int, Float>>) {
+private fun printAdditionalRows(additionalRows: List<String>, it: PDPageContentStream, offset: Array<Float>, labelContent: LabelContent, font: PDFont, maxLengthAdditionalRows: Array<Pair<Int, Float>>) {
     val rowsToPrint = if(additionalRows.isEmpty() && labelContent.checkbox) {
         arrayListOf("")
     } else {
         additionalRows
     }
     rowsToPrint.forEachIndexed { index, content ->
-        it.newLineAtOffset(0F, offset)
+        val rowOffset = if(offset.size > index) offset[index] else offset[0]
+        it.newLineAtOffset(0F, rowOffset)
         val displayCheckbox = index == rowsToPrint.size - 1 && labelContent.checkbox
         if (displayCheckbox) {
-            it.setFont(font, offset.absoluteValue)
+            it.setFont(font, rowOffset.absoluteValue)
             it.showText("\u2610")
         }
         val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
@@ -153,7 +156,9 @@ open class ZebraZD410: LabelTemplate {
             it.showText(secondRowContent.first)
 
             val maxLengthAdditionalRows = arrayOf(20 to 11F, 29 to 10F)
-            printAdditionalRows(labelContent.additionalRows.orEmpty().take(3), it, -25F, labelContent, font, maxLengthAdditionalRows)
+            val additionalRows = labelContent.additionalRows.orEmpty().take(3)
+            val range = 0..additionalRows.size.coerceAtLeast(1)
+            printAdditionalRows(additionalRows, it, range.map { -25F }.toTypedArray(), labelContent, font, maxLengthAdditionalRows)
 
             it.endText()
 

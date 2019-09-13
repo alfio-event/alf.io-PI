@@ -51,8 +51,18 @@ class LabelManagerTest {
     }
 
     @Test
-    fun testGenerateLabel() {
-        val bytes = generatePDFLabel("George", "William", listOf("Test Company", "Second row"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
+    fun testGenerateLabelDymoWithThreeAdditionalRows() {
+        var bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo41x89())
+        assertTrue(bytes.isNotEmpty())
+        bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
+        assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun testGenerateLabelDymoWithTwoAdditionalRows() {
+        var bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo41x89())
+        assertTrue(bytes.isNotEmpty())
+        bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 
