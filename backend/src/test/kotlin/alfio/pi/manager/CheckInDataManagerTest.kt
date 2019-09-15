@@ -135,6 +135,7 @@ class CheckInDataManagerTest {
             CheckInStrategy.ONCE_PER_EVENT,
             null,
             null,
+            null,
             null)
 
         val mockKVStore = mock<KVStore> {
