@@ -117,7 +117,8 @@ open class Ticket(val uuid: String,
                   val checkInStrategy: CheckInStrategy = CheckInStrategy.ONCE_PER_EVENT,
                   val ticketValidityStart: String? = null,
                   val ticketValidityEnd: String? = null,
-                  val additionalServicesInfo: List<AdditionalServiceInfo> = emptyList()) : Serializable
+                  val additionalServicesInfo: List<AdditionalServiceInfo> = emptyList(),
+                  val boxColorClass: String? = null) : Serializable
 
 class TicketNotFound(uuid: String) : Ticket(uuid, "", "", "", emptyMap())
 
@@ -190,7 +191,8 @@ data class TicketData(val firstName: String,
                       val categoryCheckInStrategy: CheckInStrategy?,
                       val ticketValidityFrom: ZonedDateTime?,
                       val ticketValidityTo: ZonedDateTime?,
-                      private val additionalServicesInfoJson: String?) {
+                      private val additionalServicesInfoJson: String?,
+                      val boxColor: String?) {
     val checkInStatus: CheckInStatus
         get() = when(status) {
             "ACQUIRED" -> CheckInStatus.SUCCESS

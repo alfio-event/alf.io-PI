@@ -19,6 +19,7 @@ package alfio.pi
 import alfio.pi.Constants.*
 import alfio.pi.manager.SystemEventHandlerImpl
 import alfio.pi.model.Role
+import alfio.pi.model.Ticket
 import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
 import alfio.pi.util.PasswordGenerator
@@ -432,11 +433,14 @@ data class RemoteEventFilter(private val events: String?) {
 data class CategoryColorConfiguration(private val defaultColor: String,
                                       private val customColors: Map<String, String>) {
 
-    fun getColorFor(categoryName: String?): String = if(categoryName != null) {
-            customColors.getOrDefault(getCategoryKey(categoryName), defaultColor)
-        } else {
-            defaultColor
-        }
+    fun getColorFor(ticket: Ticket?): String{
+        return ticket?.boxColorClass ?:
+                if (ticket?.categoryName != null) {
+                    customColors.getOrDefault(getCategoryKey(ticket.categoryName), defaultColor)
+                } else {
+                    defaultColor
+                }
+    }
 }
 
 private val categoryNameCleaner = Regex("[^a-z0-9\\s]")

@@ -49,7 +49,7 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
                      @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLogWithCategoryClass>> {
         val searchTrimmed = if (search.trim().isEmpty()) null else (search.trim())
         val pageAndTotalCount = scanLogRepository.loadPageAndTotalCount(page * pageSize, pageSize, searchTrimmed)
-        return PaginatedResult(page, pageAndTotalCount.first.map { ScanLogWithCategoryClass(categoryColorConfiguration.getColorFor(it.ticket?.categoryName), it) }, pageAndTotalCount.second)
+        return PaginatedResult(page, pageAndTotalCount.first.map { ScanLogWithCategoryClass(categoryColorConfiguration.getColorFor(it.ticket), it) }, pageAndTotalCount.second)
     }
 
     @RequestMapping("/event/{eventKey}")

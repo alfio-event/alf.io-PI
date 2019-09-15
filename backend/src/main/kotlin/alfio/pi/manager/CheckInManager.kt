@@ -105,7 +105,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     validCheckInFrom = ticketData.validCheckInFrom,
                     validCheckInTo = ticketData.validCheckInTo,
                     checkInStrategy = ticketData.categoryCheckInStrategy ?: CheckInStrategy.ONCE_PER_EVENT,
-                    additionalServicesInfo = ticketData.additionalServicesInfo)
+                    additionalServicesInfo = ticketData.additionalServicesInfo,
+                    boxColorClass = ticketData.boxColor)
                 checkIfBlacklisted(TicketAndCheckInResult(ticket, CheckInResult(ticketData.checkInStatus)))
             } else {
                 logger.warn("no eventData found for $key.")
@@ -160,7 +161,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                                 kvStore.insertBadgeScan(eventKey, badgeScanFromTicket(uuid, event, ticket))
                             }
                             logger.trace("returning status $localStatus for ticket $uuid (${ticket.fullName})")
-                            TicketAndCheckInResult(ticket, CheckInResult(localStatus, boxColorClass = categoryColorConfiguration.getColorFor(ticket.categoryName)))
+                            TicketAndCheckInResult(ticket, CheckInResult(localStatus, boxColorClass = categoryColorConfiguration.getColorFor(ticket)))
                         } else {
                             localDataResult
                         }
@@ -240,7 +241,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
         if(remoteResult.result.status == RETRY) {
             Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.additionalInfo,
-                categoryName = ticket.categoryName, checkInStrategy = ticket.checkInStrategy, hmac = hmac)
+                categoryName = ticket.categoryName, checkInStrategy = ticket.checkInStrategy, hmac = hmac, boxColorClass = ticket.boxColorClass)
         } else {
             ticket
         }
