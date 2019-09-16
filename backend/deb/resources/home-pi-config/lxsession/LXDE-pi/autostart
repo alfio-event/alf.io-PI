@@ -1,9 +1,6 @@
-#@lxpanel --profile LXDE-pi
-#@pcmanfm --desktop --profile LXDE-pi
 @xscreensaver -no-splash
-#@point-rpi
-@unclutter -display :0 -noevents -grab -idle 0.1
+@unclutter -display :0 -noevents -grab
 @xset s off
 @xset s noblank
 @xset -dpms
-@/usr/bin/chromium-browser --kiosk --start-maximized --allow-running-insecure-content --allow-insecure-localhost --remember-cert-error-decisions --no-default-browser-check --disable-pinch --overscroll-history-navigation=0 --incognito http://localhost
+@/usr/bin/chromium-browser --kiosk --start-maximized --allow-running-insecure-content --allow-insecure-localhost --remember-cert-error-decisions --no-default-browser-check --disable-pinch --touchpad-overscroll-history-navigation=0 --disable-touch-drag-drop --overscroll-history-navigation=0 --incognito http://localhost
