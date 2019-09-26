@@ -31,6 +31,7 @@ export class CheckInComponent implements OnInit {
   loading: boolean;
   toScan: string;
   boxColorClass: string;
+  textColorClass: string;
 
   testMode = false;
 
@@ -77,12 +78,20 @@ export class CheckInComponent implements OnInit {
           this.status = result.result.status;
           this.ticket = result.ticket;
           this.boxColorClass = result.result.boxColorClass;
+          this.textColorClass = CheckInComponent.getTextColor(this.boxColorClass);
         }, error => {
           this.status = CheckInStatus.ERROR;
           this.ticket = null;
           this.boxColorClass = "danger";
         });
     }
+  }
+
+  private static getTextColor(boxColor: string): string {
+    if (['faded', 'light', 'transparent', 'white'].indexOf(boxColor) > -1) {
+      return 'text-dark';
+    }
+    return 'text-white';
   }
 
   forcePrint() {

@@ -24,7 +24,7 @@
       </div>
       <div *ngIf="!loading && isStatusSuccess()" class="d-flex flex-column align-content-center w-100">
         <div class="card" [ngClass]="'card-outline-'+boxColorClass">
-          <div class="card-header text-center text-white" [ngClass]="'bg-'+boxColorClass">
+          <div class="card-header text-center" [ngClass]="'bg-'+boxColorClass+' '+textColorClass">
             <h2><i class="fa fa-check"></i> <ng-container *ngIf="ticket != null">{{ticket.categoryName}}</ng-container><ng-container *ngIf="ticket == null">Scan Successful</ng-container></h2>
           </div>
           <div class="card-body card-block">

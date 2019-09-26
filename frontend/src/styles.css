@@ -51,6 +51,18 @@ md-dialog-container.mat-dialog-container {
 
 /* temporary until we include bootstrap v4.1 */
 
+.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+}
+
+.bg-white {
+  background-color: #fff !important;
+}
+
 .bg-dark {
   background-color: #343a40;
 }
