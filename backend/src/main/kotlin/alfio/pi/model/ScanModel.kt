@@ -28,6 +28,7 @@ import java.math.BigDecimal
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
+import javax.print.attribute.standard.MediaName
 
 enum class Role {ADMIN, OPERATOR}
 data class Event(@Column("key") val key: String,
@@ -252,7 +253,7 @@ data class SystemPrinter(val name: String)
 
 data class RemotePrinter(val name: String, val remoteHost: String)
 
-data class LabelLayout(val qrCode: QRCode, val content: Content, val general: General) : Serializable
+data class LabelLayout(val qrCode: QRCode, val content: Content, val general: General, val mediaName: String?) : Serializable
 data class QRCode(val additionalInfo: List<String>, val infoSeparator: String) : Serializable
 data class Content(val firstRow: String?, val secondRow: String?, val thirdRow: List<String>?, val additionalRows: List<String>?, val checkbox: Boolean?) : Serializable
 data class General(val printPartialID: Boolean) : Serializable

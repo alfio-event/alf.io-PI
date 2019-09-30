@@ -23,8 +23,6 @@ import com.google.gson.Gson
 import org.junit.Assert.*
 import org.junit.Test
 import org.mockito.Mockito
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.*
 
 class LabelManagerTest {
@@ -63,6 +61,12 @@ class LabelManagerTest {
         var bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
         bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
+        assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun testGenerateLabelDymo32x57() {
+        val bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo32x57())
         assertTrue(bytes.isNotEmpty())
     }
 
@@ -114,9 +118,11 @@ class LabelManagerTest {
               },
               "general": {
                 "printPartialID": false
-              }
+              },
+              "mediaName": "w118h252"
             }"""
         val labelLayout = Gson().fromJson(jsonString, LabelLayout::class.java)
+        assertEquals("w118h252", labelLayout.mediaName)
         val ticket = ticket(mapOf("word1" to "thisIsTheFirstWord", "word2" to "thisIsTheSecondWord", "word3" to "thisIsTheThirdWord"))
         val result = localPrintManager.buildConfigurableLabelContent(labelLayout, ticket)
         assertEquals(ticket.firstName, result.firstRow)

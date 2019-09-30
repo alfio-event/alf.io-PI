@@ -17,6 +17,7 @@
 
 package alfio.pi.manager
 
+import alfio.pi.model.LabelLayout
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
@@ -44,7 +45,7 @@ interface LabelTemplate {
     fun writeContent(stream: PDPageContentStream, pageWidth: Float, labelContent: LabelContent, fontLoader: (InputStream) -> PDFont)
     fun getDescription(): String
     fun getCUPSMediaName(): String
-    fun supportsPrinter(name: String): Boolean
+    fun supportsPrinter(name: String, layout: LabelLayout?): Boolean
 }
 
 class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrCode: PDImageXObject, val qrText: String, val checkbox: Boolean)
@@ -102,30 +103,91 @@ open class DymoLW450Turbo41x89: LabelTemplate {
         }
     }
 
-    override fun supportsPrinter(name: String): Boolean = name.matches(Regex("^Alfio(-DYM)?-[A-Z0-9]+$"))
+    override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean
+        = name.matches(Regex("^Alfio(-DYM)?-[A-Z0-9]+$")) && (layout?.mediaName == null || layout.mediaName == getCUPSMediaName())
 }
 
-private fun printAdditionalRows(additionalRows: List<String>, it: PDPageContentStream, offset: Array<Float>, labelContent: LabelContent, font: PDFont, maxLengthAdditionalRows: Array<Pair<Int, Float>>) {
+
+@Component
+open class DymoLW450Turbo32x57: LabelTemplate {
+
+    override fun getPageDimensions() = PDRectangle(convertMMToPoint(57F), convertMMToPoint(32F))
+    override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 32x57 mm (S0722540 / 11354)"
+    override fun getCUPSMediaName() = "w162h90"
+
+    override fun writeContent(stream: PDPageContentStream, pageWidth: Float, labelContent: LabelContent, fontLoader: (InputStream) -> PDFont) {
+        val font = fontLoader.invoke(DymoLW450Turbo32x57::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        stream.use { page ->
+            textBlock(page) {pd ->
+                val firstRow = optimizeText(labelContent.firstRow, arrayOf(12 to 20F, 15 to 16F, 17 to 14F, 20 to 12F), true)
+                pd.setFont(font, firstRow.second)
+                val firstRowOffset = centeredTextOffset(firstRow.first, pageWidth, font, firstRow.second)
+                pd.newLineAtOffset(firstRowOffset, 65F)
+                pd.showText(firstRow.first)
+
+                val secondRowFonts = arrayOf(12 to 20F, 15 to 16F, 17 to 14F, 20 to 12F).filter { it.second <= firstRow.second }.toTypedArray()
+                val secondRowContent = optimizeText(labelContent.secondRow, secondRowFonts, compactText = true)
+                pd.setFont(font, secondRowContent.second)
+                val secondRowOffset = centeredTextOffset(secondRowContent.first, pageWidth, font, secondRowContent.second)
+                pd.newLineAtOffset(secondRowOffset - firstRowOffset, -25F)
+                pd.showText(secondRowContent.first)
+                val additionalRowFonts = arrayOf(24 to 10F, 26 to 8F).filter { it.second <= firstRow.second }.toTypedArray()
+                val additionalRows = labelContent.additionalRows.orEmpty().take(1)
+                printAdditionalRows(additionalRows, pd, arrayOf(-25F), labelContent, font, additionalRowFonts, true, secondRowOffset, pageWidth)
+            }
+        }
+    }
+
+    override fun supportsPrinter(name: String, layout: LabelLayout?) =
+        name.startsWith("Alfio-DYM") && layout?.mediaName.orEmpty() == "w162h90"
+
+}
+
+private fun centeredTextOffset(content: String, pageWidth: Float, font: PDFont, fontSize: Float): Float {
+    val titleWidth = font.getStringWidth(content) / 1000 * fontSize
+    return (pageWidth - titleWidth) / 2
+}
+
+private fun printAdditionalRows(additionalRows: List<String>,
+                                it: PDPageContentStream,
+                                verticalOffset: Array<Float>,
+                                labelContent: LabelContent,
+                                font: PDFont,
+                                maxLengthAdditionalRows: Array<Pair<Int, Float>>,
+                                padded: Boolean = false,
+                                previousRowOffset: Float = 0F,
+                                pageWidth: Float = 0F) {
     val rowsToPrint = if(additionalRows.isEmpty() && labelContent.checkbox) {
         arrayListOf("")
     } else {
         additionalRows
     }
+    var previousOffset = previousRowOffset
     rowsToPrint.forEachIndexed { index, content ->
-        val rowOffset = if(offset.size > index) offset[index] else offset[0]
-        it.newLineAtOffset(0F, rowOffset)
+        val rowOffset = if(verticalOffset.size > index) verticalOffset[index] else verticalOffset[0]
         val displayCheckbox = index == rowsToPrint.size - 1 && labelContent.checkbox
         if (displayCheckbox) {
+            it.newLineAtOffset(0F, rowOffset)
             it.setFont(font, rowOffset.absoluteValue)
             it.showText("\u2610")
         }
         val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
         it.setFont(font, optimizedContent.second)
+
         val text = if (displayCheckbox) {
             " ${optimizedContent.first}"
         } else {
             optimizedContent.first
         }
+
+        if(padded && !displayCheckbox) {
+            val currentOffset = centeredTextOffset(text, pageWidth, font, optimizedContent.second)
+            it.newLineAtOffset(currentOffset - previousOffset, rowOffset)
+            previousOffset = currentOffset
+        } else if(!displayCheckbox) {
+            it.newLineAtOffset(0F, rowOffset)
+        }
+
         it.showText(text)
     }
 }
@@ -179,7 +241,7 @@ open class ZebraZD410: LabelTemplate {
         }
     }
 
-    override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-ZBR-")
+    override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean = name.startsWith("Alfio-ZBR-")
 }
 
 @Component
@@ -189,7 +251,7 @@ open class BixolonTX220: ZebraZD410() {
 
     override fun getDescription(): String = "Bixolon SLP-TX220 - 57x102 mm (Zebra 800262-405)"
 
-    override fun supportsPrinter(name: String): Boolean = name.startsWith("Alfio-BXL-")
+    override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean = name.startsWith("Alfio-BXL-")
 }
 
 private val controlCharsFinder = Regex("\\p{C}")

@@ -124,7 +124,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         return tryOrDefault<Boolean>().invoke({
             val localPrinter = getCupsPrinters().firstOrNull { it.name == printer.name }
             if(localPrinter != null) {
-                doPrint(labelTemplates.first { it.supportsPrinter(printer.name) }, printer.name, ticket, labelConfiguration)
+                doPrint(labelTemplates.first { it.supportsPrinter(printer.name, labelConfiguration?.configuration?.layout) }, printer.name, ticket, labelConfiguration)
             } else {
                 logger.warn("cannot find local printer ${printer.name}")
                 false
