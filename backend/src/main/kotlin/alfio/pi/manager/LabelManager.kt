@@ -63,40 +63,42 @@ open class DymoLW450Turbo41x89: LabelTemplate {
                               labelContent: LabelContent,
                               fontLoader: (InputStream) -> PDFont) {
         val font = fontLoader.invoke(DymoLW450Turbo41x89::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
-        stream.use {
-            it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
+        stream.use { page ->
+            page.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
             val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(10 to 24F, 11 to 22F, 12 to 20F, 14 to 18F), true)
-            it.setFont(font, firstRowContent.second)
-            it.beginText()
-            val numberOfAdditionalRows = labelContent.additionalRows?.size ?: 0
-            val firstRowOffset = if(numberOfAdditionalRows > 2) 85F else 70F
-            it.newLineAtOffset(10F, firstRowOffset)
-            it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(15 to 16F, 17 to 14F), true)
+            textBlock(page) { pd ->
+                pd.setFont(font, firstRowContent.second)
+                val numberOfAdditionalRows = labelContent.additionalRows?.size ?: 0
+                val firstRowOffset = if(numberOfAdditionalRows > 2) 85F else 70F
+                pd.newLineAtOffset(10F, firstRowOffset)
+                pd.showText(firstRowContent.first)
+                val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(15 to 16F, 17 to 14F), true)
 
-            it.setFont(font, secondRowContent.second)
-            it.newLineAtOffset(0F, -20F)
-            it.showText(secondRowContent.first)
+                pd.setFont(font, secondRowContent.second)
+                pd.newLineAtOffset(0F, -20F)
+                pd.showText(secondRowContent.first)
 
-            val checkboxChars = when(labelContent.checkbox) {
-                true -> 2
-                false -> 0
+                val checkboxChars = when(labelContent.checkbox) {
+                    true -> 2
+                    false -> 0
+                }
+                val maxLengthAdditionalRows = arrayOf(23 - checkboxChars to 10F, 28 - checkboxChars to 9F, 32 - checkboxChars to 8F, 38 - checkboxChars to 7F, 43 - checkboxChars to 6F)
+                val offsets = when(numberOfAdditionalRows) {
+                    2 -> arrayOf(-17F, -17F)
+                    3 -> arrayOf(-20F, -15F, -15F)
+                    else -> arrayOf(-20F)
+                }
+                val additionalRows = labelContent.additionalRows.orEmpty().take(3)
+                printAdditionalRows(additionalRows, pd, offsets, labelContent, font, maxLengthAdditionalRows)
             }
-            val maxLengthAdditionalRows = arrayOf(23 - checkboxChars to 10F, 28 - checkboxChars to 9F, 32 - checkboxChars to 8F, 38 - checkboxChars to 7F, 43 - checkboxChars to 6F)
-            val offsets = when(numberOfAdditionalRows) {
-                2 -> arrayOf(-17F, -17F)
-                3 -> arrayOf(-20F, -15F, -15F)
-                else -> arrayOf(-20F)
-            }
-            val additionalRows = labelContent.additionalRows.orEmpty().take(3)
-            printAdditionalRows(additionalRows, it, offsets, labelContent, font, maxLengthAdditionalRows)
 
-            it.endText()
-            it.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
-            it.setFont(font, 9F)
-            it.beginText()
-            it.newLineAtOffset(180F, 15F)
-            it.showText(labelContent.qrText)
+            page.drawImage(labelContent.qrCode, 170F, 30F, 65F, 65F)
+
+            textBlock(page) { pd ->
+                pd.setFont(font, 9F)
+                pd.newLineAtOffset(180F, 15F)
+                pd.showText(labelContent.qrText)
+            }
         }
     }
 
@@ -128,6 +130,12 @@ private fun printAdditionalRows(additionalRows: List<String>, it: PDPageContentS
     }
 }
 
+private fun textBlock(pageContentStream: PDPageContentStream, consumer: (PDPageContentStream) -> Unit) {
+    pageContentStream.beginText()
+    consumer.invoke(pageContentStream)
+    pageContentStream.endText()
+}
+
 @Component
 open class ZebraZD410: LabelTemplate {
 
@@ -142,31 +150,32 @@ open class ZebraZD410: LabelTemplate {
                               labelContent: LabelContent,
                               fontLoader: (InputStream) -> PDFont) {
         val font = fontLoader.invoke(ZebraZD410::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
-        stream.use {
-            it.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
-            val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 26F, 12 to 24F, 14 to 22F, 15 to 20F, 16 to 18F, 17 to 17F), true)
-            it.setFont(font, firstRowContent.second)
-            it.beginText()
-            it.newLineAtOffset(10F, 115F)
-            it.showText(firstRowContent.first)
-            val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 18F, 17 to 17F, 18 to 16F, 21 to 14F), true)
+        stream.use {page ->
+            page.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
+            textBlock(page) { pd ->
+                val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(11 to 26F, 12 to 24F, 14 to 22F, 15 to 20F, 16 to 18F, 17 to 17F), true)
+                pd.setFont(font, firstRowContent.second)
+                pd.newLineAtOffset(10F, 115F)
+                pd.showText(firstRowContent.first)
+                val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(16 to 18F, 17 to 17F, 18 to 16F, 21 to 14F), true)
 
-            it.setFont(font, secondRowContent.second)
-            it.newLineAtOffset(0F, -25F)
-            it.showText(secondRowContent.first)
+                pd.setFont(font, secondRowContent.second)
+                pd.newLineAtOffset(0F, -25F)
+                pd.showText(secondRowContent.first)
 
-            val maxLengthAdditionalRows = arrayOf(20 to 11F, 29 to 10F)
-            val additionalRows = labelContent.additionalRows.orEmpty().take(3)
-            val range = 0..additionalRows.size.coerceAtLeast(1)
-            printAdditionalRows(additionalRows, it, range.map { -25F }.toTypedArray(), labelContent, font, maxLengthAdditionalRows)
+                val maxLengthAdditionalRows = arrayOf(20 to 11F, 29 to 10F)
+                val additionalRows = labelContent.additionalRows.orEmpty().take(3)
+                val range = 0..additionalRows.size.coerceAtLeast(1)
+                printAdditionalRows(additionalRows, pd, range.map { -25F }.toTypedArray(), labelContent, font, maxLengthAdditionalRows)
+            }
 
-            it.endText()
+            page.drawImage(labelContent.qrCode, 195F, 50F, 80F, 80F)
 
-            it.drawImage(labelContent.qrCode, 195F, 50F, 80F, 80F)
-            it.setFont(font, 9F)
-            it.beginText()
-            it.newLineAtOffset(210F, 25F)
-            it.showText(labelContent.qrText)
+            textBlock(page) { pd ->
+                pd.setFont(font, 9F)
+                pd.newLineAtOffset(210F, 25F)
+                pd.showText(labelContent.qrText)
+            }
         }
     }
 
