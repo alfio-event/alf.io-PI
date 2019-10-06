@@ -22,7 +22,7 @@ private val logger: Logger = LoggerFactory.getLogger("alfio.pi.manager.KVStore")
 @Component
 open class KVStore(private val gson: Gson) {
 
-    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv")
+    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv", null, null)
 
     private val attendeeTable: SyncKVTable
     //
