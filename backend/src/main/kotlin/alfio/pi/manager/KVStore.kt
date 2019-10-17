@@ -29,6 +29,7 @@ open class KVStore(private val gson: Gson) {
     private val lastUpdatedTable: SyncKVTable
     //
     private val scanLogTable: SyncKVStructuredTable<ScanLogToPersist>
+    private val scanLogForEventTicket: SyncKVTable
     //
     private val labelConfigurationTable: SyncKVTable
     private val remainingLabels: SyncKVTable
@@ -40,6 +41,7 @@ open class KVStore(private val gson: Gson) {
         attendeeTable = store.getTable("attendee")
         lastUpdatedTable = store.getTable("last_updated")
         //
+        scanLogForEventTicket = store.getTable("scan_log_event_ticket")
         scanLogTable = store.getTable("scan_log").toStructured(ScanLogToPersist::class.java, { data ->
             ScanLogToPersist(
                 data.readUTF(),
@@ -224,6 +226,7 @@ open class KVStore(private val gson: Gson) {
 
     private fun putScanLong(scanLog: ScanLogToPersist) {
         scanLogTable.put(scanLog.id, scanLog)
+        scanLogForEventTicket.put(scanLog.eventKey + "_" + scanLog.ticketUuid, scanLog.id)
     }
 
     private fun searchScanLog(term: String?) : List<String> {
@@ -260,13 +263,10 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
-        //TODO replace with a support table with key "eventKey_ticketUuid" and value scanLogTableID
-        return scanLogTable.stream()
-            .filter { ticketUuid.equals(it.value.ticketUuid) }
-            .filter { CheckInStatus.SUCCESS.equals(it.value.localResult) }
-            .filter {eventKey.equals(it.value.eventKey)}
-            .map { it.value.toScanLog() }
-            .findFirst()
+        return Optional.ofNullable(scanLogForEventTicket.getAsString(eventKey + "_" + ticketUuid))
+            .flatMap { Optional.ofNullable(scanLogTable.get(it)) }
+            .filter { CheckInStatus.SUCCESS == it.localResult }
+            .map { it.toScanLog() }
     }
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
