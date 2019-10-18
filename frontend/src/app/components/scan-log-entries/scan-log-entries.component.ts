@@ -1,7 +1,7 @@
-import {Component, Input, OnInit} from "@angular/core";
+import {Component, Input, OnInit, OnDestroy} from "@angular/core";
 import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
-import {Observable} from "rxjs";
+import {Observable, Subscription} from "rxjs";
 import {Event, EventService} from "../../shared/event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
@@ -11,7 +11,7 @@ import {EventType, ServerEventsService} from "../../server-events.service";
   selector: 'scan-log-entries',
   templateUrl: './scan-log-entries.component.html'
 })
-export class ScanLogEntriesComponent implements OnInit {
+export class ScanLogEntriesComponent implements OnInit, OnDestroy {
 
 
   @Input()
@@ -27,6 +27,8 @@ export class ScanLogEntriesComponent implements OnInit {
   pageSize = 3;
   found = 0;
 
+  private serverEventsSub: Subscription;
+
   constructor(private scanLogService: ScanLogService,
               private eventService: EventService,
               private printerService: PrinterService,
@@ -40,11 +42,15 @@ export class ScanLogEntriesComponent implements OnInit {
     }
 
     this.loadData();
-    this.serverEventsService.events.subscribe(e => {
+    this.serverEventsSub = this.serverEventsService.events.subscribe(e => {
       if(e.type == EventType.NEW_SCAN) {
         this.loadData()
       }
     })
+  }
+
+  ngOnDestroy(): void {
+    this.serverEventsSub.unsubscribe();
   }
 
   private loadData() {
