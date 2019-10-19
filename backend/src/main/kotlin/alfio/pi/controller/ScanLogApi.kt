@@ -20,9 +20,7 @@ package alfio.pi.controller
 import alfio.pi.Application
 import alfio.pi.CategoryColorConfiguration
 import alfio.pi.manager.*
-import alfio.pi.model.Event
-import alfio.pi.model.ScanLog
-import alfio.pi.model.ScanLogWithCategoryClass
+import alfio.pi.model.*
 import alfio.pi.repository.*
 import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
@@ -41,7 +39,8 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
                        private val printerRepository: PrinterRepository,
                        private val userRepository: UserRepository,
                        private val environment: Environment,
-                       private val categoryColorConfiguration: CategoryColorConfiguration) {
+                       private val categoryColorConfiguration: CategoryColorConfiguration,
+                       private val publisher : SystemEventHandler) {
 
     @RequestMapping("")
     open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
@@ -50,6 +49,13 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
         val searchTrimmed = if (search.trim().isEmpty()) null else (search.trim())
         val pageAndTotalCount = scanLogRepository.loadPageAndTotalCount(page * pageSize, pageSize, searchTrimmed)
         return PaginatedResult(page, pageAndTotalCount.first.map { ScanLogWithCategoryClass(categoryColorConfiguration.getColorFor(it.ticket), it) }, pageAndTotalCount.second)
+    }
+
+    // temporary, test method
+    @RequestMapping("/trigger")
+    open fun trigger(@RequestParam("v") v: Int) : Int {
+        publisher.notifyAllSessions(SystemEvent(SystemEventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER, UpdatePrinterRemainingLabelCounter(v)))
+        return v
     }
 
     @RequestMapping("/event/{eventKey}")

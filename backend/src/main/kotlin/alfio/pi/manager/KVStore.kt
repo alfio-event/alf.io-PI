@@ -28,8 +28,8 @@ open class KVStore(private val gson: Gson) {
     //
     private val lastUpdatedTable: SyncKVTable
     //
-    private val scanLogTable: SyncKVTable
-    private val scanLogTableSupport: SyncKVTable
+    private val scanLogTable: SyncKVStructuredTable<ScanLogToPersist>
+    private val scanLogForEventTicket: SyncKVTable
     //
     private val labelConfigurationTable: SyncKVTable
     private val remainingLabels: SyncKVTable
@@ -41,8 +41,33 @@ open class KVStore(private val gson: Gson) {
         attendeeTable = store.getTable("attendee")
         lastUpdatedTable = store.getTable("last_updated")
         //
-        scanLogTable = store.getTable("scan_log")
-        scanLogTableSupport = store.getTable("scan_log_support")
+        scanLogForEventTicket = store.getTable("scan_log_event_ticket")
+        scanLogTable = store.getTable("scan_log").toStructured(ScanLogToPersist::class.java, { data ->
+            ScanLogToPersist(
+                data.readUTF(),
+                data.readLong(),
+                data.readUTF(),
+                data.readUTF(),
+                data.readUTF(),
+                data.readInt(),
+                CheckInStatus.valueOf(data.readUTF()),
+                CheckInStatus.valueOf(data.readUTF()),
+                data.readBoolean(),
+                nullIfEmpty(data.readUTF())
+            )
+        }, {scanLogToPersist, out ->
+            out.writeUTF(scanLogToPersist.id)
+            out.writeLong(scanLogToPersist.timestamp)
+            out.writeUTF(scanLogToPersist.zoneId)
+            out.writeUTF(scanLogToPersist.eventKey)
+            out.writeUTF(scanLogToPersist.ticketUuid)
+            out.writeInt(scanLogToPersist.userId)
+            out.writeUTF(scanLogToPersist.localResult.toString())
+            out.writeUTF(scanLogToPersist.remoteResult.toString())
+            out.writeBoolean(scanLogToPersist.badgePrinted)
+            out.writeUTF(scanLogToPersist.ticketData.orEmpty())
+        })
+        //scanLogTableSupport = store.getTable("scan_log_support")
         //
         labelConfigurationTable = store.getTable("label_configuration")
         remainingLabels = store.getTable("printer_remaining_labels")
@@ -107,7 +132,25 @@ open class KVStore(private val gson: Gson) {
                                 val localResult: CheckInStatus,
                                 val remoteResult: CheckInStatus,
                                 val badgePrinted: Boolean,
-                                val ticketData: String?)
+                                val ticketData: String?) {
+
+
+        fun toSearch(): String {
+            return if(ticketData == null) {
+                ""
+            } else {
+                val ticket = GsonContainer.GSON?.fromJson(ticketData, Ticket::class.java)!!
+                (ticket.firstName+" " +ticket.lastName + " " + ticket.email).toLowerCase(Locale.ENGLISH)
+            }
+        }
+
+        fun toScanLog(): ScanLog {
+            return ScanLog(id,
+                ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.of(zoneId)),
+                eventKey, ticketUuid, userId, localResult, remoteResult, badgePrinted, ticketData
+            )
+        }
+    }
 
     //-----------
 
@@ -148,12 +191,10 @@ open class KVStore(private val gson: Gson) {
     //-----------
 
     open fun loadAllForEvent(eventKey: String): List<ScanLog> {
-        val res = ArrayList<ScanLog>()
-
-        findAllIdsWith("event_key", eventKey).forEach {
-            findOptionalById(it).ifPresent { scanLog -> res.add(scanLog)}
-        }
-        return res
+        return scanLogTable.stream()
+            .filter {it.value.eventKey == eventKey}
+            .map { it.value.toScanLog() }
+            .collect(Collectors.toList())
     }
 
     open fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
@@ -184,68 +225,21 @@ open class KVStore(private val gson: Gson) {
         .collect(Collectors.toList())
 
     private fun putScanLong(scanLog: ScanLogToPersist) {
-
-        scanLogTable.put(scanLog.id, gson.toJson(scanLog))
-
-        val toSearch = if(scanLog.ticketData == null) {
-            ""
-        } else {
-            val ticket = GsonContainer.GSON?.fromJson(scanLog.ticketData, Ticket::class.java)!!
-            (ticket.firstName+" " +ticket.lastName + " " + ticket.email).toLowerCase(Locale.ENGLISH)
-        }
-
-        scanLogTableSupport.put(scanLog.id,
-                "|||remote_result:" + scanLog.remoteResult.toString() +
-                "|||local_result:" + scanLog.localResult.toString() +
-                "|||ticket_uuid:" + scanLog.ticketUuid +
-                "|||event_key:" + scanLog.eventKey +
-                "|||to_search:" + toSearch +
-                "|||scan_ts:" + scanLog.timestamp.toString() + "|||"
-        )
-    }
-
-    private fun extractField(name: String, idx: String) : String {
-        val fieldName = "|||$name:"
-        val boundary1 = idx.indexOf(fieldName)
-        val boundary2 = idx.indexOf("|||", boundary1 + 1)
-        return idx.substring(boundary1+fieldName.length, boundary2)
+        scanLogTable.put(scanLog.id, scanLog)
+        scanLogForEventTicket.put(scanLog.eventKey + "_" + scanLog.ticketUuid, scanLog.id)
     }
 
     private fun searchScanLog(term: String?) : List<String> {
         val matching = ArrayList<Triple<String, Long, String>>()
         val termLowerCase = term?.toLowerCase(Locale.ENGLISH)
-        scanLogTableSupport.keys().forEach {
-            val idx = scanLogTableSupport.getAsString(it)
-            if(termLowerCase == null || extractField("to_search", idx).indexOf(termLowerCase) >= 0) {
-                matching.add(Triple(it, extractField("scan_ts", idx).toLong(), extractField("ticket_uuid", idx)))
+        scanLogTable.keys().forEach {
+            val idx = scanLogTable.get(it)
+            if(termLowerCase == null || idx.toSearch().indexOf(termLowerCase) >= 0) {
+                matching.add(Triple(it, idx.timestamp, idx.ticketUuid))
             }
         }
 
         return matching.asSequence().sortedWith(compareByDescending<Triple<String, Long, String>> { it.second }.thenBy {it.third}).map { it.first }.toList()
-    }
-
-    private fun findAllIdsWith(nameValuePairs: Array<Pair<String, String>>): List<String> {
-        val toCheck = nameValuePairs.map { "|||"+it.first+":"+it.second+"|||" }
-        val matching = ArrayList<String>()
-        scanLogTableSupport.keys().forEach {
-            val idx = scanLogTableSupport.getAsString(it)
-            var match = true
-            for (check in toCheck) {
-                if (idx.indexOf(check) < 0) {
-                    match = false
-                    break
-                }
-            }
-
-            if (match) {
-                matching.add(it)
-            }
-        }
-        return matching
-    }
-
-    private fun findAllIdsWith(name: String, value: String): List<String> {
-        return findAllIdsWith(arrayOf(Pair(name, value)))
     }
 
     open fun findById(key: String): ScanLog? {
@@ -253,13 +247,8 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun findOptionalById(key: String): Optional<ScanLog> {
-        val res = scanLogTable.getAsString(key)
-        return Optional.ofNullable(res).map { gson.fromJson(it, ScanLogToPersist::class.java) }
-            .map {ScanLog(it.id,
-                ZonedDateTime.ofInstant(Instant.ofEpochMilli(it.timestamp), ZoneId.of(it.zoneId)),
-                it.eventKey, it.ticketUuid, it.userId, it.localResult, it.remoteResult, it.badgePrinted, it.ticketData
-                )
-            }
+        val res = scanLogTable.get(key)
+        return Optional.ofNullable(res).map {it.toScanLog()}
     }
 
     open fun findOptionalByIdAndEventKey(key: String, eventKey: String): Optional<ScanLog> {
@@ -267,23 +256,17 @@ open class KVStore(private val gson: Gson) {
     }
 
     open fun findRemoteFailures(): List<ScanLog> {
-        val remoteFailures = ArrayList<ScanLog>()
-        findAllIdsWith("remote_result", CheckInStatus.RETRY.toString()).forEach { key ->
-            findOptionalById(key).ifPresent { scanLog -> remoteFailures.add(scanLog) }
-        }
-        return remoteFailures
+        return scanLogTable.stream()
+            .filter{ it.value.remoteResult == CheckInStatus.RETRY}
+            .map { it.value.toScanLog() }
+            .collect(Collectors.toList())
     }
 
     open fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
-        val found = findAllIdsWith(arrayOf(Pair("ticket_uuid", ticketUuid),
-            Pair("local_result", CheckInStatus.SUCCESS.toString()),
-            Pair("event_key", eventKey)))
-
-        return if(found.isEmpty()) {
-            Optional.empty()
-        } else {
-            findOptionalById(found.first())
-        }
+        return Optional.ofNullable(scanLogForEventTicket.getAsString(eventKey + "_" + ticketUuid))
+            .flatMap { Optional.ofNullable(scanLogTable.get(it)) }
+            .filter { CheckInStatus.SUCCESS == it.localResult }
+            .map { it.toScanLog() }
     }
 
     open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
@@ -302,9 +285,9 @@ open class KVStore(private val gson: Gson) {
 
         val timestampConverted = timestamp.toInstant().toEpochMilli()
         val matching = ArrayList<Tuple<String, Long>>()
-        scanLogTableSupport.keys().forEach {
-            val idx = scanLogTableSupport.getAsString(it)
-            val scanTs = extractField("scan_ts", idx).toLong()
+        scanLogTable.keys().forEach {
+            val scanLog = scanLogTable.get(it)
+            val scanTs = scanLog.timestamp
             if(scanTs > timestampConverted) {
                 matching.add(Tuple(it, scanTs))
             }

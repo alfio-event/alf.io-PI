@@ -1,4 +1,4 @@
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, OnInit, ViewChild, OnDestroy} from '@angular/core';
 import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
 import {Account} from "../../scan-module/account/account";
@@ -13,14 +13,14 @@ import {
 import {ProgressManager} from "../../ProgressManager";
 import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
 import {ConfigurationService, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
-import {Observable, Subject} from "rxjs";
+import {Observable, Subject, Subscription} from "rxjs";
 
 @Component({
   selector: 'alfio-check-in',
   templateUrl: './check-in.component.html',
   styleUrls: ['./check-in.component.css']
 })
-export class CheckInComponent implements OnInit {
+export class CheckInComponent implements OnInit, OnDestroy {
 
   events: Array<Event>;
   activeEvent: Event;
@@ -39,6 +39,7 @@ export class CheckInComponent implements OnInit {
 
   eventSelectionListener: Observable<Event>;
   private eventSelectionSubject: Subject<Event>;
+  private serverEventsSub: Subscription;
 
   labelCounter: any;
   labelDefaultCounter: any;
@@ -59,7 +60,7 @@ export class CheckInComponent implements OnInit {
     this.progressManager.monitorCall(() => this.eventService.getAllEvents().map(l => l.filter(e => e.active)))
       .subscribe(list => this.events = list);
 
-    this.serverEventsService.events.subscribe(e => {
+    this.serverEventsSub = this.serverEventsService.events.subscribe(e => {
       if(e.type == EventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER) {
         let update = <UpdatePrinterRemainingLabelCounter> e.data;
         this.labelCounter = update.count;
@@ -68,6 +69,10 @@ export class CheckInComponent implements OnInit {
 
     this.configurationService.getRemainingLabels().subscribe(res => this.labelCounter = res);
     this.configurationService.getConfiguration(PRINTER_REMAINING_LABEL_DEFAULT_COUNTER).subscribe(res => this.labelDefaultCounter = res);
+  }
+
+  ngOnDestroy(): void {
+    this.serverEventsSub.unsubscribe();
   }
 
   onScan(scan: string): void {
