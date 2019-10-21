@@ -124,7 +124,7 @@ dependencies {
     compile("com.squareup.okhttp3:okhttp:3.14.2")
     compile("com.google.code.gson:gson:2.8.5")
     compile("org.bouncycastle:bcpkix-jdk15on:1.62")
-    compile('ch.digitalfondue.synckv:synckv:0.5.1')
+    compile('ch.digitalfondue.synckv:synckv:0.6.0')
     compile('org.jmdns:jmdns:3.5.5')
     runtime('org.hsqldb:hsqldb')
     runtime project(':frontend')
