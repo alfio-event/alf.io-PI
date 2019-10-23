@@ -202,7 +202,7 @@ open class KVStore(private val gson: Gson) {
         val key = scanLogId()
         val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventKey, uuid, userId,
             localResult, remoteResult, badgePrinted, jsonPayload)
-        putScanLong(scanLogWithKey)
+        putScanLog(scanLogWithKey)
     }
 
     open fun insertBadgeScan(eventKey: String, badgeScan: BadgeScan) =
@@ -224,7 +224,7 @@ open class KVStore(private val gson: Gson) {
         .limit(100)
         .collect(Collectors.toList())
 
-    private fun putScanLong(scanLog: ScanLogToPersist) {
+    private fun putScanLog(scanLog: ScanLogToPersist) {
         scanLogTable.put(scanLog.id, scanLog)
         scanLogForEventTicket.put(scanLog.eventKey + "_" + scanLog.ticketUuid, scanLog.id)
     }
@@ -255,7 +255,7 @@ open class KVStore(private val gson: Gson) {
         return findOptionalById(key).filter { scanLog -> scanLog.eventKey == eventKey }
     }
 
-    open fun findRemoteFailures(): List<ScanLog> {
+    open fun findCheckInToUpload(): List<ScanLog> {
         return scanLogTable.stream()
             .filter{ it.value.remoteResult == CheckInStatus.RETRY}
             .map { it.value.toScanLog() }
@@ -273,7 +273,7 @@ open class KVStore(private val gson: Gson) {
         findOptionalById(key).ifPresent { scanLog ->
             val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toInstant().toEpochMilli(), scanLog.timestamp.zone.id, scanLog.eventKey, scanLog.ticketUuid,
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
-            putScanLong(updatedScanLog)
+            putScanLog(updatedScanLog)
         }
     }
 

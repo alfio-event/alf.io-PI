@@ -57,7 +57,7 @@ open class RemoteCheckInExecutor(private val gson: Gson,
                 .url(url)
                 .build()
             logger.debug("Will call remote url {}", url)
-            httpClientWithCustomTimeout(100L to TimeUnit.MILLISECONDS, 1L to TimeUnit.SECONDS)
+            httpClientWithCustomTimeout(1L to TimeUnit.SECONDS, 10L to TimeUnit.SECONDS)
                 .invoke(httpClient)
                 .newCall(request)
                 .execute()

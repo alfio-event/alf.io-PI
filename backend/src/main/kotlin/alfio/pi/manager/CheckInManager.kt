@@ -340,12 +340,12 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         })
     }
 
-    @Scheduled(fixedDelay = 15000L)
+    @Scheduled(fixedDelay = 1500L)
     open fun processPendingEntries() {
         if(kvStore.isLeader()) {
-            val failures = kvStore.findRemoteFailures()
-            logger.trace("found ${failures.size} pending scan to upload")
-            failures
+            val pending = kvStore.findCheckInToUpload()
+            logger.trace("found ${pending.size} pending scan to upload")
+            pending
                 .groupBy { it.eventKey }
                 .mapKeys { eventRepository.loadSingle(it.key) }
                 .filter { it.key.isPresent }
@@ -354,18 +354,18 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 
     private fun uploadEntriesForEvent(entry: Map.Entry<Optional<Event>, List<ScanLog>>) {
-        logger.info("******** uploading check-in **********")
+        logger.info("******** uploading check-in for event ${entry.key.get().key} (${entry.value.size}) **********")
         tryOrDefault<Unit>().invoke({
             val event = entry.key.get()
-            val scanLogEntries = entry.value.filter { it.ticket != null }
-            val ticketIdToScanLogId = scanLogEntries.associate { it.ticket!!.uuid to it.id }
-            val response = remoteCheckInExecutor.remoteBulkCheckIn(event.key, scanLogEntries) { list -> list.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket.hmac}")}}
-
-            response.forEach {
-                if(logger.isTraceEnabled) {
-                    logger.trace("upload entries response is ${it.key} ${gson.toJson(it.value)}")
+            entry.value.filter { it.ticket != null }.chunked(200).forEach { scanLogEntries ->
+                val ticketIdToScanLogId = scanLogEntries.associate { it.ticket!!.uuid to it.id }
+                val response = remoteCheckInExecutor.remoteBulkCheckIn(event.key, scanLogEntries) { list -> list.map { mapOf("identifier" to it.ticket!!.uuid, "code" to "${it.ticket.uuid}/${it.ticket.hmac}")}}
+                response.forEach {
+                    if(logger.isTraceEnabled) {
+                        logger.trace("upload entries response is ${it.key} ${gson.toJson(it.value)}")
+                    }
+                    kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key] ?: error("Unexpected error during check-in upload"))
                 }
-                kvStore.updateRemoteResult(it.value.result.status, ticketIdToScanLogId[it.key] ?: error("Unexpected error during check-in upload"))
             }
         }, { logger.error("unable to upload pending check-in", it)})
         logger.info("******** upload completed **********")
