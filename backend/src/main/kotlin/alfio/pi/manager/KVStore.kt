@@ -1,28 +1,30 @@
 package alfio.pi.manager
 
+import alfio.pi.RemoteApiAuthenticationDescriptor
 import alfio.pi.model.*
 import ch.digitalfondue.synckv.SyncKV
+import ch.digitalfondue.synckv.SyncKVStructuredTable
 import ch.digitalfondue.synckv.SyncKVTable
 import com.google.gson.Gson
 import org.jgroups.util.Tuple
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.token.Sha512DigestUtils
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.*
-import kotlin.collections.ArrayList
-import ch.digitalfondue.synckv.SyncKVStructuredTable
 import java.util.stream.Collectors
+import kotlin.collections.ArrayList
 
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.pi.manager.KVStore")
 
 @Component
-open class KVStore(private val gson: Gson) {
+open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAuthenticationDescriptor) {
 
-    private val store = SyncKV("alfio-pi-synckv", "alfio-pi-synckv")
+    private val store: SyncKV = SyncKV(synckvFileName(authenticationDescriptor.url), authenticationDescriptor.apiKey)
 
     private val attendeeTable: SyncKVTable
     //
@@ -349,3 +351,6 @@ open class KVStore(private val gson: Gson) {
 private fun attendeeKey(event: String, identifier: String) = "${event}_$identifier"
 
 private fun scanLogId() = System.currentTimeMillis().toString() + UUID.randomUUID().toString()
+
+private fun synckvFileName(remoteUrl: String): String =
+    "alfio-pi-synckv-${Sha512DigestUtils.shaHex(remoteUrl).substring(IntRange(0, 10))}"
