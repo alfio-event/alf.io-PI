@@ -102,17 +102,26 @@ fun reprintBadge(scanLogId: String, printerId: Int?, username: String, content: 
             .filter { it.ticket != null }
             .flatMap { scanLog ->
                 val optionalPrinter = if(printerId != null) {
+                    logger.trace("PrinterId defined, trying to load it from repository")
                     printerRepository.findOptionalById(printerId).map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventKey) }
                 } else {
+                    logger.trace("PrinterId is not defined, trying to find default for user $username")
                     userRepository.findByUsername(username)
                         .flatMap { (id) -> printerRepository.findByUserId(id) }
                         .map { printer -> Triple(printer, scanLog.ticket!!, scanLog.eventKey) }
                 }
+                logger.trace("Printer found: ${optionalPrinter.isPresent}")
                 when {
                     optionalPrinter.isPresent -> optionalPrinter
-                    desk -> Optional.ofNullable(printManager.getAvailablePrinters().firstOrNull())
-                        .map { Printer(-1, it.name, null, true) }
-                        .map { Triple(it, scanLog.ticket!!, scanLog.eventKey) }
+                    desk -> {
+                        logger.trace("Detected desk user. Trying to find a local printer")
+                        Optional.ofNullable(printManager.getAvailablePrinters().firstOrNull())
+                            .map {
+                                logger.trace("Selecting printer ${it.name}")
+                                Printer(-1, it.name, null, true)
+                            }
+                            .map { Triple(it, scanLog.ticket!!, scanLog.eventKey) }
+                    }
                     else -> Optional.empty()
                 }
             }.map { (printer, ticket, eventKey) ->

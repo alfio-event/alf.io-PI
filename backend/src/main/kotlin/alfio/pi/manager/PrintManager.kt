@@ -124,6 +124,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         return tryOrDefault<Boolean>().invoke({
             val localPrinter = getCupsPrinters().firstOrNull { it.name == printer.name }
             if(localPrinter != null) {
+                logger.trace("local printer found.")
                 doPrint(labelTemplates.first { it.supportsPrinter(printer.name, labelConfiguration?.configuration?.layout) }, printer.name, ticket, labelConfiguration)
             } else {
                 logger.warn("cannot find local printer ${printer.name}")
@@ -149,10 +150,16 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             inputStream.bufferedReader().lines()
                 .map {
                     val result = systemPrinterExtractor.find(it)
-                    result?.groupValues?.get(1)
+                    val extractedName = result?.groupValues?.get(1)
+                    logger.trace("Processing output from lpstat: $it")
+                    logger.trace("--> Printer name is: $extractedName")
+                    extractedName
                 }.filter { it != null }
                 .filter { includeNotConnected || Files.exists(Paths.get("/dev/usb/", it)) }
-                .map { SystemPrinter(it!!) }
+                .map {
+                    logger.trace("Printer $it is connected. Returning it")
+                    SystemPrinter(it!!)
+                }
                 .collect(Collectors.toList<SystemPrinter>())
         }
     }, {
@@ -162,22 +169,30 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
 
     private fun doPrint(labelTemplate: LabelTemplate, name: String, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): Boolean {
         val configurableContent = if(labelConfiguration?.content != null) {
+            logger.trace("label configuration is present. returning content {}", labelConfiguration.content)
             labelConfiguration.content
         } else {
-            buildConfigurableLabelContent(labelConfiguration?.configuration?.layout, ticket)
+            logger.trace("label configuration is not present. Building a new one")
+            val newContent = buildConfigurableLabelContent(labelConfiguration?.configuration?.layout, ticket)
+            logger.trace("done. {}", newContent)
+            newContent
         }
         val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows.orEmpty(), ticket.uuid, configurableContent.qrContent, configurableContent.partialID, configurableContent.checkbox).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
-        logger.trace(cmd)
+        logger.trace("about to submit printing job: {}", cmd)
         val print = Runtime.getRuntime().exec(cmd)
         print.outputStream.use {
+            logger.trace("sending pdf to printer...")
             it.write(pdf)
+            logger.trace("done")
         }
         val res = print.waitFor(1L, TimeUnit.SECONDS) && print.exitValue() == 0
 
         if(res) {
+            logger.trace("printing job submitted.")
             val labels = kvStore.getRemainingLabels(name)
             if(labels > 0) {
+                logger.trace("decreasing label count")
                 val updatedCount = labels - 1
                 kvStore.putRemainingLabels(name, updatedCount)
                 publisher.notifyAllSessions(SystemEvent(SystemEventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER, UpdatePrinterRemainingLabelCounter(updatedCount)))
@@ -285,8 +300,10 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
 
     override fun printLabel(printer: Printer, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): Boolean =
         if(remotePrinters.any { it.name == printer.name }) {
+            logger.trace("Sending data to remote printer with name ${printer.name}")
             remotePrint(printer.name, ticket)
         } else {
+            logger.trace("Sending data to local printer with name ${printer.name}")
             super.printLabel(printer, ticket, labelConfiguration)
         }
 
