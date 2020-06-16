@@ -50,6 +50,13 @@ sudo usermod -a -G lpadmin pi
 print_bold "done."
 echo
 
+#RPI_NAME=`ifconfig -a wlan0 | grep ether | xargs | cut -c 7-23 | sed "s/://g"| awk '{print toupper($0)}'`
+#print_bold "Setting hostname"
+#sudo sed -i "s/raspberrypi/$RPI_NAME/g" /etc/hosts
+#sudo sed -i "s/raspberrypi/$RPI_NAME/g" /etc/hostname
+#print_bold "done."
+#echo
+
 print_bold "Updating default Java(tm) installation"
 sudo update-java-alternatives --set java-1.9.0-openjdk-armhf
 print_bold "done."
@@ -62,15 +69,13 @@ sudo cp /tmp/dymo-cups-drivers-1.4.*/ppd/*.ppd /usr/share/cups/model/
 print_bold "done."
 
 print_bold "Importing Alf.io-PI key"
-sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0xD959470077C4660E
-#sudo add-apt-repository "deb https://repo.alf.io/ stretch main"
-#sudo apt-get update
+sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0xC9AA0F906AF4106C
 print_bold "done."
 
 print_bold "Downloading Alf.io-PI v$ALFIO_VERSION"
 rm -f "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 wget "https://github.com/alfio-event/alf.io-PI/releases/download/v${ALFIO_RELEASE}/alf.io-pi_${ALFIO_VERSION}_all.deb" -P /tmp/
-sudo dpkg-sig --verify -k D959470077C4660E "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
+sudo dpkg-sig --verify -k C9AA0F906AF4106C "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 print_bold "done."
 
 print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
@@ -97,7 +102,7 @@ sleep 2
 # backing up existing file, if any
 touch ${CONFIG_FILE_PATH} && mv ${CONFIG_FILE_PATH} "${CONFIG_FILE_PATH}.$(date '+%Y-%m-%dT%H%M%S')"
 cp ${CONFIG_TEMPLATE_PATH} ${CONFIG_FILE_PATH}
-NOW=`date '+%Y-%m-%d %H:%M:%S'`
+NOW=$(date '+%Y-%m-%d %H:%M:%S')
 echo ""  >> ${CONFIG_FILE_PATH}
 echo "# Edited by get-alfio-pi.sh on ${NOW}" >> ${CONFIG_FILE_PATH}
 
