@@ -24,7 +24,7 @@ private val logger: Logger = LoggerFactory.getLogger("alfio.pi.manager.KVStore")
 @Component
 open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAuthenticationDescriptor) {
 
-    private val store: SyncKV = SyncKV(synckvFileName(authenticationDescriptor.url), authenticationDescriptor.apiKey)
+    private val store: SyncKV = SyncKV(synckvFileName(authenticationDescriptor), authenticationDescriptor.apiKey)
 
     private val attendeeTable: SyncKVTable
     //
@@ -352,5 +352,5 @@ private fun attendeeKey(event: String, identifier: String) = "${event}_$identifi
 
 private fun scanLogId() = System.currentTimeMillis().toString() + UUID.randomUUID().toString()
 
-private fun synckvFileName(remoteUrl: String): String =
-    "alfio-pi-synckv-${Sha512DigestUtils.shaHex(remoteUrl).substring(IntRange(0, 10))}"
+private fun synckvFileName(authenticationDescriptor: RemoteApiAuthenticationDescriptor): String =
+    "alfio-pi-synckv-${Sha512DigestUtils.shaHex("${authenticationDescriptor.url}|${authenticationDescriptor.apiKey}").substring(IntRange(0, 10))}"
