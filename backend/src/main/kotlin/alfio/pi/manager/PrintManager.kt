@@ -140,7 +140,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
 
     override fun printLabel(user: User, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): Boolean = false
 
-    override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, mapOf("company" to "Test Company Ltd.")), null)
+    override fun printTestLabel(printer: Printer): Boolean = printLabel(printer, Ticket("TEST-TEST-TEST", "FirstName", "LastName", null, mapOf("company" to "Test Company Ltd."), pin = "123456"), null)
 
     private val systemPrinterExtractor = Regex("printer (Alfio\\S+) .*")
 
@@ -213,9 +213,10 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             val ticketInfo = getAllTicketInfo(ticket)
             val firstRow = ticketInfo[layout.content.firstRow] ?: ticket.firstName
             val secondRow = ticketInfo[layout.content.secondRow] ?: ticket.lastName
-            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, layout.content.checkbox?:false)
+            val pin = ticketInfo["pin"]
+            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, pin, layout.content.checkbox?:false)
         } else {
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase(), false)
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase(), ticket.pin, false)
         }
     }
 
@@ -358,6 +359,7 @@ data class ConfigurableLabelContent(val firstRow: String,
                                     val additionalRows: List<String>?,
                                     val qrContent: String,
                                     val partialID: String,
+                                    val pin: String?,
                                     val checkbox: Boolean)
 
 

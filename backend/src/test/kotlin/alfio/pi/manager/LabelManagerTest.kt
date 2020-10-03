@@ -158,7 +158,7 @@ class LabelManagerTest {
         assertFalse(result.partialID.isEmpty())
     }
 
-    private fun ticket(additionalInfo: Map<String, String>? = mapOf("company" to "company")): Ticket = Ticket(uuid = "12345-678", firstName = "firstName", lastName = "lastName", additionalInfo = additionalInfo, email = null)
+    private fun ticket(additionalInfo: Map<String, String>? = mapOf("company" to "company"), includePin: Boolean = false): Ticket = Ticket(uuid = "12345-678", firstName = "firstName", lastName = "lastName", email = null, additionalInfo = additionalInfo, pin = if(includePin) "123456" else null)
 
 
 }

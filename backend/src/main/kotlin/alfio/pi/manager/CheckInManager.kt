@@ -106,7 +106,9 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
                     validCheckInTo = ticketData.validCheckInTo,
                     checkInStrategy = ticketData.categoryCheckInStrategy ?: CheckInStrategy.ONCE_PER_EVENT,
                     additionalServicesInfo = ticketData.additionalServicesInfo,
-                    boxColorClass = ticketData.boxColor)
+                    boxColorClass = ticketData.boxColor,
+                    pin = ticketData.pin
+                )
                 checkIfBlacklisted(TicketAndCheckInResult(ticket, CheckInResult(ticketData.checkInStatus)))
             } else {
                 logger.warn("no eventData found for $key.")
@@ -241,7 +243,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     private fun includeHmacIfNeeded(ticket: Ticket, remoteResult: CheckInResponse, hmac: String) =
         if(remoteResult.result.status == RETRY) {
             Ticket(ticket.uuid, ticket.firstName, ticket.lastName, ticket.email, ticket.additionalInfo,
-                categoryName = ticket.categoryName, checkInStrategy = ticket.checkInStrategy, hmac = hmac, boxColorClass = ticket.boxColorClass)
+                hmac = hmac, categoryName = ticket.categoryName, checkInStrategy = ticket.checkInStrategy, boxColorClass = ticket.boxColorClass, pin = ticket.pin)
         } else {
             ticket
         }

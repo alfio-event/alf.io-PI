@@ -136,7 +136,9 @@ class CheckInDataManagerTest {
             null,
             null,
             null,
-            null)
+            null,
+            null
+        )
 
         val mockKVStore = mock<KVStore> {
             on { loadSuccessfulScanForTicket(eq(eventId), eq(ticketUUid)) } doReturn Optional.empty()
