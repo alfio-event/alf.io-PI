@@ -48,7 +48,13 @@ interface LabelTemplate {
     fun supportsPrinter(name: String, layout: LabelLayout?): Boolean
 }
 
-class LabelContent(val firstRow: String, val secondRow: String, val additionalRows: List<String>?, val qrCode: PDImageXObject, val qrText: String, val checkbox: Boolean)
+class LabelContent(val firstRow: String,
+                   val secondRow: String,
+                   val additionalRows: List<String>?,
+                   val qrCode: PDImageXObject,
+                   val qrText: String,
+                   val pin: String?,
+                   val checkbox: Boolean)
 
 @Component
 open class DymoLW450Turbo41x89: LabelTemplate {
@@ -132,8 +138,10 @@ open class DymoLW450Turbo32x57: LabelTemplate {
                 pd.newLineAtOffset(secondRowOffset - firstRowOffset, -25F)
                 pd.showText(secondRowContent.first)
                 val additionalRowFonts = arrayOf(24 to 10F, 26 to 8F).filter { it.second <= firstRow.second }.toTypedArray()
-                val additionalRows = labelContent.additionalRows.orEmpty().take(1)
-                printAdditionalRows(additionalRows, pd, arrayOf(-25F), labelContent, font, additionalRowFonts, true, secondRowOffset, pageWidth)
+                val offset = if(labelContent.pin.isNullOrEmpty()) { -25F } else { -15F }
+                val additionalRowOrEmptySpace = labelContent.additionalRows.orEmpty().take(1).ifEmpty { listOf("") }
+                val additionalRows = if(labelContent.pin.isNullOrEmpty()) { additionalRowOrEmptySpace } else { additionalRowOrEmptySpace.plus(labelContent.pin) }
+                printAdditionalRows(additionalRows, pd, arrayOf(offset), labelContent, font, additionalRowFonts, true, secondRowOffset, pageWidth)
             }
         }
     }
@@ -326,6 +334,7 @@ fun generatePDFLabel(firstRow: String,
                      ticketUUID: String,
                      qrCodeContent: String = ticketUUID,
                      partialUUID: String,
+                     pin: String?,
                      checkbox: Boolean): (LabelTemplate) -> ByteArray = { template ->
     val document = PDDocument()
     val out = ByteArrayOutputStream()
@@ -335,7 +344,7 @@ fun generatePDFLabel(firstRow: String,
         pdDocument.addPage(page)
         val qr = LosslessFactory.createFromImage(pdDocument, generateQRCode(qrCodeContent))
         val contentStream = PDPageContentStream(pdDocument, page, PDPageContentStream.AppendMode.OVERWRITE, false)
-        template.writeContent(contentStream, pageWidth, LabelContent(firstRow, secondRow, additionalRows, qr, partialUUID, checkbox)) {PDType0Font.load(document, it)}
+        template.writeContent(contentStream, pageWidth, LabelContent(firstRow, secondRow, additionalRows, qr, partialUUID, pin, checkbox)) {PDType0Font.load(document, it)}
         pdDocument.save(out)
     }
     out.toByteArray()

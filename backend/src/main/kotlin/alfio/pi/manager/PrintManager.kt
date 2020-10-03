@@ -177,7 +177,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             logger.trace("done. {}", newContent)
             newContent
         }
-        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows.orEmpty(), ticket.uuid, configurableContent.qrContent, configurableContent.partialID, configurableContent.checkbox).invoke(labelTemplate)
+        val pdf = generatePDFLabel(configurableContent.firstRow, configurableContent.secondRow, configurableContent.additionalRows.orEmpty(), ticket.uuid, configurableContent.qrContent, configurableContent.partialID, configurableContent.pin, configurableContent.checkbox).invoke(labelTemplate)
         val cmd = "/usr/bin/lpr -U anonymous -P $name -# 1 -T ticket-${ticket.uuid.substringBefore("-")} -h -o media=${labelTemplate.getCUPSMediaName()}"
         logger.trace("about to submit printing job: {}", cmd)
         val print = Runtime.getRuntime().exec(cmd)
@@ -213,8 +213,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             val ticketInfo = getAllTicketInfo(ticket)
             val firstRow = ticketInfo[layout.content.firstRow] ?: ticket.firstName
             val secondRow = ticketInfo[layout.content.secondRow] ?: ticket.lastName
-            val pin = ticketInfo["pin"]
-            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, pin, layout.content.checkbox?:false)
+            ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, ticket.pin, layout.content.checkbox?:false)
         } else {
             ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase(), ticket.pin, false)
         }

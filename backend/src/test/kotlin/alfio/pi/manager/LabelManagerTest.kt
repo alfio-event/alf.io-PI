@@ -23,6 +23,8 @@ import com.google.gson.Gson
 import org.junit.Assert.*
 import org.junit.Test
 import org.mockito.Mockito
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.*
 
 class LabelManagerTest {
@@ -50,36 +52,42 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabelDymoWithThreeAdditionalRows() {
-        var bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo41x89())
+        var bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", null,false).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
-        bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
+        bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", null, true).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 
     @Test
     fun testGenerateLabelDymoWithTwoAdditionalRows() {
-        var bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo41x89())
+        var bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", null, false).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
-        bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(DymoLW450Turbo41x89())
+        bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", null, true).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }
 
     @Test
     fun testGenerateLabelDymo32x57() {
-        val bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", false).invoke(DymoLW450Turbo32x57())
+        val bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", null, false).invoke(DymoLW450Turbo32x57())
+        assertTrue(bytes.isNotEmpty())
+    }
+
+    @Test
+    fun testGenerateLabelDymo32x57wPin() {
+        val bytes = generatePDFLabel("George", "William", listOf("First", "Second"), "12345678", UUID.randomUUID().toString(), "12345678", "123456", false).invoke(DymoLW450Turbo32x57())
         assertTrue(bytes.isNotEmpty())
     }
 
 
     @Test
     fun testGenerateLabelZebra() {
-        val bytes = generatePDFLabel("George", "William", listOf(), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(ZebraZD410())
+        val bytes = generatePDFLabel("George", "William", listOf(), "12345678", UUID.randomUUID().toString(), "12345678", null, true).invoke(ZebraZD410())
         assertTrue(bytes.isNotEmpty())
     }
 
     @Test
     fun testGenerateLabelBixolon() {
-        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678", true).invoke(BixolonTX220())
+        val bytes = generatePDFLabel("George", "William", listOf("Company 1", "Second Row", "Third Row"), "12345678", UUID.randomUUID().toString(), "12345678", null,true).invoke(BixolonTX220())
         assertTrue(bytes.isNotEmpty())
     }
 
