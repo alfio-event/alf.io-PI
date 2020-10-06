@@ -128,7 +128,8 @@ open class DymoLW450Turbo32x57: LabelTemplate {
                 val firstRow = optimizeText(labelContent.firstRow, arrayOf(12 to 20F, 15 to 16F, 17 to 14F, 20 to 12F), true)
                 pd.setFont(font, firstRow.second)
                 val firstRowOffset = centeredTextOffset(firstRow.first, pageWidth, font, firstRow.second)
-                pd.newLineAtOffset(firstRowOffset, 65F)
+                val firstRowVerticalOffset = if(labelContent.pin.isNullOrEmpty()) { 65F } else { 70F }
+                pd.newLineAtOffset(firstRowOffset, firstRowVerticalOffset)
                 pd.showText(firstRow.first)
 
                 val secondRowFonts = arrayOf(12 to 20F, 15 to 16F, 17 to 14F, 20 to 12F).filter { it.second <= firstRow.second }.toTypedArray()
@@ -138,10 +139,10 @@ open class DymoLW450Turbo32x57: LabelTemplate {
                 pd.newLineAtOffset(secondRowOffset - firstRowOffset, -25F)
                 pd.showText(secondRowContent.first)
                 val additionalRowFonts = arrayOf(24 to 10F, 26 to 8F).filter { it.second <= firstRow.second }.toTypedArray()
-                val offset = if(labelContent.pin.isNullOrEmpty()) { -25F } else { -15F }
+                val offset = if(labelContent.pin.isNullOrEmpty()) { arrayOf(-25F) } else { arrayOf(-18F, -15F) }
                 val additionalRowOrEmptySpace = labelContent.additionalRows.orEmpty().take(1).ifEmpty { listOf("") }
                 val additionalRows = if(labelContent.pin.isNullOrEmpty()) { additionalRowOrEmptySpace } else { additionalRowOrEmptySpace.plus(labelContent.pin) }
-                printAdditionalRows(additionalRows, pd, arrayOf(offset), labelContent, font, additionalRowFonts, true, secondRowOffset, pageWidth)
+                printAdditionalRows(additionalRows, pd, offset, labelContent, font, additionalRowFonts, true, secondRowOffset, pageWidth)
             }
         }
     }
