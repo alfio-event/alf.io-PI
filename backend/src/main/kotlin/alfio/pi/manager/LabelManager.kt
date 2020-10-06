@@ -104,7 +104,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
             textBlock(page) { pd ->
                 pd.setFont(font, 9F)
                 pd.newLineAtOffset(180F, 15F)
-                pd.showText(labelContent.qrText)
+                pd.showText(if(labelContent.pin.isNullOrBlank()) labelContent.qrText else labelContent.pin)
             }
         }
     }
@@ -245,7 +245,7 @@ open class ZebraZD410: LabelTemplate {
             textBlock(page) { pd ->
                 pd.setFont(font, 9F)
                 pd.newLineAtOffset(210F, 25F)
-                pd.showText(labelContent.qrText)
+                pd.showText(if(labelContent.pin.isNullOrBlank()) labelContent.qrText else labelContent.pin)
             }
         }
     }
