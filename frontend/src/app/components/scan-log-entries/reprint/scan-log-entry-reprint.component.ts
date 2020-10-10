@@ -81,14 +81,16 @@ export class PreviewContent {
               public secondRow: string,
               public additionalRows: Array<{value: string}>,
               public qrContent: string,
-              public partialID: string) {}
+              public partialID: string,
+              public pin: string,
+              public checkbox: boolean) {}
 
   static fromConfigurableLabelContent(content: ConfigurableLabelContent): PreviewContent {
-    return new PreviewContent(content.firstRow, content.secondRow, content.additionalRows.map(v => ({value: v})), content.qrContent, content.partialID);
+    return new PreviewContent(content.firstRow, content.secondRow, content.additionalRows.map(v => ({value: v})), content.qrContent, content.partialID, content.pin, content.checkbox);
   }
 
   public toConfigurableLabelContent(): ConfigurableLabelContent {
-    return new ConfigurableLabelContent(this.firstRow, this.secondRow, this.additionalRows.map(m => m.value), this.qrContent, this.partialID);
+    return new ConfigurableLabelContent(this.firstRow, this.secondRow, this.additionalRows.map(m => m.value), this.qrContent, this.partialID, this.pin, this.checkbox);
   }
 }
 

@@ -81,5 +81,7 @@ export class ConfigurableLabelContent {
               public secondRow: string,
               public additionalRows: Array<string>,
               public qrContent: string,
-              public partialID: string) {}
+              public partialID: string,
+              public pin: string,
+              public checkbox: boolean = false) {}
 }
