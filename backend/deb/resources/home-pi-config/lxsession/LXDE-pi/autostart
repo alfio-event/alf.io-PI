@@ -1,9 +1,0 @@
-#@lxpanel --profile LXDE-pi
-#@pcmanfm --desktop --profile LXDE-pi
-@xscreensaver -no-splash
-#@point-rpi
-@unclutter -display :0 -noevents -grab
-@xset s off
-@xset s noblank
-@xset -dpms
-@/usr/bin/chromium-browser --kiosk --start-maximized --allow-running-insecure-content --allow-insecure-localhost --remember-cert-error-decisions --no-default-browser-check --incognito http://localhost

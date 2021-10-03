@@ -27,3 +27,11 @@ backend/application.properties
 npm-debug.log
 logs/
 alfio-pi-keystore.jks
+
+target
+.classpath
+.project
+.settings/
+.idea
+*.iml
+data/
