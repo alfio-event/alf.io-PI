@@ -1,19 +1,19 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import {Http} from "@angular/http";
 import {Observable} from "rxjs/Observable";
 
 @Injectable()
 export class ConfigurationService {
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
 
   getConfiguration(key: string) : Observable<string> {
-    return this.http.get('/api/internal/system/configuration/'+key).map(res => res.text().length == 0 ? null : res.json())
+    return this.http.get<string>('/api/internal/system/configuration/'+key).map(res => res.length == 0 ? null : res)
   }
 
   getPrinterName() : Observable<string> {
-    return this.http.get('/api/internal/system/printer').map(res => res.text().length == 0 ? null : res.text())
+    return this.http.get<string>('/api/internal/system/printer').map(res => res.length == 0 ? null : res)
   }
 
   save(key: string, value: string) : Observable<any> {
@@ -21,7 +21,7 @@ export class ConfigurationService {
   }
 
   getRemainingLabels() : Observable<string> {
-    return this.http.get('/api/internal/system/labels/remaining').map(res => res.text().length == 0 ? null : res.text())
+    return this.http.get<string>('/api/internal/system/labels/remaining').map(res => res.length == 0 ? null : res)
   }
 
   saveRemainingLabels(value: string) : Observable<any> {

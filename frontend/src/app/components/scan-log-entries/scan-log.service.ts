@@ -16,31 +16,28 @@
  */
 
 import {Injectable} from "@angular/core";
-import {Http} from "@angular/http";
 import {Observable} from "rxjs";
 import {Printer} from "../printer/printer.service";
 import {CheckInStatus} from "../../scan-module/scan/scan-common";
+import { HttpClient, HttpParams } from "@angular/common/http";
 
 @Injectable()
 export class ScanLogService {
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
   getReprintPreview(entryId: string, eventKey: string): Observable<ConfigurableLabelContent> {
-    return this.http.get(`/api/internal/scan-log/event/${eventKey}/entry/${entryId}/reprint-preview`)
-      .map(res => res.json())
+    return this.http.get<ConfigurableLabelContent>(`/api/internal/scan-log/event/${eventKey}/entry/${entryId}/reprint-preview`);
   }
 
   getEntries(page: number, pageSize: number, term: string): Observable<PaginatedResult> {
-    let opt = {params: {page : page, pageSize : pageSize, search : term}};
-    return this.http.get(`/api/internal/scan-log`, opt)
-      .map(res => res.json())
+    const params = new HttpParams().append('page', page.toString()).append('pageSize', pageSize.toString()).append('search', term);
+    return this.http.get<PaginatedResult>(`/api/internal/scan-log`, {responseType: "json", params: params});
   }
 
   reprint(entryId: string, content: ConfigurableLabelContent, printer?: Printer): Observable<boolean> {
     let printerId = printer ? printer.id : null;
-    return this.http.put(`/api/internal/scan-log/${entryId}/reprint`, {printer: printerId, content: content})
-      .map(res => res.json());
+    return this.http.put<boolean>(`/api/internal/scan-log/${entryId}/reprint`, {printer: printerId, content: content});
   }
 
 }

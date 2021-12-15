@@ -14,14 +14,16 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/common": "4.3.2",
-    "@angular/compiler": "4.3.2",
-    "@angular/core": "4.3.2",
-    "@angular/forms": "4.3.2",
-    "@angular/http": "4.3.2",
-    "@angular/platform-browser": "4.3.2",
-    "@angular/platform-browser-dynamic": "4.3.2",
-    "@angular/router": "4.0.0",
+    "@angular/animations": "^4.4.7",
+    "@angular/common": "^4.4.7",
+    "@angular/compiler": "^4.4.7",
+    "@angular/core": "^4.4.7",
+    "@angular/forms": "^4.4.7",
+    "@angular/http": "^4.4.7",
+    "@angular/platform-browser": "^4.4.7",
+    "@angular/platform-browser-dynamic": "^4.4.7",
+    "@angular/platform-server": "^4.4.7",
+    "@angular/router": "^4.4.7",
     "@ng-bootstrap/ng-bootstrap": "1.0.0-alpha.23",
     "angular2-qrcode": "2.0.1",
     "bootstrap": "4.0.0-alpha.6",
@@ -39,7 +41,7 @@
   },
   "devDependencies": {
     "@angular/cli": "1.2.6",
-    "@angular/compiler-cli": "^4.0.0",
+    "@angular/compiler-cli": "^4.4.7",
     "@types/jasmine": "2.5.38",
     "@types/jquery": "<2.2",
     "@types/node": "~6.0.60",
@@ -58,6 +60,6 @@
     "protractor": "~5.1.0",
     "ts-node": "~2.0.0",
     "tslint": "~4.5.0",
-    "typescript": "~2.2.0"
+    "typescript": "^2.3.4"
   }
 }

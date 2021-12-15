@@ -1,7 +1,7 @@
 import {BrowserModule} from "@angular/platform-browser";
 import {NgModule} from "@angular/core";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
-import {HttpModule} from "@angular/http";
+import {HttpClientModule} from "@angular/common/http";
 import {RouterModule} from "@angular/router";
 import {AppComponent} from "./app.component";
 import {UserEditComponent} from "./components/user/edit/user-edit.component";
@@ -76,7 +76,7 @@ import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.componen
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,
-    HttpModule,
+    HttpClientModule,
     DragulaModule,
     QRCodeModule,
     RouterModule.forRoot([
