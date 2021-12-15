@@ -40,7 +40,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
 
   testMode = false;
 
-  @ViewChild('keyListener') keyListener;
+  @ViewChild('keyListener', { static: false }) keyListener;
 
   eventSelectionListener: Observable<Event>;
   private eventSelectionSubject: Subject<Event>;

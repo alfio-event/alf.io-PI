@@ -72,7 +72,7 @@ import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.componen
     SidebarWatchComponent
   ],
   imports: [
-    NgbModule.forRoot(),
+    NgbModule,
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,
