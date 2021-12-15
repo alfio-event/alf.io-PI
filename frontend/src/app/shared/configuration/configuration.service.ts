@@ -1,6 +1,8 @@
+
+import {map} from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import {Observable} from "rxjs/Observable";
+import {Observable} from "rxjs";
 
 @Injectable()
 export class ConfigurationService {
@@ -9,11 +11,11 @@ export class ConfigurationService {
 
 
   getConfiguration(key: string) : Observable<string> {
-    return this.http.get<string>('/api/internal/system/configuration/'+key).map(res => res.length == 0 ? null : res)
+    return this.http.get<string>('/api/internal/system/configuration/'+key).pipe(map(res => res.length == 0 ? null : res))
   }
 
   getPrinterName() : Observable<string> {
-    return this.http.get<string>('/api/internal/system/printer').map(res => res.length == 0 ? null : res)
+    return this.http.get<string>('/api/internal/system/printer').pipe(map(res => res.length == 0 ? null : res))
   }
 
   save(key: string, value: string) : Observable<any> {
@@ -21,7 +23,7 @@ export class ConfigurationService {
   }
 
   getRemainingLabels() : Observable<string> {
-    return this.http.get<string>('/api/internal/system/labels/remaining').map(res => res.length == 0 ? null : res)
+    return this.http.get<string>('/api/internal/system/labels/remaining').pipe(map(res => res.length == 0 ? null : res))
   }
 
   saveRemainingLabels(value: string) : Observable<any> {

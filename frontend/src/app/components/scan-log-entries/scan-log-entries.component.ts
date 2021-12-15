@@ -1,3 +1,5 @@
+
+import {map} from 'rxjs/operators';
 import {Component, Input, OnInit, OnDestroy} from "@angular/core";
 import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
@@ -60,8 +62,8 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
           this.eventService.getAllEvents(),
           this.printerService.loadAllPrinters()
         ]);
-      })
-      .map(res => {
+      }).pipe(
+      map(res => {
         let [entries, events, printers] = res;
         this.printers = printers.filter(p => p.active);
         this.found = entries.found;
@@ -69,7 +71,7 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
           const entry = entryWithBoxClass.scanLog;
           return new ScanLogEntryWithEvent(entry, events.find(e => e.key === entry.eventKey), entryWithBoxClass.boxColorClass);
         })
-      })
+      }))
       .subscribe(entries => {
         this.entries = entries
       });

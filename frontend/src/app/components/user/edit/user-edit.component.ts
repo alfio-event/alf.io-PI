@@ -1,3 +1,5 @@
+
+import {switchMap} from 'rxjs/operators';
 import {Component, OnInit, Input, Output, EventEmitter} from "@angular/core";
 import {UserService, User, NewUser, UserWithPassword} from "../user.service";
 import "rxjs/add/operator/switchMap";
@@ -31,8 +33,8 @@ export class UserEditComponent implements OnInit {
               private userNotifierService: UserNotifierService) {}
 
   ngOnInit(): void {
-    this.route.params
-      .switchMap((params: Params) => {
+    this.route.params.pipe(
+      switchMap((params: Params) => {
         let userId = params['userId'];
         this.existing = !isNullOrUndefined(userId);
         if(this.existing) {
@@ -40,7 +42,7 @@ export class UserEditComponent implements OnInit {
         } else {
           return Promise.resolve(new NewUser());
         }
-      }).subscribe((user: User) => {
+      })).subscribe((user: User) => {
         this.user = user;
         if(!(user instanceof NewUser)) {
           this.username.setValue(user.username);

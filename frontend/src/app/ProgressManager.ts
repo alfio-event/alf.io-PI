@@ -1,3 +1,5 @@
+
+import {tap} from 'rxjs/operators';
 /*
  * This file is part of alf.io.
  *
@@ -30,7 +32,7 @@ export class ProgressManager {
   monitorCall<T>(call: () => Observable<T>): Observable<T> {
     this.source.next(true);
     let observable: Observable<T> = call();
-    return observable.do(v => this.source.next(false), () => this.source.next(false), () => this.source.next(false));
+    return observable.pipe(tap(v => this.source.next(false), () => this.source.next(false), () => this.source.next(false)));
   }
 
 }

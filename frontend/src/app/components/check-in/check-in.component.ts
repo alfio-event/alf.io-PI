@@ -1,3 +1,5 @@
+
+import {map} from 'rxjs/operators';
 import {Component, OnInit, ViewChild, OnDestroy} from '@angular/core';
 import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
@@ -60,7 +62,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.progressManager.monitorCall(() => this.eventService.getAllEvents().map(l => l.filter(e => e.active)))
+    this.progressManager.monitorCall(() => this.eventService.getAllEvents().pipe(map(l => l.filter(e => e.active))))
       .subscribe(list => this.events = list);
 
     this.serverEventsSub = this.serverEventsService.events.subscribe(e => {

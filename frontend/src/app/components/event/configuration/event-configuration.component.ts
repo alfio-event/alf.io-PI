@@ -1,3 +1,5 @@
+
+import {switchMap} from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
 import {EventService, Event} from "../../../shared/event/event.service";
 import {ActivatedRoute, Params} from "@angular/router";
@@ -24,14 +26,14 @@ export class EventConfigurationComponent implements OnInit {
   private allUsers: Array<User> = [];
 
   ngOnInit(): void {
-    this.route.params
-      .switchMap((params: Params) => {
+    this.route.params.pipe(
+      switchMap((params: Params) => {
         let eventKey = params['eventKey'];
         return this.eventService.getSingleEvent(eventKey);
-      }).switchMap((event: Event) => {
+      }),switchMap((event: Event) => {
         this.event = event;
         return forkJoin([this.printerService.loadPrintersAndUsers(), this.printerService.loadAllPrinters(), this.userService.getUsers()]);
-      }).subscribe((data: Array<any>) => {
+      }),).subscribe((data: Array<any>) => {
         this.printers = <Array<PrinterWithUsers>>data[0];
         this.allPrinters = (<Array<Printer>>data[1]).filter(p => p.active);
         this.allUsers = <Array<User>>data[2];
