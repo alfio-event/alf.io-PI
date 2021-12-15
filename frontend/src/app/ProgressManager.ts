@@ -17,7 +17,6 @@ import {tap} from 'rxjs/operators';
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 import {Observable, Subject} from "rxjs";
-import "rxjs/add/operator/do";
 
 export class ProgressManager {
 

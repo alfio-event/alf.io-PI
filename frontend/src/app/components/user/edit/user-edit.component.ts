@@ -1,13 +1,15 @@
 
 import {switchMap} from 'rxjs/operators';
-import {Component, OnInit, Input, Output, EventEmitter} from "@angular/core";
+import {Component, OnInit} from "@angular/core";
 import {UserService, User, NewUser, UserWithPassword} from "../user.service";
-import "rxjs/add/operator/switchMap";
-import {isNullOrUndefined} from "util";
 import {FormBuilder, Validators, FormControl} from "@angular/forms";
 import {WindowRef} from "../../../window.service";
 import {ActivatedRoute, Params} from "@angular/router";
 import {UserNotifierService} from "../user-notifier.service";
+
+function isNullOrUndefined(value: any) {
+  return value === undefined || value === null
+}
 
 @Component({
   selector: 'user-edit',

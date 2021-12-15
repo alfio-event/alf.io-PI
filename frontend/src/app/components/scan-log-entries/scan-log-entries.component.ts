@@ -5,7 +5,6 @@ import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
 import {forkJoin, Subscription} from "rxjs";
 import {Event, EventService} from "../../shared/event/event.service";
-import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
 import {EventType, ServerEventsService} from "../../server-events.service";
 

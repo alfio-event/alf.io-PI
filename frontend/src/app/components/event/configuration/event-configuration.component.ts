@@ -3,7 +3,6 @@ import {switchMap} from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
 import {EventService, Event} from "../../../shared/event/event.service";
 import {ActivatedRoute, Params} from "@angular/router";
-import "rxjs/add/operator/switchMap";
 import {PrinterService, Printer, PrinterWithUsers} from "../../printer/printer.service";
 import {User, UserService} from "../../user/user.service";
 import {forkJoin} from "rxjs";
