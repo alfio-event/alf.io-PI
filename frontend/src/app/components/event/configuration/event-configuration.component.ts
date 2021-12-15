@@ -4,8 +4,7 @@ import {ActivatedRoute, Params} from "@angular/router";
 import "rxjs/add/operator/switchMap";
 import {PrinterService, Printer, PrinterWithUsers} from "../../printer/printer.service";
 import {User, UserService} from "../../user/user.service";
-import {Observable} from "rxjs";
-import any = jasmine.any;
+import {forkJoin} from "rxjs";
 
 @Component({
   selector: 'app-event-configuration',
@@ -31,7 +30,7 @@ export class EventConfigurationComponent implements OnInit {
         return this.eventService.getSingleEvent(eventKey);
       }).switchMap((event: Event) => {
         this.event = event;
-        return Observable.forkJoin(this.printerService.loadPrintersAndUsers(), this.printerService.loadAllPrinters(), this.userService.getUsers());
+        return forkJoin([this.printerService.loadPrintersAndUsers(), this.printerService.loadAllPrinters(), this.userService.getUsers()]);
       }).subscribe((data: Array<any>) => {
         this.printers = <Array<PrinterWithUsers>>data[0];
         this.allPrinters = (<Array<Printer>>data[1]).filter(p => p.active);

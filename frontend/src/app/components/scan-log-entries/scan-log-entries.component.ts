@@ -1,7 +1,7 @@
 import {Component, Input, OnInit, OnDestroy} from "@angular/core";
 import {ScanLogEntry, ScanLogService} from "./scan-log.service";
 import {ProgressManager} from "../../ProgressManager";
-import {Observable, Subscription} from "rxjs";
+import {forkJoin, Subscription} from "rxjs";
 import {Event, EventService} from "../../shared/event/event.service";
 import "rxjs/add/operator/map";
 import {Printer, PrinterService} from "../printer/printer.service";
@@ -56,10 +56,10 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
   private loadData() {
     this.progressManager
       .monitorCall(() => {
-        return Observable.forkJoin(this.scanLogService.getEntries(this.currentPage - 1, this.pageSize, this.term),
+        return forkJoin([this.scanLogService.getEntries(this.currentPage - 1, this.pageSize, this.term),
           this.eventService.getAllEvents(),
           this.printerService.loadAllPrinters()
-        );
+        ]);
       })
       .map(res => {
         let [entries, events, printers] = res;

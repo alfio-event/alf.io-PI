@@ -11,12 +11,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   constructor(private dragulaService: DragulaService) { }
 
   ngOnInit() {
-    this.dragulaService.setOptions('users-bag', {
+    this.dragulaService.createGroup('users-bag', {
       copy: true,
       moves: function (el, container, handle) {
         return handle.className.includes('handle');
       },
-      accepts: function (el: any, target: Node, source: any, sibling: any) {
+      accepts: function (el: any, target: Element, source: any, sibling: any) {
         let accept = false;
         if(target != null && target.attributes.getNamedItem('drop-allowed') != null) {
           accept = target.attributes.getNamedItem('drop-allowed').value == "true";

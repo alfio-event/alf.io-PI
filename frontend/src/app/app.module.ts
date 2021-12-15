@@ -77,7 +77,7 @@ import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.componen
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
-    DragulaModule,
+    DragulaModule.forRoot(),
     QRCodeModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, children: [

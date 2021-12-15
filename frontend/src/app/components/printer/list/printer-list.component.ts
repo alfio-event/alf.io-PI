@@ -15,9 +15,9 @@ export class PrinterListComponent implements OnInit {
 
   constructor(private printerService: PrinterService,
               private dragulaService: DragulaService) {
-    this.dragulaService.drop.subscribe(e => {
-      let userElement = <Node & ChildNode>e[1];
-      let printerElement = <Node>e[2];
+    this.dragulaService.drop().subscribe(e => {
+      let userElement = e.target; // TODO: check, it may be swapped
+      let printerElement = e.source;
       if(userElement != null && printerElement != null) {
         let userId = +userElement.attributes.getNamedItem('user-id').value;
         let printerId = +printerElement.attributes.getNamedItem('printer-id').value;
