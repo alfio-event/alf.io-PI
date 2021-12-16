@@ -2,6 +2,7 @@
 build/
 !gradle/wrapper/gradle-wrapper.jar
 .DS_Store
+.angular
 
 ### STS ###
 .apt_generated
