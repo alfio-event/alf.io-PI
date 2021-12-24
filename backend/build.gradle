@@ -20,31 +20,18 @@ import org.apache.tools.ant.filters.ReplaceTokens
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
 buildscript {
-    ext {
-        kotlinVersion = '1.4.10'
-        springBootVersion = '1.5.22.RELEASE'
-    }
     repositories {
         mavenCentral()
-        maven { url 'https://repo.spring.io/plugins-release' }
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
     }
 }
 
 plugins {
-    id 'net.researchgate.release' version '2.7.0'
-    id "nebula.ospackage" version "7.0.3"
-}
-
-configure(allprojects) {
-    apply plugin: 'propdeps'
-    apply plugin: 'propdeps-maven'
-    apply plugin: 'propdeps-idea'
-    apply plugin: 'propdeps-eclipse'
+    id 'net.researchgate.release' version '2.8.1'
+    id "nebula.ospackage" version "9.0.0"
+    id "org.springframework.boot" version "2.6.2"
+    id "io.spring.dependency-management" version "1.0.11.RELEASE"
+    id "org.jetbrains.kotlin.jvm" version "1.6.10"
+    id "org.jetbrains.kotlin.plugin.spring" version "1.6.10"
 }
 
 ext {
@@ -108,29 +95,28 @@ configurations {
 }
 
 dependencies {
-    compile('org.flywaydb:flyway-core')
-    compile('org.springframework.boot:spring-boot-starter-security')
-    compile('org.springframework.boot:spring-boot-starter-websocket')
-    compile('org.springframework.boot:spring-boot-starter-web')
-    compile('org.springframework.boot:spring-boot-starter-jetty')
-    compile('org.springframework:spring-tx')
-    compile('org.springframework:spring-jdbc')
-    compile('com.zaxxer:HikariCP:3.3.1')
-    compile('ch.digitalfondue.npjt-extra:npjt-extra:1.1.4')
-    compile("org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}")
-    compile("org.apache.pdfbox:pdfbox:2.0.16")
-    compile("com.google.zxing:core:3.4.0")
-    compile("com.google.zxing:javase:3.4.0")
-    compile("com.squareup.okhttp3:okhttp:3.14.2")
-    compile("com.google.code.gson:gson:2.8.5")
-    compile("org.bouncycastle:bcpkix-jdk15on:1.62")
-    compile('ch.digitalfondue.synckv:synckv:0.6.0')
-    compile('org.jmdns:jmdns:3.5.5')
-    runtime('org.hsqldb:hsqldb')
-    runtime project(':frontend')
-    testCompile('org.springframework.boot:spring-boot-starter-test')
-    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0")
-    optional("org.springframework.boot:spring-boot-configuration-processor")
+    implementation('org.flywaydb:flyway-core')
+    implementation('org.springframework.boot:spring-boot-starter-security')
+    implementation('org.springframework.boot:spring-boot-starter-websocket')
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-jetty')
+    implementation('org.springframework:spring-tx')
+    implementation('org.springframework:spring-jdbc')
+    implementation('com.zaxxer:HikariCP')
+    implementation('ch.digitalfondue.npjt-extra:npjt-extra:2.0.4')
+    implementation('org.apache.pdfbox:pdfbox:2.0.24')
+    implementation('com.google.zxing:core:3.4.1')
+    implementation('com.google.zxing:javase:3.4.1')
+    implementation('com.squareup.okhttp3:okhttp:4.9.3')
+    implementation('com.google.code.gson:gson:2.8.9')
+    implementation('org.bouncycastle:bcpkix-jdk15on:1.69')
+    implementation('ch.digitalfondue.synckv:synckv:0.6.0')
+    implementation('org.jmdns:jmdns:3.5.7')
+    runtimeOnly('org.hsqldb:hsqldb')
+    runtimeOnly project(':frontend')
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
+    testImplementation('com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0')
+    compile("org.springframework.boot:spring-boot-configuration-processor")
 }
 
 bootRun {
@@ -142,9 +128,6 @@ bootRun {
     //jvmArgs = ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" ]
 }
 
-springBoot {
-    executable = true
-}
 compileJava.dependsOn(processResources)
 
 release {
