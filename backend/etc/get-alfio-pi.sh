@@ -45,8 +45,22 @@ print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-9-jdk unclutter wget dirmngr software-properties-common dpkg-sig
+sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo unclutter wget dirmngr software-properties-common dpkg-sig
 sudo usermod -a -G lpadmin pi
+print_bold "done."
+echo
+
+print_bold "Installing Java(TM) runtime"
+if [[ -d /usr/local/alfio-deps/jre-17 ]]; then
+    print_bold "Java(TM) runtime already present. Skipping..."
+else
+    mkdir -p /usr/local/alfio-deps/
+    wget https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.1%2B12/OpenJDK17U-jre_arm_linux_hotspot_17.0.1_12.tar.gz -O /tmp/alfio-jre.tar.gz
+    tar xf /tmp/alfio-jre.tar.gz -C /usr/local/alfio-deps/
+    jre_release=$(ls /usr/local/alfio-deps/jdk*)
+    ln -s "/usr/local/alfio-deps/$jre_release" /usr/local/alfio-deps/jre-17
+    print_bold "$jre_release installed"
+fi
 print_bold "done."
 echo
 
@@ -57,16 +71,11 @@ echo
 #print_bold "done."
 #echo
 
-print_bold "Updating default Java(tm) installation"
-sudo update-java-alternatives --set java-1.9.0-openjdk-armhf
-print_bold "done."
-echo
-
-print_bold "Downloading DYMO definitions (ppd)"
-wget http://download.dymo.com/dymo/Software/Download%20Drivers/Linux/Download/dymo-cups-drivers-1.4.0.tar.gz -P /tmp/
-tar -C /tmp/ -xzf /tmp/dymo-cups-drivers-1.4.0.tar.gz
-sudo cp /tmp/dymo-cups-drivers-1.4.*/ppd/*.ppd /usr/share/cups/model/
-print_bold "done."
+#print_bold "Downloading DYMO definitions (ppd)"
+#wget https://download.dymo.com/dymo/Software/Download%20Drivers/Linux/Download/dymo-cups-drivers-1.4.0.tar.gz -P /tmp/
+#tar -C /tmp/ -xzf /tmp/dymo-cups-drivers-1.4.0.tar.gz
+#sudo cp /tmp/dymo-cups-drivers-1.4.*/ppd/*.ppd /usr/share/cups/model/
+#print_bold "done."
 
 print_bold "Importing Alf.io-PI key"
 sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0xC9AA0F906AF4106C
