@@ -57,7 +57,7 @@ class LabelContent(val firstRow: String,
                    val checkbox: Boolean)
 
 @Component
-open class DymoLW450Turbo41x89: LabelTemplate {
+class DymoLW450Turbo41x89: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w118h252"
 
@@ -115,7 +115,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
 
 
 @Component
-open class DymoLW450Turbo32x57: LabelTemplate {
+class DymoLW450Turbo32x57: LabelTemplate {
 
     override fun getPageDimensions() = PDRectangle(convertMMToPoint(57F), convertMMToPoint(32F))
     override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 32x57 mm (S0722540 / 11354)"
@@ -208,7 +208,7 @@ private fun textBlock(pageContentStream: PDPageContentStream, consumer: (PDPageC
 }
 
 @Component
-open class ZebraZD410: LabelTemplate {
+class ZebraZD410: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w162h288"//"oe_w162h288_2.25x4in"
 
@@ -254,7 +254,7 @@ open class ZebraZD410: LabelTemplate {
 }
 
 @Component
-open class BixolonTX220: ZebraZD410() {
+class BixolonTX220: ZebraZD410() {
 
     override fun getCUPSMediaName(): String = "oe_13-x-50-d-8-mmy-101-d-6-mm_2x4in"//"oe_w162h288_2.25x4in"
 
@@ -302,7 +302,7 @@ private fun compact(text: String, maxLength: Int, lightOnly: Boolean = false): S
     val lightCompactSeq = text.trim()
         .splitToSequence(" ")
         .map { it.trim() }
-        .map { txt -> if(commonAffixes.any { affix -> affix == txt.toLowerCase() }) {
+        .map { txt -> if(commonAffixes.any { affix -> affix == txt.lowercase(Locale.getDefault()) }) {
             "${txt.substring(0, 1)}."
         } else { "$txt " }}
 
@@ -421,4 +421,4 @@ private val commonAffixes = listOf(
     "Väster",
     "Vest",
     "von",
-    "Woj").map { it.toLowerCase() }
+    "Woj").map { it.lowercase(Locale.getDefault()) }

@@ -18,15 +18,16 @@
 package alfio.pi.util
 
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Component
 import java.util.*
 import java.util.regex.Pattern
 
 @Component
-open class PasswordGenerator(environment: Environment) {
+class PasswordGenerator(environment: Environment) {
 
     private val PASSWORD_CHARACTERS: CharArray
-    private val DEV_MODE: Boolean = environment.acceptsProfiles("dev")
+    private val DEV_MODE: Boolean = environment.acceptsProfiles(Profiles.of("dev"))
     private val MAX_LENGTH = 14
     private val MIN_LENGTH = 10
     private val VALIDATION_PATTERN: Pattern
@@ -60,7 +61,7 @@ open class PasswordGenerator(environment: Environment) {
  * source https://rosettacode.org/wiki/Knuth_shuffle#Kotlin
  */
 object Knuth {
-    internal val gen = java.util.Random()
+    internal val gen = Random()
 }
 
 fun <T> Array<T>.shuffle(): Array<T> {

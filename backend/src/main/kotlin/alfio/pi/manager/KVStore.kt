@@ -17,21 +17,21 @@ import java.time.ZonedDateTime
 import java.util.*
 import java.util.stream.Collectors
 import kotlin.collections.ArrayList
+import kotlin.math.min
 
 
 private val logger: Logger = LoggerFactory.getLogger("alfio.pi.manager.KVStore")
 
 @Component
-open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAuthenticationDescriptor) {
+class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAuthenticationDescriptor) {
 
     private val store: SyncKV = SyncKV(synckvFileName(authenticationDescriptor), authenticationDescriptor.apiKey)
 
-    private val attendeeTable: SyncKVTable
-    //
-    private val lastUpdatedTable: SyncKVTable
-    //
+    private val attendeeTable: SyncKVTable = store.getTable("attendee")
+    private val lastUpdatedTable = store.getTable("last_updated")
     private val scanLogTable: SyncKVStructuredTable<ScanLogToPersist>
-    private val scanLogForEventTicket: SyncKVTable
+    private val scanLogForEventTicket: SyncKVTable = store.getTable("scan_log_event_ticket")
+
     //
     private val labelConfigurationTable: SyncKVTable
     private val remainingLabels: SyncKVTable
@@ -40,10 +40,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
 
 
     init {
-        attendeeTable = store.getTable("attendee")
-        lastUpdatedTable = store.getTable("last_updated")
         //
-        scanLogForEventTicket = store.getTable("scan_log_event_ticket")
         scanLogTable = store.getTable("scan_log").toStructured(ScanLogToPersist::class.java, { data ->
             ScanLogToPersist(
                 data.readUTF(),
@@ -123,7 +120,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
                 })
     }
 
-    private fun nullIfEmpty(s: String): String? = if (s.isEmpty()) null else s
+    private fun nullIfEmpty(s: String): String? = s.ifEmpty { null }
 
     data class ScanLogToPersist(val id: String,
                                 val timestamp: Long,
@@ -142,7 +139,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
                 ""
             } else {
                 val ticket = GsonContainer.GSON?.fromJson(ticketData, Ticket::class.java)!!
-                (ticket.firstName+" " +ticket.lastName + " " + ticket.email).toLowerCase(Locale.ENGLISH)
+                (ticket.firstName+" " +ticket.lastName + " " + ticket.email).lowercase(Locale.ENGLISH)
             }
         }
 
@@ -156,50 +153,50 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
 
     //-----------
 
-    open fun putRemainingLabels(printer: String, labels: Int) {
+    fun putRemainingLabels(printer: String, labels: Int) {
         remainingLabels.put(printer, labels.toString(10))
     }
 
-    open fun getRemainingLabels(printer: String) : Int {
+    fun getRemainingLabels(printer: String) : Int {
         return remainingLabels.getAsString(printer)?.toInt() ?: 0
     }
 
-    open fun putAttendeeData(event: String, identifier: String, payload: String) {
+    fun putAttendeeData(event: String, identifier: String, payload: String) {
         attendeeTable.put(attendeeKey(event, identifier), payload)
     }
 
-    open fun isAttendeeDataPresent(event: String, identifier: String): Boolean {
+    fun isAttendeeDataPresent(event: String, identifier: String): Boolean {
         return attendeeTable.get(attendeeKey(event, identifier)) != null
     }
 
-    open fun getAttendeeData(event: String, identifier: String): String? {
+    fun getAttendeeData(event: String, identifier: String): String? {
         return attendeeTable.getAsString(attendeeKey(event, identifier))
     }
 
-    open fun getAttendeeDataCount() : Int {
+    fun getAttendeeDataCount() : Int {
         return attendeeTable.count()
     }
 
     //-----------
 
-    open fun putLastUpdated(event: String, lastUpdated: Long) {
+    fun putLastUpdated(event: String, lastUpdated: Long) {
         lastUpdatedTable.put(event, lastUpdated.toString())
     }
 
-    open fun getLatestUpdate(event: String): Long {
+    fun getLatestUpdate(event: String): Long {
         val res = lastUpdatedTable.getAsString(event)
         return res?.toLong() ?: -1
     }
     //-----------
 
-    open fun loadAllForEvent(eventKey: String): List<ScanLog> {
+    fun loadAllForEvent(eventKey: String): List<ScanLog> {
         return scanLogTable.stream()
             .filter {it.value.eventKey == eventKey}
             .map { it.value.toScanLog() }
             .collect(Collectors.toList())
     }
 
-    open fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
+    fun insertScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, badgePrinted: Boolean, jsonPayload: String?) {
         val timestamp = ZonedDateTime.now()
         val key = scanLogId()
         val scanLogWithKey = ScanLogToPersist(key, timestamp.toInstant().toEpochMilli(), timestamp.zone.id, eventKey, uuid, userId,
@@ -207,20 +204,20 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
         putScanLog(scanLogWithKey)
     }
 
-    open fun insertBadgeScan(eventKey: String, badgeScan: BadgeScan) =
+    fun insertBadgeScan(eventKey: String, badgeScan: BadgeScan) =
         badgeScanTable.put(attendeeKey(eventKey, badgeScan.ticketIdentifier), badgeScan)
 
-    open fun retrieveBadgeScan(eventKey: String, ticketUuid: String): BadgeScan? =
+    fun retrieveBadgeScan(eventKey: String, ticketUuid: String): BadgeScan? =
         badgeScanTable.get(attendeeKey(eventKey, ticketUuid))
 
-    open fun insertBadgeScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, timestamp: ZonedDateTime) {
+    fun insertBadgeScanLog(eventKey: String, uuid: String, userId: Int, localResult: CheckInStatus, remoteResult: CheckInStatus, timestamp: ZonedDateTime) {
         val scanLogId = scanLogId()
         val scanLog = ScanLog(scanLogId, timestamp, eventKey, uuid, userId, localResult, remoteResult, false, null)
         badgeScanLogTable.put(scanLogId, scanLog)
     }
 
 
-    open fun selectBadgeScanToSynchronize(): MutableList<ScanLog> = badgeScanLogTable.stream()
+    fun selectBadgeScanToSynchronize(): MutableList<ScanLog> = badgeScanLogTable.stream()
         .filter { it.value.remoteResult == CheckInStatus.RETRY }
         .map { it.value }
         .limit(100)
@@ -233,7 +230,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
 
     private fun searchScanLog(term: String?) : List<String> {
         val matching = ArrayList<Triple<String, Long, String>>()
-        val termLowerCase = term?.toLowerCase(Locale.ENGLISH)
+        val termLowerCase = term?.lowercase(Locale.ENGLISH)
         scanLogTable.keys().forEach {
             val idx = scanLogTable.get(it)
             if(termLowerCase == null || idx.toSearch().indexOf(termLowerCase) >= 0) {
@@ -244,34 +241,34 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
         return matching.asSequence().sortedWith(compareByDescending<Triple<String, Long, String>> { it.second }.thenBy {it.third}).map { it.first }.toList()
     }
 
-    open fun findById(key: String): ScanLog? {
+    fun findById(key: String): ScanLog? {
         return findOptionalById(key).orElse(null)
     }
 
-    open fun findOptionalById(key: String): Optional<ScanLog> {
+    fun findOptionalById(key: String): Optional<ScanLog> {
         val res = scanLogTable.get(key)
         return Optional.ofNullable(res).map {it.toScanLog()}
     }
 
-    open fun findOptionalByIdAndEventKey(key: String, eventKey: String): Optional<ScanLog> {
+    fun findOptionalByIdAndEventKey(key: String, eventKey: String): Optional<ScanLog> {
         return findOptionalById(key).filter { scanLog -> scanLog.eventKey == eventKey }
     }
 
-    open fun findCheckInToUpload(): List<ScanLog> {
+    fun findCheckInToUpload(): List<ScanLog> {
         return scanLogTable.stream()
             .filter{ it.value.remoteResult == CheckInStatus.RETRY}
             .map { it.value.toScanLog() }
             .collect(Collectors.toList())
     }
 
-    open fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
+    fun loadSuccessfulScanForTicket(eventKey: String, ticketUuid: String): Optional<ScanLog> {
         return Optional.ofNullable(scanLogForEventTicket.getAsString(eventKey + "_" + ticketUuid))
             .flatMap { Optional.ofNullable(scanLogTable.get(it)) }
             .filter { CheckInStatus.SUCCESS == it.localResult }
             .map { it.toScanLog() }
     }
 
-    open fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
+    fun updateRemoteResult(remoteResult: CheckInStatus, key: String) {
         findOptionalById(key).ifPresent { scanLog ->
             val updatedScanLog = ScanLogToPersist(scanLog.id, scanLog.timestamp.toInstant().toEpochMilli(), scanLog.timestamp.zone.id, scanLog.eventKey, scanLog.ticketUuid,
                 scanLog.userId, scanLog.localResult, remoteResult, scanLog.badgePrinted, scanLog.ticketData)
@@ -279,7 +276,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
         }
     }
 
-    open fun updateBadgeScanRemoteResult(remoteResult: CheckInStatus, badgeScanLog: ScanLog) {
+    fun updateBadgeScanRemoteResult(remoteResult: CheckInStatus, badgeScanLog: ScanLog) {
         badgeScanLogTable.put(badgeScanLog.id, badgeScanLog.copy(remoteResult = remoteResult))
     }
 
@@ -309,7 +306,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
         val selectedPage = if (found.isEmpty()) {
             ArrayList()
         } else {
-            found.subList(offset, Math.min(found.size, offset + pageSize)).map { findById(it)!! }
+            found.subList(offset, min(found.size, offset + pageSize)).map { findById(it)!! }
         }
 
         return Pair(selectedPage, count)
@@ -324,7 +321,7 @@ open class KVStore(private val gson: Gson, authenticationDescriptor: RemoteApiAu
         labelConfigurationTable.put(eventKey, gson.toJson(toSave))
     }
 
-    open fun loadLabelConfiguration(eventKey: String) : Optional<LabelConfiguration> {
+    fun loadLabelConfiguration(eventKey: String) : Optional<LabelConfiguration> {
         val res = labelConfigurationTable.getAsString(eventKey)
         logger.trace("loaded labelConfiguration: {}", res)
         return if (res == null) {

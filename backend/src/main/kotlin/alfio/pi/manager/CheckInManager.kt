@@ -30,6 +30,8 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
@@ -262,7 +264,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return httpClientWithCustomTimeout(200L to TimeUnit.MILLISECONDS).invoke(httpClient)
             .newCall(request).execute().use { resp ->
                 if (resp.isSuccessful) {
-                    val body = resp.body()?.string()
+                    val body = resp.body?.string()
                     val serverTime = resp.header("Alfio-TIME")?.toLong()?:1L
                     Pair(parseIdsResponse(body).invoke(gson), serverTime)
                 } else {
@@ -280,8 +282,8 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.debug("Will call remote url {}", url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
-                resp.isSuccessful -> LabelConfiguration(eventName, resp.body()?.string(), true)
-                resp.code() == 412 -> LabelConfiguration(eventName, null, false)
+                resp.isSuccessful -> LabelConfiguration(eventName, resp.body?.string(), true)
+                resp.code == 412 -> LabelConfiguration(eventName, null, false)
                 else -> null
             }
         }
@@ -316,16 +318,16 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val request = Request.Builder()
                 .addHeader("Authorization", master.authenticationHeaderValue())
                 .url(url)
-                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
+                .post(gson.toJson(partitionedIds).toRequestBody("application/json".toMediaTypeOrNull()))
                 .build()
             val res = httpClientWithCustomTimeout(1L to TimeUnit.SECONDS).invoke(httpClient).newCall(request)
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
-                        val body = resp.body()?.string()
+                        val body = resp.body?.string()
                         parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
-                        logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
+                        logger.warn("Cannot call remote URL $url. Response Code is ${resp.code}")
                         mapOf()
                     }
                 }

@@ -20,11 +20,9 @@ package alfio.pi.manager
 import alfio.pi.model.LabelLayout
 import alfio.pi.model.Ticket
 import com.google.gson.Gson
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import java.nio.file.Files
-import java.nio.file.Paths
 import java.util.*
 
 class LabelManagerTest {

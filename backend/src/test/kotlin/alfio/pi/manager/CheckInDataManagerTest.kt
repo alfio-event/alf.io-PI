@@ -24,9 +24,8 @@ import alfio.pi.repository.EventRepository
 import alfio.pi.repository.UserRepository
 import com.google.gson.Gson
 import com.nhaarman.mockitokotlin2.*
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.nio.charset.StandardCharsets
 import java.util.*
 import java.security.GeneralSecurityException

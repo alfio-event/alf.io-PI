@@ -82,7 +82,7 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
                 .execute()
                 .use { resp ->
                     if(resp.isSuccessful) {
-                        val body = resp.body()!!.string()
+                        val body = resp.body!!.string()
                         val result: T = gson.fromJson(body, type.type)
                         true to result
                     } else {
