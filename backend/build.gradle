@@ -34,6 +34,9 @@ plugins {
     id "org.jetbrains.kotlin.plugin.spring" version "1.6.10"
 }
 
+apply plugin: 'java'
+apply plugin: 'io.spring.dependency-management'
+
 ext {
     getVersionName = {
         def currentVersion = project.version.toString()
@@ -54,12 +57,15 @@ ext {
 }
 
 java {
-    disableAutoTargetJvm()
+    sourceCompatibility = 17
 }
 
-apply plugin: 'kotlin'
-apply plugin: 'eclipse'
-apply plugin: 'org.springframework.boot'
+compileKotlin {
+    kotlinOptions {
+        freeCompilerArgs = ["-Xjsr305=strict"]
+        jvmTarget = "17"
+    }
+}
 
 jar {
     archiveBaseName.set('alfio-pi')
@@ -79,9 +85,6 @@ processResources.doLast {
     properties[ 'alfio.build-ts' ] = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
     gradleProperties.withWriter { properties.store( it, null )}
 }
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
@@ -167,7 +170,6 @@ task packageDeb(type: Deb) {
     requires('cups')
     requires('chromium-browser')
     requires('printer-driver-dymo')
-    requires('openjdk-9-jdk')
 
     preInstall file('deb/scripts/preInstall.sh')
     preUninstall file('deb/scripts/preUninstall.sh')
@@ -197,7 +199,7 @@ task packageDeb(type: Deb) {
         createDirectoryEntry = true
     }
 
-    from(jar.outputs.files) {
+    from(bootJar.outputs.files) {
         createDirectoryEntry = true
         into 'opt/alf.io/app'
         rename {
