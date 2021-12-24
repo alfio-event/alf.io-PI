@@ -69,9 +69,15 @@ compileKotlin {
 
 jar {
     archiveBaseName.set('alfio-pi')
-    version = "${project.version}"
+    archiveVersion.set("${project.version}")
 }
 jar.dependsOn(":frontend:jar")
+
+bootJar {
+    archiveBaseName.set('alfio-pi')
+    archiveVersion.set("${project.version}")
+    archiveClassifier.set("boot")
+}
 
 processResources.doLast {
 
@@ -103,6 +109,11 @@ dependencies {
     implementation('org.springframework.boot:spring-boot-starter-websocket')
     implementation('org.springframework.boot:spring-boot-starter-web')
     implementation('org.springframework.boot:spring-boot-starter-jetty')
+    modules {
+        module('org.springframework.boot:spring-boot-starter-tomcat') {
+            replacedBy('org.springframework.boot:spring-boot-starter-jetty')
+        }
+    }
     implementation('org.springframework:spring-tx')
     implementation('org.springframework:spring-jdbc')
     implementation('com.zaxxer:HikariCP')

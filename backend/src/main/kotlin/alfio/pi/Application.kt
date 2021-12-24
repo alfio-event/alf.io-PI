@@ -45,7 +45,6 @@ import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder
 import org.bouncycastle.operator.bc.BcRSAContentSignerBuilder
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.SpringApplication
@@ -55,19 +54,15 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.ContextRefreshedEvent
-import org.springframework.core.annotation.Order
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.EnumerablePropertySource
 import org.springframework.core.env.Environment
 import org.springframework.core.env.Profiles
-import org.springframework.http.HttpMethod
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.authentication.AnonymousAuthenticationToken
 import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -278,33 +273,7 @@ class Application {
     }
 }
 
-@EnableWebSecurity
-abstract class WebSecurityConfig : WebSecurityConfigurerAdapter() {
-
-    @Autowired
-    fun authenticationManager(auth: AuthenticationManagerBuilder, passwordEncoder: PasswordEncoder, dataSource: DataSource) {
-        auth.jdbcAuthentication()
-            .dataSource(dataSource)
-            .usersByUsernameQuery("select username, password, true from user where username = ?")
-            .authoritiesByUsernameQuery("select username, 'ROLE_' || role from authority where username = ?")
-            .passwordEncoder(passwordEncoder)
-    }
-}
 @Configuration
-@Profile("server", "full")
-@Order(0)
-class PrintApiSecurity: WebSecurityConfigurerAdapter() {
-    override fun configure(http: HttpSecurity) {
-        http.requestMatcher { it.requestURI == "/api/printers/register" }
-            .csrf().disable()
-            .authorizeRequests()
-            .antMatchers(HttpMethod.POST, "/api/printers/register").permitAll()
-    }
-}
-
-@Configuration
-@Profile("desk")
-@Order(1)
 class DeskWebSecurity : WebSecurityConfigurerAdapter() {
     override fun configure(http: HttpSecurity) {
         http.requestMatcher { isLocalAddress(it.remoteAddr) }
@@ -330,58 +299,6 @@ class DeskWebSecurity : WebSecurityConfigurerAdapter() {
             logger.warn("authenticating local user")
             AnonymousAuthenticationToken("local", "admin", mutableListOf(SimpleGrantedAuthority(Role.ADMIN.name)))
         }
-    }
-}
-
-@Configuration
-@Profile("server", "full")
-@Order(2)
-class BasicAuthWebSecurity : WebSecurityConfig() {
-    override fun configure(http: HttpSecurity) {
-        http.requestMatcher { it.requestURI.startsWith("/admin/api/") }
-            .csrf().disable()
-            .authorizeRequests()
-            .mvcMatchers("/").hasAnyRole(Role.OPERATOR.name)
-            .and()
-            .httpBasic()
-    }
-}
-
-@Configuration
-@Profile("server", "full")
-@Order(3)
-class FormLoginWebSecurity: WebSecurityConfig() {
-    override fun configure(http: HttpSecurity) {
-        http.csrf().csrfTokenRepository(csrfTokenRepository())
-            .and()
-            .authorizeRequests()
-            .antMatchers("/file/**", "/images/**", "/api/events/**", "/favicon.ico").permitAll()
-            .antMatchers("/**").hasAnyRole(Role.ADMIN.name)
-            .and()
-            .formLogin()
-    }
-
-    @Bean
-    fun csrfTokenRepository(): CsrfTokenRepository {
-        val repo = CookieCsrfTokenRepository.withHttpOnlyFalse()
-        repo.setParameterName("_csrf")
-        return repo
-    }
-}
-@Configuration
-@Profile("printer")
-class PrinterWebSecurity: WebSecurityConfigurerAdapter() {
-    override fun configure(auth: AuthenticationManagerBuilder) {
-        auth.inMemoryAuthentication()
-            .withUser("printer").password("printer").roles("PRINTER")
-    }
-    override fun configure(http: HttpSecurity) {
-        http.csrf().disable()
-            .authorizeRequests()
-            .antMatchers("/api/printers/**").authenticated()
-            .antMatchers("/**").denyAll()
-            .and()
-            .httpBasic()
     }
 }
 
