@@ -82,42 +82,6 @@ export class AccountResponse {
     }
 }
 
-export class AccountsArray {
-
-    constructor(private accounts: Array<Account>) {}
-
-
-    getAllAccounts(): Array<Account> {
-        return this.accounts;
-    }
-
-    get(key: string):Maybe<Account> {
-        try {
-            return this.find(key).map(pair => pair.second);
-        } catch(e) {
-            console.log(e);
-            return new Nothing<Account>();
-        }
-    }
-
-    set(key: string, value: Account) :void {
-        let existing = this.find(key);
-        if(existing.isPresent()) {
-            this.accounts[existing.value.first] = existing.value.second;
-        } else {
-            this.accounts.push(value);
-        }
-    }
-
-    private find(key:string): Maybe<Pair<number, Account>> {
-        let result = this.accounts.map((v, i) => new Pair(i, v)).filter(a => a.second.getKey() === key);
-        if(result.length > 0) {
-            return new Some(result[0]);
-        }
-        return new Nothing<Pair<number, Account>>();
-    }
-}
-
 export class Pair<X,Y> {
     constructor(public first:X, public second:Y) {}
 }

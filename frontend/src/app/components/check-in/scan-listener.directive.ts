@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {Directive, Output, HostListener, OnInit} from "@angular/core";
+import {Directive, Output, HostListener } from "@angular/core";
 import {Observable, Subject} from "rxjs";
 @Directive({
   selector: 'alfio-key-listener'
