@@ -54,11 +54,12 @@ print_bold "Installing Java(TM) runtime"
 if [[ -d /usr/local/alfio-deps/jre-17 ]]; then
     print_bold "Java(TM) runtime already present. Skipping..."
 else
-    mkdir -p /usr/local/alfio-deps/
+    sudo mkdir -p /usr/local/alfio-deps/
+    sudo chown -R pi:pi /usr/local/alfio-deps/
     wget https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.1%2B12/OpenJDK17U-jre_arm_linux_hotspot_17.0.1_12.tar.gz -O /tmp/alfio-jre.tar.gz
     tar xf /tmp/alfio-jre.tar.gz -C /usr/local/alfio-deps/
-    jre_release=$(ls /usr/local/alfio-deps/jdk*)
-    ln -s "/usr/local/alfio-deps/$jre_release" /usr/local/alfio-deps/jre-17
+    jre_release=$(ls -d /usr/local/alfio-deps/jdk-17*)
+    ln -s "$jre_release" /usr/local/alfio-deps/jre-17
     print_bold "$jre_release installed"
 fi
 print_bold "done."
