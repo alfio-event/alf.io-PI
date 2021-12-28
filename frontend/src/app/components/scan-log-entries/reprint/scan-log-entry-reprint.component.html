@@ -56,7 +56,7 @@
         <div class="w-100 text-center">
           <div ngbDropdown class="hidden-md-down">
             <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenu1">
+            <div ngbDropdownMenu class="dropdown-menu" aria-labelledby="dropdownMenu1">
               <div *ngFor="let printer of printers; last as isLast">
                 <button class="dropdown-item" (click)="reprint(printer)">{{printer.name}}</button>
                 <div class="dropdown-divider" *ngIf="!isLast"></div>

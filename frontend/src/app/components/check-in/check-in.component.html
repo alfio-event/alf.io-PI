@@ -9,7 +9,7 @@
     <div class="align-self-center mb-2" [ngClass]="{'h-15': loading || !isStatusSuccess() || ticket == null || ticket.additionalServicesInfo.length == 0}">
       <div ngbDropdown *ngIf="!status">
         <button class="btn btn-lg btn-outline-success" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-qrcode"></i> <span *ngIf="!activeEvent">Select Event</span><span *ngIf="activeEvent">Check-in for: {{activeEvent.name}}</span></button>
-        <div class="dropdown-menu w-100" aria-labelledby="dropdownMenu1">
+        <div ngbDropdownMenu class="dropdown-menu w-100" aria-labelledby="dropdownMenu1">
           <div *ngFor="let e of events; last as isLast" >
             <button class="dropdown-item" (click)="setActiveEvent(e)">{{e.name}}</button>
             <div class="dropdown-divider" *ngIf="!isLast"></div>
