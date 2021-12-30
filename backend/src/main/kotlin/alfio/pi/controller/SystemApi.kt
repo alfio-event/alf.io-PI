@@ -31,12 +31,12 @@ import javax.servlet.http.HttpServletRequest
 @RestController
 @RequestMapping("/api/internal/system")
 @Profile("desk")
-open class SystemApi(private val configurationRepository: ConfigurationRepository,
-                     private val kvStore: KVStore,
-                     private val printManager: PrintManager) {
+class SystemApi(private val configurationRepository: ConfigurationRepository,
+                private val kvStore: KVStore,
+                private val printManager: PrintManager) {
 
     @RequestMapping(value = ["/power-off"], method = [(RequestMethod.PUT)])
-    open fun powerOff(servletRequest: HttpServletRequest): ResponseEntity<String> {
+    fun powerOff(servletRequest: HttpServletRequest): ResponseEntity<String> {
         if(!isLocalAddress(servletRequest.remoteAddr)) {
             return ResponseEntity(HttpStatus.NOT_MODIFIED)
         }
@@ -50,17 +50,17 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
     }
 
     @RequestMapping(value = ["configuration/{key}"], method = [(RequestMethod.POST)])
-    open fun insertOrUpdateConfiguration(@PathVariable("key") key : String, @RequestBody value : String) {
+    fun insertOrUpdateConfiguration(@PathVariable("key") key : String, @RequestBody value : String) {
         configurationRepository.insertOrUpdate(key, value)
     }
 
     @RequestMapping(value = ["configuration/{key}"], method = [(RequestMethod.GET)])
-    open fun getConfigurationValue(@PathVariable("key") key : String) : String? {
+    fun getConfigurationValue(@PathVariable("key") key : String) : String? {
         return configurationRepository.getData(key).orElse("")
     }
 
     @RequestMapping(value = ["labels/remaining"], method = [(RequestMethod.GET)])
-    open fun getRemainingLabels() : String? {
+    fun getRemainingLabels() : String? {
         val printerName = printManager.getAvailablePrinters().firstOrNull()?.name
         return if(printerName != null) {
             kvStore.getRemainingLabels(printerName).toString(10)
@@ -70,7 +70,7 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
     }
 
     @RequestMapping(value = ["labels/remaining"], method = [(RequestMethod.POST)])
-    open fun setRemainingLabels(@RequestBody value : String) {
+    fun setRemainingLabels(@RequestBody value : String) {
         val printerName = printManager.getAvailablePrinters().firstOrNull()?.name
         if(printerName != null) {
             kvStore.putRemainingLabels(printerName, value.toInt())
@@ -78,34 +78,34 @@ open class SystemApi(private val configurationRepository: ConfigurationRepositor
     }
 
     @RequestMapping(value = ["printer"], method = [(RequestMethod.GET)])
-    open fun getPrinterName() : String? {
+    fun getPrinterName() : String? {
         return printManager.getAvailablePrinters().firstOrNull()?.name
     }
 
 
     @RequestMapping(value = ["cluster/me"])
-    open fun getClusterMemberName() : String {
+    fun getClusterMemberName() : String {
         return kvStore.getClusterMemberName()
     }
 
     @RequestMapping(value = ["cluster/all"])
-    open fun getClusterMembersName() : List<String> {
+    fun getClusterMembersName() : List<String> {
         return kvStore.getClusterMembersName()
     }
 
     @RequestMapping(value = ["cluster/is-leader"])
-    open fun isLeader() : Boolean {
+    fun isLeader() : Boolean {
         return kvStore.isLeader()
     }
 
 
     @RequestMapping(value = ["tables/attendee/count"])
-    open fun getAttendeeSyncedCount() : Int {
+    fun getAttendeeSyncedCount() : Int {
         return kvStore.getAttendeeDataCount()
     }
 
     @RequestMapping(value = ["ip"])
-    open fun getAllIpAddresses() : List<String> {
+    fun getAllIpAddresses() : List<String> {
         val res = arrayListOf<String>()
         val interfaces = NetworkInterface.getNetworkInterfaces()
 

@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 @Controller
 @Profile("!dev")
 @RequestMapping("/")
-open class IndexController {
+class IndexController {
 
     @RequestMapping("", "user/**", "scan-log/**", "check-in", "power-off", "settings")
-    open fun showIndex() = "/index.html"
+    fun showIndex() = "/index.html"
 }

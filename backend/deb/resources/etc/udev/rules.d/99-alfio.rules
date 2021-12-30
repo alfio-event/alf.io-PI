@@ -1,6 +1,6 @@
-ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} LW450T" SYMLINK+="usb/Alfio-DYM-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} DYM"
-ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0a5f", ATTRS{idProduct}=="011c", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} ZD410" SYMLINK+="usb/Alfio-ZBR-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} ZBR"
-ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="1504", ATTRS{idProduct}=="0064", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} TX220" SYMLINK+="usb/Alfio-BXL-%c" RUN+="@ALFIO_UTILS_DIR@/init-printer.sh $attr{serial} BXL"
+ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0922", ATTRS{idProduct}=="0021", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} LW450T", SYMLINK+="usb/Alfio-DYM-%c", TAG+="systemd", ENV{SYSTEMD_WANTS}="alfio-configure-printer@DYM-$attr{serial}.service"
+ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="0a5f", ATTRS{idProduct}=="011c", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} ZD410" SYMLINK+="usb/Alfio-ZBR-%c", TAG+="systemd", ENV{SYSTEMD_WANTS}="alfio-configure-printer@ZBR-$attr{serial}.service"
+ACTION=="add",SUBSYSTEMS=="usb", ATTRS{idVendor}=="1504", ATTRS{idProduct}=="0064", PROGRAM="/bin/bash @ALFIO_UTILS_DIR@/device-name.sh $attr{serial} TX220" SYMLINK+="usb/Alfio-BXL-%c", TAG+="systemd", ENV{SYSTEMD_WANTS}="alfio-configure-printer@BXL-$attr{serial}.service"
 
 ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="0922", ENV{ID_MODEL_ID}=="0021", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT} DYM"
 ACTION=="remove",SUBSYSTEMS=="usb", ENV{ID_VENDOR_ID}=="0a5f", ENV{ID_MODEL_ID}=="011c", RUN+="@ALFIO_UTILS_DIR@/remove-printer.sh $env{ID_SERIAL_SHORT} ZBR"

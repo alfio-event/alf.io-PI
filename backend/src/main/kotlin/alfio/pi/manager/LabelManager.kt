@@ -21,6 +21,7 @@ import alfio.pi.model.LabelLayout
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
+import com.google.zxing.client.j2se.MatrixToImageConfig
 import com.google.zxing.client.j2se.MatrixToImageWriter
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
@@ -32,12 +33,15 @@ import org.apache.pdfbox.pdmodel.font.PDFont
 import org.apache.pdfbox.pdmodel.font.PDType0Font
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
+import org.apache.pdfbox.rendering.ImageType
+import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.util.Matrix
 import org.springframework.stereotype.Component
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.*
+import javax.imageio.ImageIO
 import kotlin.math.absoluteValue
 
 interface LabelTemplate {
@@ -59,7 +63,7 @@ class LabelContent(val firstRow: String,
 @Component
 class DymoLW450Turbo41x89: LabelTemplate {
 
-    override fun getCUPSMediaName(): String = "w118h252"
+    override fun getCUPSMediaName(): String = "w101h252"
 
     override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 41x89 mm (S0722560 / 11356)"
 
@@ -122,9 +126,11 @@ class DymoLW450Turbo32x57: LabelTemplate {
     override fun getCUPSMediaName() = "w162h90"
 
     override fun writeContent(stream: PDPageContentStream, pageWidth: Float, labelContent: LabelContent, fontLoader: (InputStream) -> PDFont) {
-        val font = fontLoader.invoke(DymoLW450Turbo32x57::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        val resource = DymoLW450Turbo32x57::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf")
+            ?: throw IllegalStateException("Font must not be null")
+        val font = fontLoader.invoke(resource)
         stream.use { page ->
-            textBlock(page) {pd ->
+            textBlock(page) { pd ->
                 val firstRow = optimizeText(labelContent.firstRow, arrayOf(12 to 20F, 15 to 16F, 17 to 14F, 20 to 12F), true)
                 pd.setFont(font, firstRow.second)
                 val firstRowOffset = centeredTextOffset(firstRow.first, pageWidth, font, firstRow.second)
@@ -346,7 +352,10 @@ fun generatePDFLabel(firstRow: String,
         val qr = LosslessFactory.createFromImage(pdDocument, generateQRCode(qrCodeContent))
         val contentStream = PDPageContentStream(pdDocument, page, PDPageContentStream.AppendMode.OVERWRITE, false)
         template.writeContent(contentStream, pageWidth, LabelContent(firstRow, secondRow, additionalRows, qr, partialUUID, pin, checkbox)) {PDType0Font.load(document, it)}
-        pdDocument.save(out)
+        // https://stackoverflow.com/questions/23326562/convert-pdf-files-to-images-with-pdfbox
+        val image = PDFRenderer(pdDocument).renderImageWithDPI(0, 300F, ImageType.RGB)
+        // ImageIOUtil.writeImage(image, "", 300)
+        ImageIO.write(image, "PNG", out)
     }
     out.toByteArray()
 }
