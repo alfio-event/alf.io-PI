@@ -44,7 +44,7 @@
                 </div>
                 <div class="row">
                   <div class="col-md-8">
-                    <div *ngFor="let row of content.additionalRows; trackBy:indexTracker">
+                    <div *ngFor="let row of content.additionalRows; let i = index">
                       <input class="form-control" [(ngModel)]="row.value" [name]="'additionalRow['+i+']'" virtualKeyboard>
                     </div>
                   </div>

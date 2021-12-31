@@ -52,6 +52,7 @@ class LabelManagerTest {
     fun testGenerateLabelDymoWithThreeAdditionalRows() {
         var bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", null,false).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
+        // Files.write(Files.createTempFile("test", ".pdf"), bytes)
         bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", null, true).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }

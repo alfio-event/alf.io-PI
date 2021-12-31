@@ -31,8 +31,11 @@ export class ScanLogService {
   }
 
   getEntries(page: number, pageSize: number, term: string): Observable<PaginatedResult> {
-    const params = new HttpParams().append('page', page.toString()).append('pageSize', pageSize.toString()).append('search', term);
-    return this.http.get<PaginatedResult>(`/api/internal/scan-log`, {responseType: "json", params: params});
+    return this.http.get<PaginatedResult>(`/api/internal/scan-log`, {params: {
+        page,
+        pageSize,
+        search: term || ''
+    }});
   }
 
   reprint(entryId: string, content: ConfigurableLabelContent, printer?: Printer): Observable<boolean> {

@@ -31,5 +31,6 @@ export class Event {
               public end: string,
               public location: string,
               public active: boolean,
-              public lastUpdate: string) {}
+              public lastUpdate: string,
+              public timezone: string) {}
 }

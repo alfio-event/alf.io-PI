@@ -20,7 +20,7 @@ After=syslog.target
 [Service]
 User=pi
 WorkingDirectory=@ALFIO_APP_DIR@
-ExecStart=/usr/local/alfio-deps/jre-17/bin/java -jar @ALFIO_APP_DIR@/alfio-boot.jar --spring.config.location=classpath:/application.properties,file:@ALFIO_CONFIG_FILE@
+ExecStart=/usr/local/alfio-deps/jre-17/bin/java -Djava.net.preferIPv4Stack=true -Dsun.java2d.cmm=sun.java2d.cmm.kcms.KcmsServiceProvider -Dspring.config.location=classpath:/application.properties,file:@ALFIO_CONFIG_FILE@ -jar @ALFIO_APP_DIR@/alfio-boot.jar
 ExecStop=/bin/kill -TERM $MAINPID
 Restart=always
 SuccessExitStatus=143
