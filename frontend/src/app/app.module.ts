@@ -32,6 +32,8 @@ import {ConfigurationService} from "./shared/configuration/configuration.service
 import { SystemInfoComponent } from './components/system-info/system-info.component';
 import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.component";
 import {QRCodeModule} from "angular2-qrcode";
+import {CheckScannerComponent} from "./components/check-scanner/check-scanner.component";
+import {AddBreaksPipe} from "./add-breaks.pipe";
 
 @NgModule({
   declarations: [
@@ -54,32 +56,34 @@ import {QRCodeModule} from "angular2-qrcode";
     ScanListenerDirective,
     VirtualKeyboardDirective,
     SystemInfoComponent,
-    SidebarWatchComponent
+    SidebarWatchComponent,
+    CheckScannerComponent,
+    AddBreaksPipe
   ],
-    imports: [
-        NgbModule,
-        BrowserModule,
-        FormsModule,
-        ReactiveFormsModule,
-        HttpClientModule,
-        RouterModule.forRoot([
-            {path: '', component: HomeComponent},
-            {
-                path: 'scan-log', children: [
-                    {path: '', redirectTo: 'view', pathMatch: 'full'},
-                    {path: 'view', component: ScanLogComponent},
-                    {path: 'event/:eventKey/entry/:entryId/reprint', component: ScanLogEntryReprintComponent}
-                ]
-            },
-            {path: 'check-in', component: CheckInComponent},
-            {path: 'events', component: EventListPageComponent},
-            {path: 'settings', component: SettingsComponent},
-            {path: 'power-off', component: ConfirmPowerOffComponent},
-            {path: 'system-info', component: SystemInfoComponent}
-
-        ]),
-        QRCodeModule
-    ],
+  imports: [
+      NgbModule,
+      BrowserModule,
+      FormsModule,
+      ReactiveFormsModule,
+      HttpClientModule,
+      RouterModule.forRoot([
+          {path: '', component: HomeComponent},
+          {
+              path: 'scan-log', children: [
+                  {path: '', redirectTo: 'view', pathMatch: 'full'},
+                  {path: 'view', component: ScanLogComponent},
+                  {path: 'event/:eventKey/entry/:entryId/reprint', component: ScanLogEntryReprintComponent}
+              ]
+          },
+          {path: 'check-in', component: CheckInComponent},
+          {path: 'events', component: EventListPageComponent},
+          {path: 'settings', component: SettingsComponent},
+          {path: 'power-off', component: ConfirmPowerOffComponent},
+          {path: 'system-info', component: SystemInfoComponent},
+          {path: 'check-scanner', component: CheckScannerComponent}
+      ]),
+      QRCodeModule
+  ],
   providers: [EventService, PrinterService, WindowRef, ScanLogService, ServerEventsService, ScanService, ConfigurationService],
   bootstrap: [AppComponent]
 })

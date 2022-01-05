@@ -5,7 +5,7 @@
         <h3>Settings</h3>
         <loading-indicator [observable]="progressManager.observable" [big]="false"></loading-indicator>
       </div>
-      <div class="card-block">
+      <div class="card-body">
         <h4 class="card-title">Label Printing <small *ngIf="printerName">on {{printerName}}</small></h4>
         <p class="card-text">Define how many labels are available to the printer in the current roll</p>
         <div class="form-group row">
@@ -29,11 +29,14 @@
           </div>
         </div>
       </div>
-      <div class="card-block">
+      <div class="card-body">
         <h4 class="card-title">System Actions</h4>
         <p class="card-text">Perform actions on the device</p>
-        <a routerLink="/power-off" class="btn btn-danger"><i class="fa fa-power-off"></i> Power off</a>
-        <a routerLink="/system-info" class="btn btn-info"><i class="fa fa-info"></i> System info</a>
+        <div class="d-flex justify-content-between">
+          <a routerLink="/power-off" class="btn btn-danger"><i class="fa fa-power-off"></i> Power off</a>
+          <a routerLink="/check-scanner" class="btn btn-info ml-2"><i class="fa fa-qrcode"></i> Check scanner</a>
+          <a routerLink="/system-info" class="btn btn-info ml-2"><i class="fa fa-info"></i> System info</a>
+        </div>
       </div>
     </div>
   </div>
