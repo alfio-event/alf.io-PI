@@ -35,11 +35,11 @@ export class ScanListenerDirective {
 
   @HostListener('window:keydown', ['$event'])
   onKeyboardInput(event: KeyboardEvent) {
-    if(event.key == "Enter") {
+    if(event.key === "Enter") {
       let read = this.buffer.splice(0, this.buffer.length).join('');
       console.log(`read ${read}`);
       this.scanSubject.next(read);
-    } else if(["Shift", "Control","Meta","Alt"].every(k => event.key != k)){
+    } else if(event.key.length === 1) { // we're only interested in ASCII characters
       this.buffer.push(event.key);
     }
     event.stopImmediatePropagation();
