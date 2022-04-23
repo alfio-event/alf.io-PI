@@ -46,6 +46,7 @@ class CheckInApi(private val checkInDataManager: CheckInDataManager,
                        principal: Principal?): ResponseEntity<CheckInResponse> {
 
         val username = if((principal == null) and environment.acceptsProfiles(Profiles.of("desk"))) Application.deskUsername else principal?.name
+        logger.info("ticket {}: received code {}", ticketIdentifier, ticketCode.code)
         return Optional.ofNullable(username)
             .map {
                 val code = ticketCode.code

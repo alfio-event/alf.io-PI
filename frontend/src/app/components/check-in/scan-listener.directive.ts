@@ -52,7 +52,7 @@ export class ScanListenerDirective {
         console.log(`read ${read}`);
       }
       this.scanSubject.next(read);
-    } else if (this.isClean(event.key)) {
+    } else if (event.key.length === 1) {
       this.buffer.push(event.key);
     }
   }
