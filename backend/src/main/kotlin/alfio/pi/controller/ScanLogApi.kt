@@ -24,6 +24,7 @@ import alfio.pi.model.*
 import alfio.pi.repository.*
 import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -34,18 +35,18 @@ import java.security.Principal
 @RestController
 @RequestMapping("/api/internal/scan-log")
 @Profile("server", "full")
-open class ScanLogApi (private val scanLogRepository: KVStore,
-                       private val printManager: PrintManager,
-                       private val printerRepository: PrinterRepository,
-                       private val userRepository: UserRepository,
-                       private val environment: Environment,
-                       private val categoryColorConfiguration: CategoryColorConfiguration,
-                       private val publisher : SystemEventHandler) {
+class ScanLogApi (private val scanLogRepository: KVStore,
+                  private val printManager: PrintManager,
+                  private val printerRepository: PrinterRepository,
+                  private val userRepository: UserRepository,
+                  private val environment: Environment,
+                  private val categoryColorConfiguration: CategoryColorConfiguration,
+                  private val publisher : SystemEventHandler) {
 
     @RequestMapping("")
-    open fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
-                     @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
-                     @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLogWithCategoryClass>> {
+    fun loadAll(@RequestParam(value = "page", defaultValue = "0") page: Int,
+                @RequestParam(value = "pageSize", defaultValue = "3") pageSize: Int,
+                @RequestParam(value = "search", defaultValue = "") search: String) : PaginatedResult<List<ScanLogWithCategoryClass>> {
         val searchTrimmed = if (search.trim().isEmpty()) null else (search.trim())
         val pageAndTotalCount = scanLogRepository.loadPageAndTotalCount(page * pageSize, pageSize, searchTrimmed)
         return PaginatedResult(page, pageAndTotalCount.first.map { ScanLogWithCategoryClass(categoryColorConfiguration.getColorFor(it.ticket), it) }, pageAndTotalCount.second)
@@ -53,30 +54,30 @@ open class ScanLogApi (private val scanLogRepository: KVStore,
 
     // temporary, test method
     @RequestMapping("/trigger")
-    open fun trigger(@RequestParam("v") v: Int) : Int {
+    fun trigger(@RequestParam("v") v: Int) : Int {
         publisher.notifyAllSessions(SystemEvent(SystemEventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER, UpdatePrinterRemainingLabelCounter(v)))
         return v
     }
 
     @RequestMapping("/event/{eventKey}")
-    open fun loadForEvent(@PathVariable("eventKey") eventKey: String) : List<ScanLog>  {
+    fun loadForEvent(@PathVariable("eventKey") eventKey: String) : List<ScanLog>  {
         return scanLogRepository.loadAllForEvent(eventKey)
     }
 
     @RequestMapping(value = ["/event/{eventKey}/entry/{entryId}/reprint-preview"], method = [(RequestMethod.GET)])
-    open fun getReprintPreview(@PathVariable("eventKey") eventKey: String, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
+    fun getReprintPreview(@PathVariable("eventKey") eventKey: String, @PathVariable("entryId") entryId: String): ResponseEntity<ConfigurableLabelContent> =
         reprintPreview(eventKey, entryId).invoke(printManager, scanLogRepository)
             .map { ResponseEntity.ok(it) }
             .orElseGet { ResponseEntity.notFound().build() }
 
 
     @RequestMapping(value = ["/{entryId}/reprint"], method = [(RequestMethod.PUT)])
-    open fun reprint(@PathVariable("entryId") entryId: String,
-                     @RequestBody form: ReprintForm,
-                     principal: Principal?): ResponseEntity<Boolean> {
+    fun reprint(@PathVariable("entryId") entryId: String,
+                @RequestBody form: ReprintForm,
+                principal: Principal?): ResponseEntity<Boolean> {
         val printerId = form.printer
         val content = form.content
-        val desk = environment.acceptsProfiles("desk")
+        val desk = environment.acceptsProfiles(Profiles.of("desk"))
         val username = when {
             principal != null -> principal.name
             desk -> Application.deskUsername
@@ -103,18 +104,18 @@ data class PaginatedResult<T>(val page: Int, val values : T, val found: Int)
 @RestController
 @RequestMapping("/api/internal/events")
 @Profile("server", "full")
-open class EventApi (private val transactionManager: PlatformTransactionManager,
-                     private val eventRepository: EventRepository) {
+class EventApi (private val transactionManager: PlatformTransactionManager,
+                private val eventRepository: EventRepository) {
 
     @RequestMapping(value = [""], method = [(RequestMethod.GET)])
-    open fun loadAll(): List<Event> = eventRepository.loadAll()
+    fun loadAll(): List<Event> = eventRepository.loadAll()
 
     @RequestMapping(value = ["/{eventKey}"], method = [(RequestMethod.GET)])
-    open fun getSingleEvent(@PathVariable("eventKey") eventKey: String) : ResponseEntity<Event> = eventRepository.loadSingle(eventKey)
+    fun getSingleEvent(@PathVariable("eventKey") eventKey: String) : ResponseEntity<Event> = eventRepository.loadSingle(eventKey)
         .map{ ResponseEntity.ok(it) }
         .orElseGet { ResponseEntity(HttpStatus.NOT_FOUND) }
 
     @RequestMapping(value = ["/{eventKey}/active"], method = [(RequestMethod.PUT), (RequestMethod.DELETE)])
-    open fun toggleActiveState(@PathVariable("eventKey") eventKey: String, method: HttpMethod): Boolean = toggleEventActivation(eventKey, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
+    fun toggleActiveState(@PathVariable("eventKey") eventKey: String, method: HttpMethod): Boolean = toggleEventActivation(eventKey, method == HttpMethod.PUT).invoke(transactionManager, eventRepository)
 
 }

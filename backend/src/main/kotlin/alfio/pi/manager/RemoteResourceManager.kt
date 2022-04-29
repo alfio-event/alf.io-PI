@@ -22,7 +22,6 @@ import alfio.pi.RemoteEventFilter
 import alfio.pi.model.Event
 import alfio.pi.model.RemoteEvent
 import alfio.pi.repository.EventRepository
-import alfio.pi.wrapper.doInTransaction
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -31,13 +30,12 @@ import okhttp3.Request
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Profile
-import org.springframework.context.event.ContextRefreshedEvent
-import org.springframework.context.event.EventListener
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.annotation.Transactional
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
@@ -60,9 +58,9 @@ fun httpClientBuilderWithCustomTimeout(connectionTimeout: Pair<Long, TimeUnit>, 
 
 @Component
 @Profile("server", "full")
-open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: RemoteApiAuthenticationDescriptor,
-                                 private val httpClient: OkHttpClient,
-                                 private val gson: Gson) {
+class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: RemoteApiAuthenticationDescriptor,
+                            private val httpClient: OkHttpClient,
+                            private val gson: Gson) {
     private val logger = LoggerFactory.getLogger(RemoteResourceManager::class.java)
 
     private fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
@@ -82,7 +80,7 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
                 .execute()
                 .use { resp ->
                     if(resp.isSuccessful) {
-                        val body = resp.body()!!.string()
+                        val body = resp.body!!.string()
                         val result: T = gson.fromJson(body, type.type)
                         true to result
                     } else {
@@ -105,38 +103,28 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
 
 @Component
 @Profile("server", "full")
-open class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager,
-                             private val eventRepository: EventRepository,
-                             private val transactionManager: PlatformTransactionManager,
-                             private val jdbc: NamedParameterJdbcTemplate,
-                             private val checkInDataSynchronizer: CheckInDataSynchronizer,
-                             private val kvStore: KVStore,
-                             private val checkInDataManager: CheckInDataManager,
-                             private val eventFilter: RemoteEventFilter) {
+class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager,
+                        private val eventRepository: EventRepository,
+                        private val transactionManager: PlatformTransactionManager,
+                        private val jdbc: NamedParameterJdbcTemplate,
+                        private val checkInDataSynchronizer: CheckInDataSynchronizer,
+                        private val kvStore: KVStore,
+                        private val checkInDataManager: CheckInDataManager,
+                        private val eventFilter: RemoteEventFilter) {
     private val logger = LoggerFactory.getLogger(EventSynchronizer::class.java)
 
-    @EventListener
-    open fun handleContextRefresh(event: ContextRefreshedEvent) {
-        sync()
-    }
-
-
     @Scheduled(fixedDelay = 60L * 60000L)
-    open fun sync() {
-        doInTransaction<Unit>().invoke(transactionManager, {
-            val localEvents = eventRepository.loadAll().filter { eventFilter.accept(it.key) }
-            val remoteEvents = remoteResourceManager.getRemoteEventList().filter { eventFilter.accept(it.key!!) }
-            val (existing, notExisting) = remoteEvents.partition { r -> localEvents.any { l -> r.key == l.key } }
-            updateExisting(existing, localEvents)
-            insertNew(notExisting)
-            checkInDataSynchronizer.onDemandSync(remoteEvents)
-            remoteEvents.forEach {
-                loadLabelConfiguration(it.key!!)
-            }
-        }, {
-            logger.error("cannot load events", it)
-        })
-
+    @Transactional
+    fun sync() {
+        val localEvents = eventRepository.loadAll().filter { eventFilter.accept(it.key) }
+        val remoteEvents = remoteResourceManager.getRemoteEventList().filter { eventFilter.accept(it.key!!) }
+        val (existing, notExisting) = remoteEvents.partition { r -> localEvents.any { l -> r.key == l.key } }
+        updateExisting(existing, localEvents)
+        insertNew(notExisting)
+        checkInDataSynchronizer.onDemandSync(remoteEvents)
+        remoteEvents.forEach {
+            loadLabelConfiguration(it.key!!)
+        }
     }
 
     private fun loadLabelConfiguration(eventName: String) {

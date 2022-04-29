@@ -14,9 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
  */
-import {Directive, Output, HostListener, OnInit} from "@angular/core";
-import {Observable} from "rxjs/Observable";
-import {Subject} from "rxjs/Subject";
+import {Directive, Output, HostListener, Input, OnInit, isDevMode} from "@angular/core";
+import {Observable, Subject} from "rxjs";
 @Directive({
   selector: 'alfio-key-listener'
 })
@@ -24,9 +23,11 @@ export class ScanListenerDirective {
 
   @Output()
   scanStream: Observable<string>;
+  @Input()
+  waitForEnterKey = true;
   private scanSubject: Subject<string>;
-
   private buffer: Array<string> = [];
+  private keysToFilter = ['Shift', 'Control', 'Meta', 'Alt'];
 
   constructor() {
     this.scanSubject = new Subject();
@@ -35,15 +36,28 @@ export class ScanListenerDirective {
 
   @HostListener('window:keydown', ['$event'])
   onKeyboardInput(event: KeyboardEvent) {
-    if(event.key === "Enter") {
-      let read = this.buffer.splice(0, this.buffer.length).join('');
-      console.log(`read ${read}`);
-      this.scanSubject.next(read);
-    } else if(event.key.length === 1) { // we're only interested in ASCII characters
-      this.buffer.push(event.key);
+    if (this.waitForEnterKey) {
+      this.bufferCharacters(event);
+    } else if(this.isClean(event.key)) {
+      this.scanSubject.next(event.key);
     }
     event.stopImmediatePropagation();
     event.preventDefault();
   }
 
+  private bufferCharacters(event: KeyboardEvent): void {
+    if (event.key === "Enter") {
+      let read = this.buffer.splice(0, this.buffer.length).join('').trim();
+      if (isDevMode()) {
+        console.log(`read ${read}`);
+      }
+      this.scanSubject.next(read);
+    } else if (event.key.length === 1) {
+      this.buffer.push(event.key);
+    }
+  }
+
+  private isClean(key: string): boolean {
+    return !this.keysToFilter.includes(key);
+  }
 }

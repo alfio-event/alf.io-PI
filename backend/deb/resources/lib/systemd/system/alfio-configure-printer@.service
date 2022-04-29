@@ -1,0 +1,7 @@
+[Unit]
+Description=Configure Alf.io Printer
+Requires=cups.socket
+After=cups.socket
+
+[Service]
+ExecStart=@ALFIO_UTILS_DIR@/init-printer.sh "%i"

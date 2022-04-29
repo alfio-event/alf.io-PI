@@ -1,19 +1,19 @@
 plugins {
-  id "com.moowork.node" version "1.3.1"
+  id "com.github.node-gradle.node" version "3.1.1"
 }
 
 apply plugin:'java'
 
 node {
-  version = '10.16.3'
-  npmVersion = '6.9.0'
+  version = '16.13.1'
+  npmVersion = '8.1.2'
   download = true
   workDir = file("${project.projectDir}/node")
   nodeModulesDir = file("${project.projectDir}/")
 }
 
 task npmClean(type: Delete) {
-  final def webDir = "${rootDir}/frontend"
+  final def webDir = "${rootDir}/frontend" as Object
   delete "${webDir}/node"
   delete "${webDir}/node_modules"
   delete "${webDir}/dist"

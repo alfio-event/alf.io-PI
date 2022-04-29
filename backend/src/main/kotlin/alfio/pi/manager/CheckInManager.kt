@@ -30,6 +30,8 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
@@ -38,6 +40,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionCallbackWithoutResult
 import org.springframework.transaction.support.TransactionTemplate
 import java.nio.charset.StandardCharsets
@@ -58,19 +61,19 @@ import javax.crypto.spec.SecretKeySpec
 
 @Component
 @Profile("server", "full")
-open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: RemoteApiAuthenticationDescriptor,
-                              private val eventRepository: EventRepository,
-                              private val kvStore: KVStore,
-                              private val userRepository: UserRepository,
-                              private val transactionManager: PlatformTransactionManager,
-                              private val gson: Gson,
-                              private val httpClient: OkHttpClient,
-                              private val printManager: PrintManager,
-                              private val publisher: SystemEventHandler,
-                              @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
-                              @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
-                              private val categoryColorConfiguration: CategoryColorConfiguration,
-                              private val remoteCheckInExecutor: RemoteCheckInExecutor) {
+class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val master: RemoteApiAuthenticationDescriptor,
+                         private val eventRepository: EventRepository,
+                         private val kvStore: KVStore,
+                         private val userRepository: UserRepository,
+                         private val transactionManager: PlatformTransactionManager,
+                         private val gson: Gson,
+                         private val httpClient: OkHttpClient,
+                         private val printManager: PrintManager,
+                         private val publisher: SystemEventHandler,
+                         @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
+                         @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
+                         private val categoryColorConfiguration: CategoryColorConfiguration,
+                         private val remoteCheckInExecutor: RemoteCheckInExecutor) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -262,7 +265,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         return httpClientWithCustomTimeout(200L to TimeUnit.MILLISECONDS).invoke(httpClient)
             .newCall(request).execute().use { resp ->
                 if (resp.isSuccessful) {
-                    val body = resp.body()?.string()
+                    val body = resp.body?.string()
                     val serverTime = resp.header("Alfio-TIME")?.toLong()?:1L
                     Pair(parseIdsResponse(body).invoke(gson), serverTime)
                 } else {
@@ -280,32 +283,37 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         logger.debug("Will call remote url {}", url)
         return httpClient.newCall(request).execute().use { resp ->
             when {
-                resp.isSuccessful -> LabelConfiguration(eventName, resp.body()?.string(), true)
-                resp.code() == 412 -> LabelConfiguration(eventName, null, false)
+                resp.isSuccessful -> LabelConfiguration(eventName, resp.body?.string(), true)
+                resp.code == 412 -> LabelConfiguration(eventName, null, false)
                 else -> null
             }
         }
     }
 
     private fun syncAttendeesForEvent(eventName: String, since: Long?) {
-        TransactionTemplate(transactionManager).execute(object: TransactionCallbackWithoutResult() {
-            override fun doInTransactionWithoutResult(status: TransactionStatus?) {
-                val idsAndTime = loadIds(eventName, since)
-                val ids = idsAndTime.first
+        TransactionTemplate(transactionManager).executeWithoutResult { _ ->
+            val idsAndTime = loadIds(eventName, since)
+            val ids = idsAndTime.first
 
-                logger.debug("found ${ids.size} for event $eventName")
+            logger.debug("found ${ids.size} for event $eventName")
 
-                if(ids.isNotEmpty()) {
-                    ids.partitionWithSize(200).forEach { partitionedIds ->
-                        logger.debug("loading ${partitionedIds.size}")
-                        val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map { Attendee(eventName, it.key, it.value, idsAndTime.second) }
-                        saveAttendees(eventName, attendees)
-                        logger.debug("finished loading ${partitionedIds.size}")
+            if (ids.isNotEmpty()) {
+                ids.partitionWithSize(200).forEach { partitionedIds ->
+                    logger.debug("loading ${partitionedIds.size}")
+                    val attendees = fetchPartitionedAttendees(eventName, partitionedIds).map {
+                        Attendee(
+                            eventName,
+                            it.key,
+                            it.value,
+                            idsAndTime.second
+                        )
                     }
-                    logger.info("finished loading attendees for event $eventName")
+                    saveAttendees(eventName, attendees)
+                    logger.debug("finished loading ${partitionedIds.size}")
                 }
+                logger.info("finished loading attendees for event $eventName")
             }
-        })
+        }
     }
 
     private fun fetchPartitionedAttendees(eventName: String, partitionedIds: List<Int>) : Map<String, String> {
@@ -316,16 +324,16 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
             val request = Request.Builder()
                 .addHeader("Authorization", master.authenticationHeaderValue())
                 .url(url)
-                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(partitionedIds)))
+                .post(gson.toJson(partitionedIds).toRequestBody("application/json".toMediaTypeOrNull()))
                 .build()
             val res = httpClientWithCustomTimeout(1L to TimeUnit.SECONDS).invoke(httpClient).newCall(request)
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
-                        val body = resp.body()?.string()
+                        val body = resp.body?.string()
                         parseTicketDataResponse(body).invoke(gson).withDefault { ticketDataNotFound }
                     } else {
-                        logger.warn("Cannot call remote URL $url. Response Code is ${resp.code()}")
+                        logger.warn("Cannot call remote URL $url. Response Code is ${resp.code}")
                         mapOf()
                     }
                 }
@@ -343,7 +351,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
     }
 
     @Scheduled(fixedDelay = 1500L)
-    open fun processPendingEntries() {
+    fun processPendingEntries() {
         if(kvStore.isLeader()) {
             val pending = kvStore.findCheckInToUpload()
             logger.trace("found ${pending.size} pending scan to upload")
@@ -379,7 +387,7 @@ open class CheckInDataManager(@Qualifier("masterConnectionConfiguration") privat
         publisher.notifyAllSessions(SystemEvent(SystemEventType.EVENT_UPDATED, EventUpdated(eventName, ZonedDateTime.now())))
     }
 
-    open fun saveAttendees(eventName: String, attendeesForEvent: List<Attendee>) {
+    fun saveAttendees(eventName: String, attendeesForEvent: List<Attendee>) {
         val begin = System.currentTimeMillis()
         logger.info("Saving {} attendees", attendeesForEvent.size)
         var maxLastUpdate = 0L
@@ -445,15 +453,15 @@ internal fun calcHash256(hmac: String) : String {
 
 @Component
 @Profile("server", "full")
-open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
-                                   private val eventRepository: EventRepository,
-                                   private val kvStore: KVStore,
-                                   private val remoteEventFilter: RemoteEventFilter) {
+class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataManager,
+                              private val eventRepository: EventRepository,
+                              private val kvStore: KVStore,
+                              private val remoteEventFilter: RemoteEventFilter) {
 
     private val logger = LoggerFactory.getLogger(CheckInDataSynchronizer::class.java)
 
     @Scheduled(fixedDelay = 5000L, initialDelay = 5000L)
-    open fun performSync() {
+    fun performSync() {
         logger.trace("downloading attendees data")
         val remoteEvents = eventRepository.loadAll().map {
             val remoteEvent = RemoteEvent()
@@ -463,7 +471,7 @@ open class CheckInDataSynchronizer(private val checkInDataManager: CheckInDataMa
         onDemandSync(remoteEvents)
     }
 
-    open fun onDemandSync(events: List<RemoteEvent>) {
+    fun onDemandSync(events: List<RemoteEvent>) {
         if(kvStore.isLeader()) {
             logger.debug("Leader begin onDemandSync")
             events.asSequence().map { it.key }.filter { it != null && remoteEventFilter.accept(it)}.forEach {

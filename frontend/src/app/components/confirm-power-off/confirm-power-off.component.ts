@@ -1,5 +1,5 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import {Http} from "@angular/http";
 
 @Component({
   selector: 'alfio-confirm-power-off',
@@ -10,15 +10,15 @@ export class ConfirmPowerOffComponent implements OnInit {
 
   message: string;
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
   ngOnInit() {
   }
 
   powerOff(): void {
-    this.http.put('/api/internal/system/power-off', {})
+    this.http.put<string>('/api/internal/system/power-off', {})
       .subscribe(v => {
-        this.message = v.text();
+        this.message = v;
       }, e => {this.message = e})
   }
 

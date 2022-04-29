@@ -57,7 +57,7 @@ class LabelContent(val firstRow: String,
                    val checkbox: Boolean)
 
 @Component
-open class DymoLW450Turbo41x89: LabelTemplate {
+class DymoLW450Turbo41x89: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w118h252"
 
@@ -69,7 +69,7 @@ open class DymoLW450Turbo41x89: LabelTemplate {
                               pageWidth: Float,
                               labelContent: LabelContent,
                               fontLoader: (InputStream) -> PDFont) {
-        val font = fontLoader.invoke(DymoLW450Turbo41x89::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        val font = fontLoader.invoke(assertResourceNotNull(DymoLW450Turbo41x89::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf")))
         stream.use { page ->
             page.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
             val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(10 to 24F, 11 to 22F, 12 to 20F, 14 to 18F), true)
@@ -115,16 +115,18 @@ open class DymoLW450Turbo41x89: LabelTemplate {
 
 
 @Component
-open class DymoLW450Turbo32x57: LabelTemplate {
+class DymoLW450Turbo32x57: LabelTemplate {
 
     override fun getPageDimensions() = PDRectangle(convertMMToPoint(57F), convertMMToPoint(32F))
     override fun getDescription(): String = "Dymo LabelWriter 450 Turbo - 32x57 mm (S0722540 / 11354)"
     override fun getCUPSMediaName() = "w162h90"
 
     override fun writeContent(stream: PDPageContentStream, pageWidth: Float, labelContent: LabelContent, fontLoader: (InputStream) -> PDFont) {
-        val font = fontLoader.invoke(DymoLW450Turbo32x57::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        val resource = DymoLW450Turbo32x57::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf")
+            ?: throw IllegalStateException("Font must not be null")
+        val font = fontLoader.invoke(resource)
         stream.use { page ->
-            textBlock(page) {pd ->
+            textBlock(page) { pd ->
                 val firstRow = optimizeText(labelContent.firstRow, arrayOf(12 to 20F, 15 to 16F, 17 to 14F, 20 to 12F), true)
                 pd.setFont(font, firstRow.second)
                 val firstRowOffset = centeredTextOffset(firstRow.first, pageWidth, font, firstRow.second)
@@ -208,7 +210,7 @@ private fun textBlock(pageContentStream: PDPageContentStream, consumer: (PDPageC
 }
 
 @Component
-open class ZebraZD410: LabelTemplate {
+class ZebraZD410: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w162h288"//"oe_w162h288_2.25x4in"
 
@@ -220,7 +222,7 @@ open class ZebraZD410: LabelTemplate {
                               pageWidth: Float,
                               labelContent: LabelContent,
                               fontLoader: (InputStream) -> PDFont) {
-        val font = fontLoader.invoke(ZebraZD410::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        val font = fontLoader.invoke(assertResourceNotNull(ZebraZD410::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf")))
         stream.use {page ->
             page.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
             textBlock(page) { pd ->
@@ -254,7 +256,7 @@ open class ZebraZD410: LabelTemplate {
 }
 
 @Component
-open class BixolonTX220: ZebraZD410() {
+class BixolonTX220: ZebraZD410() {
 
     override fun getCUPSMediaName(): String = "oe_13-x-50-d-8-mmy-101-d-6-mm_2x4in"//"oe_w162h288_2.25x4in"
 
@@ -302,7 +304,7 @@ private fun compact(text: String, maxLength: Int, lightOnly: Boolean = false): S
     val lightCompactSeq = text.trim()
         .splitToSequence(" ")
         .map { it.trim() }
-        .map { txt -> if(commonAffixes.any { affix -> affix == txt.toLowerCase() }) {
+        .map { txt -> if(commonAffixes.any { affix -> affix == txt.lowercase(Locale.getDefault()) }) {
             "${txt.substring(0, 1)}."
         } else { "$txt " }}
 
@@ -346,6 +348,10 @@ fun generatePDFLabel(firstRow: String,
         val qr = LosslessFactory.createFromImage(pdDocument, generateQRCode(qrCodeContent))
         val contentStream = PDPageContentStream(pdDocument, page, PDPageContentStream.AppendMode.OVERWRITE, false)
         template.writeContent(contentStream, pageWidth, LabelContent(firstRow, secondRow, additionalRows, qr, partialUUID, pin, checkbox)) {PDType0Font.load(document, it)}
+        // https://stackoverflow.com/questions/23326562/convert-pdf-files-to-images-with-pdfbox
+//        val image = PDFRenderer(pdDocument).renderImageWithDPI(0, 300F, ImageType.RGB)
+//        // ImageIOUtil.writeImage(image, "", 300)
+//        ImageIO.write(image, "PNG", out)
         pdDocument.save(out)
     }
     out.toByteArray()
@@ -421,4 +427,6 @@ private val commonAffixes = listOf(
     "Väster",
     "Vest",
     "von",
-    "Woj").map { it.toLowerCase() }
+    "Woj").map { it.lowercase(Locale.getDefault()) }
+
+private fun assertResourceNotNull(resourceAsStream: InputStream?) = resourceAsStream ?: throw IllegalStateException("Font must not be null")

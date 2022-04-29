@@ -38,9 +38,9 @@ val logger: Logger = LoggerFactory.getLogger("PrintApi")
 @RestController
 @RequestMapping("/api/internal/user-printer")
 @Profile("server", "full")
-open class UserPrinterApi(private val transactionManager: PlatformTransactionManager, private val userPrinterRepository: UserPrinterRepository) {
+class UserPrinterApi(private val transactionManager: PlatformTransactionManager, private val userPrinterRepository: UserPrinterRepository) {
     @RequestMapping(value = ["/"], method = [(RequestMethod.POST)])
-    open fun linkUserToPrinter(@RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
+    fun linkUserToPrinter(@RequestBody userPrinterForm: UserPrinterForm, method: HttpMethod): ResponseEntity<Boolean> {
         val userId = userPrinterForm.userId
         val printerId = userPrinterForm.printerId
         return if(userId != null && printerId != null) {
@@ -56,7 +56,7 @@ open class UserPrinterApi(private val transactionManager: PlatformTransactionMan
     }
 
     @RequestMapping(value = ["/{userId}"], method = [(RequestMethod.DELETE)])
-    open fun removeUserPrinterLink(@PathVariable("userId") userId: Int): ResponseEntity<Boolean> {
+    fun removeUserPrinterLink(@PathVariable("userId") userId: Int): ResponseEntity<Boolean> {
         val result = alfio.pi.manager.removeUserPrinterLink(userId).invoke(transactionManager, userPrinterRepository)
         return if(result) {
             ResponseEntity.ok(true)
@@ -74,37 +74,37 @@ class UserPrinterForm {
 @RestController
 @RequestMapping("/api/internal/printers")
 @Profile("server", "full")
-open class PrinterApi (private val transactionManager: PlatformTransactionManager,
-                       private val printerRepository: PrinterRepository,
-                       private val userPrinterRepository: UserPrinterRepository,
-                       private val printManager: PrintManager) {
+class PrinterApi (private val transactionManager: PlatformTransactionManager,
+                  private val printerRepository: PrinterRepository,
+                  private val userPrinterRepository: UserPrinterRepository,
+                  private val printManager: PrintManager) {
     @RequestMapping(value = [""], method = [(RequestMethod.GET)])
-    open fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
+    fun loadAllPrinters(): List<Printer> = findAllRegisteredPrinters().invoke(printerRepository)
 
     @RequestMapping(value = ["/{printerId}/active"], method = [(RequestMethod.PUT), (RequestMethod.DELETE)])
-    open fun toggleActiveState(@PathVariable("printerId") printerId: Int, method: HttpMethod): Boolean = togglePrinterActivation(printerId, method == HttpMethod.PUT).invoke(transactionManager, printerRepository)
+    fun toggleActiveState(@PathVariable("printerId") printerId: Int, method: HttpMethod): Boolean = togglePrinterActivation(printerId, method == HttpMethod.PUT).invoke(transactionManager, printerRepository)
 
     @RequestMapping(value = ["/with-users"], method = [(RequestMethod.GET)])
-    open fun loadPrintConfiguration() = loadPrinterConfiguration().invoke(userPrinterRepository, printerRepository)
+    fun loadPrintConfiguration() = loadPrinterConfiguration().invoke(userPrinterRepository, printerRepository)
 
     @RequestMapping(value = ["/{printerId}/test"], method = [(RequestMethod.PUT)])
-    open fun printTestPage(@PathVariable("printerId") printerId: Int) = printTestBadge(printerId).invoke(printManager, printerRepository)
+    fun printTestPage(@PathVariable("printerId") printerId: Int) = printTestBadge(printerId).invoke(printManager, printerRepository)
 }
 
 @RestController
 @RequestMapping("/api/printers")
 @Profile("printer")
-open class LocalPrinterApi(private val printManager: PrintManager) {
+class LocalPrinterApi(private val printManager: PrintManager) {
     @RequestMapping(value= ["/{printerName}/print"], method = [(RequestMethod.POST)])
-    open fun print(@PathVariable("printerName") printerName: String, @RequestBody ticket: Ticket) = printOnLocalPrinter(printerName, ticket, null).invoke(printManager)
+    fun print(@PathVariable("printerName") printerName: String, @RequestBody ticket: Ticket) = printOnLocalPrinter(printerName, ticket, null).invoke(printManager)
 }
 
 @RestController
 @RequestMapping("/api/printers")
 @Profile("server", "full")
-open class RemotePrinterApi(private val applicationEventPublisher: ApplicationEventPublisher) {
+class RemotePrinterApi(private val applicationEventPublisher: ApplicationEventPublisher) {
     @RequestMapping(value = ["/register"], method = [(RequestMethod.POST)])
-    open fun registerPrinters(@RequestBody printers: List<SystemPrinter>, request: HttpServletRequest) = tryOrDefault<ResponseEntity<Unit>>().invoke({
+    fun registerPrinters(@RequestBody printers: List<SystemPrinter>, request: HttpServletRequest) = tryOrDefault<ResponseEntity<Unit>>().invoke({
         val remoteAddress = request.remoteAddr
         logger.trace("registering $printers for $remoteAddress")
         applicationEventPublisher.publishEvent(PrintersRegistered(printers.map { RemotePrinter(it.name, remoteAddress) }, remoteAddress))

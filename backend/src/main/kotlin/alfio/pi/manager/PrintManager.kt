@@ -23,10 +23,13 @@ import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Component
 import java.net.InetAddress
 import java.nio.file.Files
@@ -44,7 +47,6 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
 internal const val STATIC_TEXT_PREFIX = "static-text:"
-private const val MDNS_NAME = "alfio-server"
 
 private val logger = LoggerFactory.getLogger(PrintManager::class.java)
 
@@ -57,66 +59,9 @@ interface PrintManager {
     fun shutdown() {}
 }
 
-@Component
-@Profile("printer")
-open class PrinterAnnouncer(private val trustManager: X509TrustManager,
-                            private val httpClient: OkHttpClient,
-                            private val printManager: PrintManager,
-                            private val gson: Gson) {
-
-    private val masterUrl = AtomicReference<String>()
-
-    init {
-
-        val jmdns = JmDNS.create(InetAddress.getLocalHost())
-        jmdns.addServiceListener("_http._tcp.local.", object: ServiceListener {
-            override fun serviceRemoved(event: ServiceEvent?) {
-                if (MDNS_NAME == event?.info?.name) {
-                    logger.info("master has been removed... ${event.info}")
-                }
-            }
-
-            override fun serviceAdded(event: ServiceEvent?) {
-            }
-
-            override fun serviceResolved(event: ServiceEvent?) {
-                if (MDNS_NAME == event?.info?.name)  {
-                    val resolvedMasterUrl = event.info.getPropertyString("url")
-                    logger.info("Resolved master url: $resolvedMasterUrl")
-                    masterUrl.set(resolvedMasterUrl)
-                }
-            }
-        })
-        Executors.newScheduledThreadPool(1).scheduleWithFixedDelay({tryOrDefault<Unit>().invoke({uploadPrinters()},{logger.error("error while uploading printers", it)})}, 0, 5, TimeUnit.SECONDS)
-    }
-
-    open fun uploadPrinters() {
-        val url = masterUrl.get() ?: return
-        logger.trace("calling master $url")
-        val httpClient = httpClientBuilderWithCustomTimeout(1L to TimeUnit.SECONDS)
-            .invoke(httpClient)
-            .trustKeyStore(trustManager)
-            .build()
-        val request = Request.Builder()
-            .url("$url/api/printers/register")
-            .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(printManager.getAvailablePrinters())))
-            .build()
-        val result = httpClient.newCall(request).execute().use { resp ->
-            logger.trace("response status: ${resp.code()}")
-            resp.isSuccessful
-        }
-        if(!result) {
-            logger.warn("cannot upload printer list...")
-        }
-    }
-
-}
-
-@Component
-@Profile("printer")
 open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
-                             private val publisher : SystemEventHandler,
-                             private val kvStore: KVStore): PrintManager {
+                        private val publisher : SystemEventHandler,
+                        private val kvStore: KVStore): PrintManager {
 
     override fun getLabelContent(ticket: Ticket, labelConfiguration: LabelConfiguration?): ConfigurableLabelContent = buildConfigurableLabelContent(labelConfiguration?.layout, ticket)
 
@@ -206,7 +151,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         return if (layout != null) {
             val qrContent = sequenceOf(ticket.uuid).plus(retrieveQRCodeContent(layout, ticket)).joinToString(separator = layout.qrCode.infoSeparator)
             val partialID = if (layout.general.printPartialID) {
-                ticket.uuid.substringBefore('-').toUpperCase()
+                ticket.uuid.substringBefore('-').uppercase(Locale.getDefault())
             } else {
                 ""
             }
@@ -215,7 +160,8 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             val secondRow = ticketInfo[layout.content.secondRow] ?: ticket.lastName
             ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, ticket.pin, layout.content.checkbox?:false)
         } else {
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase(), ticket.pin, false)
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid,
+                ticket.uuid.substringBefore('-').uppercase(Locale.getDefault()), ticket.pin, false)
         }
     }
 
@@ -259,15 +205,15 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
  */
 @Component
 @Profile("server", "full")
-open class FullPrintManager(private val httpClient: OkHttpClient,
-                            labelTemplates: List<LabelTemplate>,
-                            private val userPrinterRepository: UserPrinterRepository,
-                            private val printerRepository: PrinterRepository,
-                            private val gson: Gson,
-                            private val trustManager: X509TrustManager,
-                            publisher : SystemEventHandler,
-                            private val environment: Environment,
-                            kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
+class FullPrintManager(private val httpClient: OkHttpClient,
+                       labelTemplates: List<LabelTemplate>,
+                       private val userPrinterRepository: UserPrinterRepository,
+                       private val printerRepository: PrinterRepository,
+                       private val gson: Gson,
+                       private val trustManager: X509TrustManager,
+                       publisher : SystemEventHandler,
+                       private val environment: Environment,
+                       kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
 
     private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 
@@ -275,7 +221,7 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
         val printer = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
         return when {
             printer.isPresent -> printer
-            environment.acceptsProfiles("desk") -> Optional.ofNullable(super.getAvailablePrinters().firstOrNull()).map { Printer(-1, it.name, null, true) }
+            environment.acceptsProfiles(Profiles.of("desk")) -> Optional.ofNullable(super.getAvailablePrinters().firstOrNull()).map { Printer(-1, it.name, null, true) }
             else -> Optional.empty()
         }
     }
@@ -320,10 +266,10 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic("printer", "printer"))
                 .url("https://${remotePrinter.remoteHost}:8443/api/printers/${remotePrinter.name}/print")
-                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(ticket)))
+                .post(gson.toJson(ticket).toRequestBody("application/json".toMediaTypeOrNull()))
                 .build()
             httpClient.newCall(request).execute().use { resp ->
-                logger.debug("result: ${resp.code()} ${resp.message()}")
+                logger.debug("result: ${resp.code} ${resp.message}")
                 resp.isSuccessful
             }
         } else {
@@ -333,13 +279,13 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
     }
 
     @EventListener(PrintersRegistered::class)
-    open fun onPrinterAdded(event: PrintersRegistered) {
+    fun onPrinterAdded(event: PrintersRegistered) {
         logger.trace("received ${event.printers.size} printers from ${event.remoteHost}")
         val existing = remotePrinters.filter { it.remoteHost == event.remoteHost }
         logger.trace("saved printers: $remotePrinters")
         if(event.printers.none() || event.printers.asSequence().map { it.name }.filter { name -> existing.none { it.name == name } }.any()) {
             logger.info("adding ${event.printers} for ${event.remoteHost}")
-            remotePrinters.removeAll(existing)
+            remotePrinters.removeAll(existing.toSet())
             remotePrinters.addAll(event.printers)
         }
     }

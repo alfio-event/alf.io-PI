@@ -1,19 +1,23 @@
+
+import {map} from 'rxjs/operators';
+import {HttpClient, HttpResponse} from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import {Http} from "@angular/http";
-import {Observable} from "rxjs/Observable";
+import {Observable} from "rxjs";
 
 @Injectable()
 export class ConfigurationService {
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
 
   getConfiguration(key: string) : Observable<string> {
-    return this.http.get('/api/internal/system/configuration/'+key).map(res => res.text().length == 0 ? null : res.json())
+    return this.http.get<string>('/api/internal/system/configuration/'+key, { observe: "response"})
+      .pipe(map(res => getBodyOrNull(res)));
   }
 
   getPrinterName() : Observable<string> {
-    return this.http.get('/api/internal/system/printer').map(res => res.text().length == 0 ? null : res.text())
+    return this.http.get<string>('/api/internal/system/printer', { observe: "response"})
+      .pipe(map(res => getBodyOrNull(res)));
   }
 
   save(key: string, value: string) : Observable<any> {
@@ -21,7 +25,8 @@ export class ConfigurationService {
   }
 
   getRemainingLabels() : Observable<string> {
-    return this.http.get('/api/internal/system/labels/remaining').map(res => res.text().length == 0 ? null : res.text())
+    return this.http.get<string>('/api/internal/system/labels/remaining', { observe: "response"})
+      .pipe(map(res => getBodyOrNull(res)));
   }
 
   saveRemainingLabels(value: string) : Observable<any> {
@@ -31,3 +36,11 @@ export class ConfigurationService {
 }
 
 export const PRINTER_REMAINING_LABEL_DEFAULT_COUNTER = 'PRINTER_REMAINING_LABEL_DEFAULT_COUNTER';
+
+function getBodyOrNull(res: HttpResponse<string>): string | null {
+  if (res.ok) {
+    const body = res.body;
+    return body == null || body.length == 0 ? null : body
+  }
+  return null;
+}

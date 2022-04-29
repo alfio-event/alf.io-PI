@@ -4,15 +4,23 @@
     "declaration": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "lib": ["es6", "dom"],
+    "lib": ["es2018", "dom"],
     "mapRoot": "./",
-    "module": "es6",
+    "module": "es2020",
     "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "es2015",
     "outDir": "../dist/out-tsc",
     "sourceMap": true,
-    "target": "es5",
     "typeRoots": [
       "../node_modules/@types"
     ]
-  }
+  },
+  "files": [
+    "main.ts",
+    "polyfills.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ]
 }

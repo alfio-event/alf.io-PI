@@ -1,12 +1,12 @@
 import { Injectable } from "@angular/core";
-import { Http } from "@angular/http";
 import { Observable } from 'rxjs';
 import { TicketAndCheckInResult } from './scan-common';
 import { Account } from "../account/account";
+import { HttpClient } from "@angular/common/http";
 
 @Injectable()
 export class ScanService {
-    constructor(private http: Http) {
+    constructor(private http: HttpClient) {
     }
 
     public checkIn(eventKey: string, account: Account, scan: string): Observable<TicketAndCheckInResult> {
@@ -30,6 +30,6 @@ export class ScanService {
         if(scan.indexOf('/') == -1) {
           code = null;
         }
-        return this.http.post(url, {"code": code}).map(r => r.json());
+        return this.http.post<TicketAndCheckInResult>(url, {"code": code});
     }
 }

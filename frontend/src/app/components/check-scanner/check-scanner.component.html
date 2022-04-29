@@ -1,0 +1,47 @@
+<!--
+  ~ This file is part of alf.io.
+  ~
+  ~ alf.io is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ alf.io is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with alf.io.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+<alfio-responsive-layout>
+  <alfio-key-listener tabindex="0" (scanStream)="onScan($event)" [waitForEnterKey]="false"></alfio-key-listener>
+  <div class="mt-1 h-100">
+    <h3 class="text-center">Check scanner</h3>
+    <div *ngIf="scannedText.length === 0" class="h-75 d-flex flex-column align-items-center justify-content-around">
+      <p class="text-center">To check if your scanner is configured correctly, please scan the following code,<br>which contains a quote from the movie <strong>"The Big Lebowsky" (1998)</strong></p>
+      <qr-code [value]="originalText" [size]="200"></qr-code>
+    </div>
+    <div *ngIf="scannedText.length > 0" class="card-deck mb-2">
+
+      <div class="card">
+        <div class="card-body">
+          <div class="card-title">Expected</div>
+          <div class="card-text smaller" [innerHTML]="originalText | breaks"></div>
+        </div>
+      </div>
+
+      <div class="card" [ngClass]="{'border-1 border-danger': errors > 0}">
+        <div class="card-body">
+          <div class="card-title">Read</div>
+          <div class="card-text smaller" [innerHTML]="scannedText | breaks"></div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center" *ngIf="scannedText.length > 0">
+      <p class="text-danger" *ngIf="errors > 0">The Scanner Keyboard Layout emulation is not supported.<br>Please make sure to set it to <strong>EN_US</strong></p>
+      <p class="text-danger" *ngIf="readComplete && !enterScannedAtTheEnd">Scanner must send a <strong>Newline</strong> character at the end of the </p>
+      <button type="button" class="btn btn-dark" (click)="reset()">Retry</button>
+    </div>
+  </div>
+</alfio-responsive-layout>

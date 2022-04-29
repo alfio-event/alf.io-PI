@@ -1,8 +1,9 @@
+
+import {map} from 'rxjs/operators';
 import {Component, OnInit, ViewChild, OnDestroy} from '@angular/core';
 import {Event, EventService} from "../../shared/event/event.service";
 import {ScanService} from "../../scan-module/scan/scan.service";
 import {Account} from "../../scan-module/account/account";
-import {isDefined} from "@ng-bootstrap/ng-bootstrap/util/util";
 import {
   CheckInStatus,
   ForceBadgePrintIsAllowed,
@@ -14,6 +15,10 @@ import {ProgressManager} from "../../ProgressManager";
 import {EventType, ServerEventsService, UpdatePrinterRemainingLabelCounter} from "../../server-events.service";
 import {ConfigurationService, PRINTER_REMAINING_LABEL_DEFAULT_COUNTER} from "../../shared/configuration/configuration.service";
 import {Observable, Subject, Subscription} from "rxjs";
+
+function isDefined(value: any): boolean {
+  return value !== undefined && value !== null;
+}
 
 @Component({
   selector: 'alfio-check-in',
@@ -35,7 +40,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
 
   testMode = false;
 
-  @ViewChild('keyListener') keyListener;
+  @ViewChild('keyListener', { static: false }) keyListener;
 
   eventSelectionListener: Observable<Event>;
   private eventSelectionSubject: Subject<Event>;
@@ -57,7 +62,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.progressManager.monitorCall(() => this.eventService.getAllEvents().map(l => l.filter(e => e.active)))
+    this.progressManager.monitorCall(() => this.eventService.getAllEvents().pipe(map(l => l.filter(e => e.active))))
       .subscribe(list => this.events = list);
 
     this.serverEventsSub = this.serverEventsService.events.subscribe(e => {

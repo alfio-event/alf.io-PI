@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
-echo "iw dev wlan0 set power_save off" | cat - /etc/rc.local > /etc/rc.local.alfio && mv /etc/rc.local.alfio /etc/rc.local
+cat > /etc/rc.local <<EOF
+#!/bin/sh -e
+iw dev wlan0 set power_save off
+exit 0
+EOF
 chmod a+x /etc/rc.local
 systemctl enable alfio.service

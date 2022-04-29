@@ -1,26 +1,24 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import {Http} from "@angular/http";
 import {Observable} from "rxjs";
 
 @Injectable()
 export class EventService {
 
-  constructor(private http: Http) { }
+  constructor(private http: HttpClient) { }
 
   getAllEvents(): Observable<Array<Event>> {
-    return this.http.get('/api/internal/events')
-      .map(res => res.json())
+    return this.http.get<Array<Event>>('/api/internal/events');
   }
 
   getSingleEvent(eventKey: string): Observable<Event> {
-    return this.http.get(`/api/internal/events/${eventKey}`)
-      .map(res => res.json())
+    return this.http.get<Event>(`/api/internal/events/${eventKey}`);
   }
 
   toggleActivation(eventKey: string, value: boolean): Observable<boolean> {
     let url = `/api/internal/events/${eventKey}/active`;
-    let call = value ? this.http.put(url, true) : this.http.delete(url);
-    return call.map(res => res.json());
+    let call = value ? this.http.put<boolean>(url, true) : this.http.delete<boolean>(url);
+    return call;
   }
 
 }
@@ -33,5 +31,6 @@ export class Event {
               public end: string,
               public location: string,
               public active: boolean,
-              public lastUpdate: string) {}
+              public lastUpdate: string,
+              public timezone: string) {}
 }

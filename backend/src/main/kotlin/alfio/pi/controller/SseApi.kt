@@ -29,12 +29,12 @@ import java.util.concurrent.CopyOnWriteArraySet
 @RestController
 @RequestMapping("/api/internal/sse")
 @Profile("server", "full")
-open class SseApi {
+class SseApi {
 
     private val emitters = CopyOnWriteArraySet<SseEmitter>()
 
     @RequestMapping("/stream")
-    open fun registerListener(): SseEmitter {
+    fun registerListener(): SseEmitter {
         val emitter = SseEmitter()
         emitters.add(emitter)
         emitter.onCompletion {
@@ -45,7 +45,7 @@ open class SseApi {
 
 
     @EventListener(SystemEvent::class)
-    open fun onSystemEvent(event: SystemEvent) {
-        emitters.forEach { it.send(event, MediaType.APPLICATION_JSON_UTF8) }
+    fun onSystemEvent(event: SystemEvent) {
+        emitters.forEach { it.send(event, MediaType.APPLICATION_JSON) }
     }
 }

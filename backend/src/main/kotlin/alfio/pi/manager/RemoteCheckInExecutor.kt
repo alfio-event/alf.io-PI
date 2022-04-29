@@ -24,9 +24,11 @@ import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
@@ -46,7 +48,7 @@ open class RemoteCheckInExecutor(private val gson: Gson,
         return tryOrDefault<Map<String, TicketAndCheckInResult>>().invoke({
             val username = userRepository.findById(scanLogEntries.first { userRepository.findById(it.userId).isPresent }.userId).get().username
             val identifierCodes = identifierTransformer.invoke(scanLogEntries)
-            val requestBody = RequestBody.create(MediaType.parse("application/json"), gson.toJson(identifierCodes))
+            val requestBody = gson.toJson(identifierCodes).toRequestBody("application/json".toMediaTypeOrNull())
             var url = "${master.url}/admin/api/check-in/event/$eventKey/bulk?offlineUser=$username"
             if(checkInForcePaymentOnSite) {
                 url += "&forceCheckInPaymentOnSite=true"
@@ -63,7 +65,7 @@ open class RemoteCheckInExecutor(private val gson: Gson,
                 .execute()
                 .use { resp ->
                     if (resp.isSuccessful) {
-                        gson.fromJson(resp.body()!!.string(), object : TypeToken<Map<String, TicketAndCheckInResult>>() {}.type)
+                        gson.fromJson(resp.body!!.string(), object : TypeToken<Map<String, TicketAndCheckInResult>>() {}.type)
                     } else {
                         emptyMap()
                     }
