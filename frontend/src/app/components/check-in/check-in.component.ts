@@ -22,6 +22,7 @@ import {Observable, Subject, Subscription} from "rxjs";
 })
 export class CheckInComponent implements OnInit, OnDestroy {
 
+  private static SESSION_STORAGE_KEY = "ALFIO_SESSION_STORAGE_KEY";
   events: Array<Event>;
   activeEvent: Event;
   account: Account;
@@ -58,7 +59,23 @@ export class CheckInComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.progressManager.monitorCall(() => this.eventService.getAllEvents().map(l => l.filter(e => e.active)))
-      .subscribe(list => this.events = list);
+      .subscribe(list => {
+        this.events = list;
+        const selectedEventKey = CheckInComponent.getSelectedEvent();
+        // if an event has been previously selected in the same session
+        // we set the selection
+        if (selectedEventKey != null) {
+          const found = list.find((e) => e.key === selectedEventKey);
+          if (found != null) {
+            this.setActiveEvent(found);
+          }
+        }
+        // otherwise if the previous attempt was not successful, but we have a single event
+        // we set that event as active
+        if (this.activeEvent == null && list.length === 1) {
+          this.setActiveEvent(list[0]);
+        }
+      });
 
     this.serverEventsSub = this.serverEventsService.events.subscribe(e => {
       if(e.type == EventType.UPDATE_PRINTER_REMAINING_LABEL_COUNTER) {
@@ -84,7 +101,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
           this.ticket = result.ticket;
           this.boxColorClass = result.result.boxColorClass;
           this.textColorClass = CheckInComponent.getTextColor(this.boxColorClass);
-        }, error => {
+        }, _error => {
           this.status = CheckInStatus.ERROR;
           this.ticket = null;
           this.boxColorClass = "danger";
@@ -100,7 +117,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
   }
 
   forcePrint() {
-    this.scanService.forcePrintLabel(this.activeEvent.key, this.account, this.toScan).subscribe(result => {})
+    this.scanService.forcePrintLabel(this.activeEvent.key, this.account, this.toScan).subscribe(_result => {})
   }
 
   isStatusSuccess(): boolean {
@@ -133,6 +150,7 @@ export class CheckInComponent implements OnInit, OnDestroy {
   setActiveEvent(event: Event) {
     this.activeEvent = event;
     this.eventSelectionSubject.next(event);
+    CheckInComponent.saveSelectedEvent(event.key);
   }
 
   confirmResetLabelCounter() {
@@ -143,5 +161,22 @@ export class CheckInComponent implements OnInit, OnDestroy {
     }
 
     this.keyListener.nativeElement.focus();
+  }
+
+  private static saveSelectedEvent(key: string): void {
+    try {
+      sessionStorage.setItem(this.SESSION_STORAGE_KEY, key);
+    } catch(e) {
+      // saving to session storage could be forbidden
+    }
+  }
+
+  private static getSelectedEvent(): string | null {
+    try {
+      return sessionStorage.getItem(this.SESSION_STORAGE_KEY);
+    } catch(e) {
+      // saving to session storage could be forbidden
+    }
+    return null;
   }
 }
