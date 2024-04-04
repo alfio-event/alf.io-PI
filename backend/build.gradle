@@ -59,7 +59,7 @@ ext {
 
     getBuildNumber = {
         if(project.version.toString().contains("SNAPSHOT")) {
-            "99"
+            "100"
         } else {
             "1"
         }

@@ -155,7 +155,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
                     logger.trace("--> Printer name is: $extractedName")
                     extractedName
                 }.filter { it != null }
-                .filter { includeNotConnected || Files.exists(Paths.get("/dev/usb/", it)) }
+                .filter { includeNotConnected || printerIsConnected(it!!) }
                 .map {
                     logger.trace("Printer $it is connected. Returning it")
                     SystemPrinter(it!!)
@@ -166,6 +166,18 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         logger.error("cannot load printers", it)
         mutableListOf()
     })
+
+    private fun printerIsConnected(name: String): Boolean {
+        logger.trace("$name: Checking if the printer  is connected")
+        val path = Paths.get("/opt/alf.io/run/", name)
+        if (!Files.exists(path)) {
+            logger.trace("$name: File {} does not exist. Printer discarded", path)
+            return false
+        }
+        val padded = lsUsbDevice(String(Files.readAllBytes(path)))
+        logger.trace("$name: String to match is: $padded")
+        return matchLsUsbOutput(padded, Runtime.getRuntime().exec("/usr/bin/lsusb").inputStream)
+    }
 
     private fun doPrint(labelTemplate: LabelTemplate, name: String, ticket: Ticket, labelConfiguration: LabelConfigurationAndContent?): Boolean {
         val configurableContent = if(labelConfiguration?.content != null) {
@@ -351,6 +363,22 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
     this.sslSocketFactory(sslContext.socketFactory, trustManager)
     this.hostnameVerifier { _, _ -> true }//FIXME does it make sense to validate the hostname if we share the same certificate across all devices?
     return this
+}
+
+fun lsUsbDevice(s: String): String {
+    val deviceBus = s.split(".")
+    return "Bus ${deviceBus[0].trim().padStart(3, '0')} Device ${deviceBus[1].trim().padStart(3, '0')}:"
+}
+
+fun matchLsUsbOutput(matcher: String, lsUsbOut: java.io.InputStream): Boolean {
+    return lsUsbOut.use {
+        it.bufferedReader().lines()
+            .anyMatch { s ->
+                val match = s.startsWith(matcher)
+                logger.trace("lsusb: {} - matching: {}", s, match)
+                match
+            }
+    }
 }
 
 data class ConfigurableLabelContent(val firstRow: String,

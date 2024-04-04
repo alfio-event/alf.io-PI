@@ -23,7 +23,10 @@ import com.google.gson.Gson
 import org.junit.Assert.*
 import org.junit.Test
 import org.mockito.Mockito
+import java.io.ByteArrayInputStream
+import java.io.StringReader
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 
@@ -169,4 +172,10 @@ class LabelManagerTest {
     private fun ticket(additionalInfo: Map<String, String>? = mapOf("company" to "company"), includePin: Boolean = false): Ticket = Ticket(uuid = "12345-678", firstName = "firstName", lastName = "lastName", email = null, additionalInfo = additionalInfo, pin = if(includePin) "123456" else null)
 
 
+    @Test
+    fun name() {
+        val deviceBus = "1.7".split(".")
+        val padded = "Bus ${deviceBus[0].padStart(3, '0')} Device ${deviceBus[1].padStart(3, '0')}:"
+        assertTrue(ByteArrayInputStream("Bus 001 Device 007: ID 0a5f:011c Zebra ZTC ZD410-203dpi ZPL\nBus 001 Device 004: ID 0424:7800 Microchip Technology, Inc. (formerly SMSC)\nBus 001 Device 003: ID 0424:2514 Microchip Technology, Inc. (formerly SMSC) USB 2.0 Hub\nBus 001 Device 002: ID 0424:2514 Microchip Technology, Inc. (formerly SMSC) USB 2.0 Hub\nBus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub\n".toByteArray()).bufferedReader().lines().anyMatch { s -> s.startsWith(padded) })
+    }
 }
