@@ -60,9 +60,9 @@ fun httpClientBuilderWithCustomTimeout(connectionTimeout: Pair<Long, TimeUnit>, 
 
 @Component
 @Profile("server", "full")
-open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: RemoteApiAuthenticationDescriptor,
-                                 private val httpClient: OkHttpClient,
-                                 private val gson: Gson) {
+class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private val configuration: RemoteApiAuthenticationDescriptor,
+                            private val httpClient: OkHttpClient,
+                            private val gson: Gson) {
     private val logger = LoggerFactory.getLogger(RemoteResourceManager::class.java)
 
     private fun <T> getRemoteResource(resource: String, type: TypeToken<T>, emptyResult: () -> T, timeoutMillis: Long = -1L): Pair<Boolean, T> = tryOrDefault<Pair<Boolean, T>>()
@@ -105,24 +105,24 @@ open class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") pri
 
 @Component
 @Profile("server", "full")
-open class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager,
-                             private val eventRepository: EventRepository,
-                             private val transactionManager: PlatformTransactionManager,
-                             private val jdbc: NamedParameterJdbcTemplate,
-                             private val checkInDataSynchronizer: CheckInDataSynchronizer,
-                             private val kvStore: KVStore,
-                             private val checkInDataManager: CheckInDataManager,
-                             private val eventFilter: RemoteEventFilter) {
+class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager,
+                        private val eventRepository: EventRepository,
+                        private val transactionManager: PlatformTransactionManager,
+                        private val jdbc: NamedParameterJdbcTemplate,
+                        private val checkInDataSynchronizer: CheckInDataSynchronizer,
+                        private val kvStore: KVStore,
+                        private val checkInDataManager: CheckInDataManager,
+                        private val eventFilter: RemoteEventFilter) {
     private val logger = LoggerFactory.getLogger(EventSynchronizer::class.java)
 
     @EventListener
-    open fun handleContextRefresh(event: ContextRefreshedEvent) {
+    fun handleContextRefresh(event: ContextRefreshedEvent) {
         sync()
     }
 
 
     @Scheduled(fixedDelay = 60L * 60000L)
-    open fun sync() {
+    fun sync() {
         doInTransaction<Unit>().invoke(transactionManager, {
             val localEvents = eventRepository.loadAll().filter { eventFilter.accept(it.key) }
             val remoteEvents = remoteResourceManager.getRemoteEventList().filter { eventFilter.accept(it.key!!) }

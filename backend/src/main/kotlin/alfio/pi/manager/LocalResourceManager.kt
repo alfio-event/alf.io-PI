@@ -159,12 +159,12 @@ fun printOnLocalPrinter(printerName: String, ticket: Ticket, labelConfiguration:
 
 @Component
 @Profile("full", "server")
-open class PrinterSynchronizer(private val printerRepository: PrinterRepository, private val printManager: PrintManager) {
+class PrinterSynchronizer(private val printerRepository: PrinterRepository, private val printManager: PrintManager) {
     @Scheduled(fixedDelay = 5000L)
-    open fun syncPrinters() {
+    fun syncPrinters() {
         val existingPrinters = printerRepository.loadAll()
         val systemPrinters = printManager.getAvailablePrinters()
-        logger.trace("getSystemPrinters returned ${systemPrinters.size} elements, $systemPrinters")
+        logger.trace("getSystemPrinters returned {} elements, {}", systemPrinters.size, systemPrinters)
         systemPrinters.filter { (name) -> existingPrinters.none { e -> e.name.equals(name, true) }}.forEach {
             printerRepository.insert(it.name, "", true)
         }

@@ -21,8 +21,8 @@ import alfio.pi.repository.EventRepository
 import alfio.pi.repository.UserRepository
 import com.google.gson.Gson
 import com.nhaarman.mockitokotlin2.*
-import org.junit.Assert.*
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*

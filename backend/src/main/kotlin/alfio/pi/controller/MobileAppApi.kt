@@ -34,15 +34,15 @@ import java.util.*
 @RestController
 @Profile("server", "full")
 @RequestMapping("/admin/api/check-in")
-open class CheckInApi(private val checkInDataManager: CheckInDataManager,
-                      private val badgeScanManager: BadgeScanManager,
-                      private val environment: Environment) {
+class CheckInApi(private val checkInDataManager: CheckInDataManager,
+                 private val badgeScanManager: BadgeScanManager,
+                 private val environment: Environment) {
 
     @RequestMapping(value = ["/event/{eventName}/ticket/{ticketIdentifier:.+}"], method = [(RequestMethod.POST)])
-    open fun performCheckIn(@PathVariable("eventName") eventName: String,
-                            @PathVariable("ticketIdentifier") ticketIdentifier: String,
-                            @RequestBody ticketCode: TicketCode,
-                            principal: Principal?): ResponseEntity<CheckInResponse> {
+    fun performCheckIn(@PathVariable("eventName") eventName: String,
+                       @PathVariable("ticketIdentifier") ticketIdentifier: String,
+                       @RequestBody ticketCode: TicketCode,
+                       principal: Principal?): ResponseEntity<CheckInResponse> {
 
         val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
         logger.info("ticket {}: received code {}", ticketIdentifier, ticketCode.code)
@@ -60,10 +60,10 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
     }
 
     @RequestMapping(value = ["/event/{eventName}/force-print-label-ticket/{ticketIdentifier:.+}"], method = [(RequestMethod.POST)])
-    open fun printLabel(@PathVariable("eventName") eventName: String,
-                             @PathVariable("ticketIdentifier") ticketIdentifier: String,
-                             @RequestBody ticketCode: TicketCode,
-                             principal: Principal?) : ResponseEntity<Boolean> {
+    fun printLabel(@PathVariable("eventName") eventName: String,
+                   @PathVariable("ticketIdentifier") ticketIdentifier: String,
+                   @RequestBody ticketCode: TicketCode,
+                   principal: Principal?) : ResponseEntity<Boolean> {
         val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
         return Optional.ofNullable(username)
             .map {
@@ -80,10 +80,10 @@ open class CheckInApi(private val checkInDataManager: CheckInDataManager,
 
 @RestController
 @Profile("server", "full")
-open class AppEventApi(private val eventRepository: EventRepository) {
+class AppEventApi(private val eventRepository: EventRepository) {
 
     @RequestMapping(value = ["/api/events/{eventName}"], method = [(RequestMethod.GET)])
-    open fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> {
+    fun loadPublicEvent(@PathVariable("eventName") eventName: String): ResponseEntity<Event> {
         return eventRepository.loadSingle(eventName).map {
             ResponseEntity.ok(it)
         }.orElseGet {
@@ -92,16 +92,16 @@ open class AppEventApi(private val eventRepository: EventRepository) {
     }
 
     @RequestMapping(value = ["/admin/api/events"], method = [(RequestMethod.GET)])
-    open fun loadEvents() = eventRepository.loadAll().filter { it.active }
+    fun loadEvents() = eventRepository.loadAll().filter { it.active }
 
     @RequestMapping(value = ["/admin/api/user-type"], method = [(RequestMethod.GET)])
-    open fun loadUserType() = "STAFF"//Sponsors should call the central server
+    fun loadUserType() = "STAFF"//Sponsors should call the central server
 }
 
 @Controller
 @Profile("server", "full")
 @RequestMapping("/file")
-open class ResourceController {
+class ResourceController {
     @RequestMapping("/*")
-    open fun loadImage() = "redirect:/images/logo-alfio-pi.png"
+    fun loadImage() = "redirect:/images/logo-alfio-pi.png"
 }

@@ -1,2 +1,3 @@
+rootProject.name='alfio-pi'
 include 'frontend'
 include 'backend'

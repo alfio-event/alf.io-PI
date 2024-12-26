@@ -1,15 +1,13 @@
 package alfio.pi.manager
 
-import org.junit.Assert
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
 
 class PrintManagerTest {
     @Test
     fun outputPrefix() {
-        Assert.assertEquals("Bus 001 Device 007:", lsUsbDevice("1.7"))
+        assertEquals("Bus 001 Device 007:", lsUsbDevice("1.7"))
     }
 
     @Test

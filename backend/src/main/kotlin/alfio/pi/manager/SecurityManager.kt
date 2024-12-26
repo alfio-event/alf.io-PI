@@ -33,9 +33,9 @@ interface SslKeyExporter {
 
 @Component
 @Profile("!dev")
-open class LiveSslKeyExporter : SslKeyExporter {
+class LiveSslKeyExporter : SslKeyExporter {
 
-    private val certificate: String
+    private final val certificate: String
 
     init {
         val keyStore = KeyStore.getInstance("JKS")
@@ -49,7 +49,7 @@ open class LiveSslKeyExporter : SslKeyExporter {
 
 @Component
 @Profile("dev")
-open class FakeSslKeyExporter : SslKeyExporter {
+class FakeSslKeyExporter : SslKeyExporter {
     //does nothing
     override fun appendTo(map: Map<String, String>): Map<String, String> = map
 }

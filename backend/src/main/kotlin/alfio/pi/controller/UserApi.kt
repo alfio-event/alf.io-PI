@@ -37,7 +37,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.web.bind.annotation.*
 import java.util.*
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletResponse
 import java.util.ArrayList
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -46,24 +46,24 @@ import javax.imageio.ImageIO
 @RestController
 @RequestMapping("/api/internal/users")
 @Profile("server", "full")
-open class UserApi(private val userRepository: UserRepository,
-                   private val transactionManager: PlatformTransactionManager,
-                   private val passwordGenerator: PasswordGenerator,
-                   private val passwordEncoder: PasswordEncoder,
-                   private val authorityRepository: AuthorityRepository,
-                   @Qualifier("localServerURL") private val localServerUrl: String,
-                   private val gson: Gson,
-                   private val sslKeyExporter: SslKeyExporter) {
+class UserApi(private val userRepository: UserRepository,
+              private val transactionManager: PlatformTransactionManager,
+              private val passwordGenerator: PasswordGenerator,
+              private val passwordEncoder: PasswordEncoder,
+              private val authorityRepository: AuthorityRepository,
+              @Qualifier("localServerURL") private val localServerUrl: String,
+              private val gson: Gson,
+              private val sslKeyExporter: SslKeyExporter) {
     private val logger = LoggerFactory.getLogger(UserApi::class.java)
 
     @RequestMapping(value = [""], method = [(RequestMethod.GET)])
-    open fun loadAllOperators(): List<User> = doInTransaction<List<User>>().invoke(transactionManager, {userRepository.findAllOperators()}, {
+    fun loadAllOperators(): List<User> = doInTransaction<List<User>>().invoke(transactionManager, {userRepository.findAllOperators()}, {
         logger.error("error while loading users", it)
         emptyList()
     })
 
     @RequestMapping(value = ["/{userId}"], method = [(RequestMethod.GET)])
-    open fun loadSingleUser(@PathVariable("userId") userId: Int): ResponseEntity<User> = doInTransaction<ResponseEntity<User>>().invoke(transactionManager, {
+    fun loadSingleUser(@PathVariable("userId") userId: Int): ResponseEntity<User> = doInTransaction<ResponseEntity<User>>().invoke(transactionManager, {
         userRepository.findById(userId).map {
             ResponseEntity.ok(it)
         }.orElseGet(fun(): ResponseEntity<User> {
@@ -75,9 +75,9 @@ open class UserApi(private val userRepository: UserRepository,
     })
 
     @RequestMapping(value = ["/"], method = [(RequestMethod.POST)])
-    open fun create(@RequestBody() form: UserForm): ResponseEntity<UserWithPassword> = doInTransaction<ResponseEntity<UserWithPassword>>().invoke(transactionManager, {
+    fun create(@RequestBody form: UserForm): ResponseEntity<UserWithPassword> = doInTransaction<ResponseEntity<UserWithPassword>>().invoke(transactionManager, {
         val username = form.username
-        if(username != null && username.isNotBlank()) {
+        if(!username.isNullOrBlank()) {
             ResponseEntity.ok(createNewUser(username).invoke(passwordGenerator, passwordEncoder, userRepository, authorityRepository))
         } else {
             ResponseEntity(HttpStatus.BAD_REQUEST)
@@ -88,7 +88,7 @@ open class UserApi(private val userRepository: UserRepository,
     })
 
     @RequestMapping(value = ["/{userId}/resetPassword"], method = [(RequestMethod.POST)])
-    open fun resetPassword(@PathVariable("userId") userId: Int): ResponseEntity<UserWithPassword> = doInTransaction<ResponseEntity<UserWithPassword>>().invoke(transactionManager, {
+    fun resetPassword(@PathVariable("userId") userId: Int): ResponseEntity<UserWithPassword> = doInTransaction<ResponseEntity<UserWithPassword>>().invoke(transactionManager, {
         userRepository.findById(userId).map {
             ResponseEntity.ok(updatePassword(it).invoke(passwordGenerator, passwordEncoder, userRepository))
         }.orElseGet(fun(): ResponseEntity<UserWithPassword> {
@@ -101,9 +101,9 @@ open class UserApi(private val userRepository: UserRepository,
 
 
     @RequestMapping(value = ["/{userId}/qr-code"], method = [(RequestMethod.GET)])
-    open fun generateQRCode(@PathVariable("userId") userId: Int,
-                            @RequestParam("password") password: String,//base-64 encoded password
-                            response: HttpServletResponse) {
+    fun generateQRCode(@PathVariable("userId") userId: Int,
+                       @RequestParam("password") password: String,//base-64 encoded password
+                       response: HttpServletResponse) {
         doInTransaction<Unit>().invoke(transactionManager, {
             val user = userRepository.findById(userId)
             if(user.isPresent) {
@@ -112,17 +112,17 @@ open class UserApi(private val userRepository: UserRepository,
 
                 val jsonString = gson.toJson(map)
                 //split in 3,
-                val splittedSize = jsonString.length / 3
-                val splitted = ArrayList<String>()
-                splitted.add(jsonString.substring(0, splittedSize))
-                splitted.add(jsonString.substring(splittedSize, 2 * splittedSize))
-                splitted.add(jsonString.substring(splittedSize * 2, jsonString.length))
+                val splitSize = jsonString.length / 3
+                val split = ArrayList<String>()
+                split.add(jsonString.substring(0, splitSize))
+                split.add(jsonString.substring(splitSize, 2 * splitSize))
+                split.add(jsonString.substring(splitSize * 2, jsonString.length))
 
                 //a single qrcode has a size of 350 * 350px;
                 val result = BufferedImage(350, 350 * 3, BufferedImage.TYPE_INT_RGB)
                 val g = result.graphics
                 var i = 0
-                for(payload in splitted) {
+                for(payload in split) {
                     val idx = i+1
                     val bi = ImageIO.read(ByteArrayInputStream(generateQRCodeImage("$idx:3:$payload")))
                     g.drawImage(bi, 0, 350 * i, null)

@@ -32,16 +32,16 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 
 @Component
-open class BadgeScanManager(private val eventRepository: EventRepository,
-                            private val kvStore: KVStore,
-                            private val userRepository: UserRepository,
-                            @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
-                            private val remoteCheckInExecutor: RemoteCheckInExecutor,
-                            private val gson: Gson) {
+class BadgeScanManager(private val eventRepository: EventRepository,
+                       private val kvStore: KVStore,
+                       private val userRepository: UserRepository,
+                       @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
+                       private val remoteCheckInExecutor: RemoteCheckInExecutor,
+                       private val gson: Gson) {
 
     private val logger = LoggerFactory.getLogger(BadgeScanManager::class.java)
 
-    open fun performBadgeScan(eventName: String, uuid: String, username: String) : CheckInResponse {
+    fun performBadgeScan(eventName: String, uuid: String, username: String) : CheckInResponse {
         val event = eventRepository.loadSingle(eventName)
         if(!event.isPresent) {
             return EmptyTicketResult()
@@ -84,7 +84,7 @@ open class BadgeScanManager(private val eventRepository: EventRepository,
     }
 
     @Scheduled(fixedDelay = 5000L)
-    open fun processPendingEntries() {
+    fun processPendingEntries() {
         if(kvStore.isLeader()) {
             kvStore.selectBadgeScanToSynchronize()
                 .asSequence()

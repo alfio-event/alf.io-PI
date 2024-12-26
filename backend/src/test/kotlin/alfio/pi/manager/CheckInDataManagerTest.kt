@@ -24,9 +24,9 @@ import alfio.pi.repository.EventRepository
 import alfio.pi.repository.UserRepository
 import com.google.gson.Gson
 import com.nhaarman.mockitokotlin2.*
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Test
 import java.nio.charset.StandardCharsets
 import java.util.*
 import java.security.GeneralSecurityException
@@ -37,7 +37,7 @@ import javax.crypto.Cipher
 
 class CheckInDataManagerTest {
 
-    private val eventId = "key";
+    private val eventId = "key"
 
     @Test
     fun testCalcHash256() {

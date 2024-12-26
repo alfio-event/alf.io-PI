@@ -59,10 +59,10 @@ interface PrintManager {
 
 @Component
 @Profile("printer")
-open class PrinterAnnouncer(private val trustManager: X509TrustManager,
-                            private val httpClient: OkHttpClient,
-                            private val printManager: PrintManager,
-                            private val gson: Gson) {
+class PrinterAnnouncer(private val trustManager: X509TrustManager,
+                       private val httpClient: OkHttpClient,
+                       private val printManager: PrintManager,
+                       private val gson: Gson) {
 
     private val masterUrl = AtomicReference<String>()
 
@@ -90,7 +90,7 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
         Executors.newScheduledThreadPool(1).scheduleWithFixedDelay({tryOrDefault<Unit>().invoke({uploadPrinters()},{logger.error("error while uploading printers", it)})}, 0, 5, TimeUnit.SECONDS)
     }
 
-    open fun uploadPrinters() {
+    fun uploadPrinters() {
         val url = masterUrl.get() ?: return
         logger.trace("calling master $url")
         val httpClient = httpClientBuilderWithCustomTimeout(1L to TimeUnit.SECONDS)
@@ -114,9 +114,9 @@ open class PrinterAnnouncer(private val trustManager: X509TrustManager,
 
 @Component
 @Profile("printer")
-open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
-                             private val publisher : SystemEventHandler,
-                             private val kvStore: KVStore): PrintManager {
+class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
+                        private val publisher : SystemEventHandler,
+                        private val kvStore: KVStore): PrintManager {
 
     override fun getLabelContent(ticket: Ticket, labelConfiguration: LabelConfiguration?): ConfigurableLabelContent = buildConfigurableLabelContent(labelConfiguration?.layout, ticket)
 
@@ -218,7 +218,7 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
         return if (layout != null) {
             val qrContent = sequenceOf(ticket.uuid).plus(retrieveQRCodeContent(layout, ticket)).joinToString(separator = layout.qrCode.infoSeparator)
             val partialID = if (layout.general.printPartialID) {
-                ticket.uuid.substringBefore('-').toUpperCase()
+                ticket.uuid.substringBefore('-').uppercase(Locale.getDefault())
             } else {
                 ""
             }
@@ -227,7 +227,8 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
             val secondRow = ticketInfo[layout.content.secondRow] ?: ticket.lastName
             ConfigurableLabelContent(firstRow, secondRow, retrieveAllAdditionalInfo(layout, ticket), qrContent, partialID, ticket.pin, layout.content.checkbox?:false)
         } else {
-            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid, ticket.uuid.substringBefore('-').toUpperCase(), ticket.pin, false)
+            ConfigurableLabelContent(ticket.firstName, ticket.lastName, listOf(ticket.additionalInfo?.get("company").orEmpty()), ticket.uuid,
+                ticket.uuid.substringBefore('-').uppercase(Locale.getDefault()), ticket.pin, false)
         }
     }
 
@@ -271,15 +272,15 @@ open class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
  */
 @Component
 @Profile("server", "full")
-open class FullPrintManager(private val httpClient: OkHttpClient,
-                            labelTemplates: List<LabelTemplate>,
-                            private val userPrinterRepository: UserPrinterRepository,
-                            private val printerRepository: PrinterRepository,
-                            private val gson: Gson,
-                            private val trustManager: X509TrustManager,
-                            publisher : SystemEventHandler,
-                            private val environment: Environment,
-                            kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
+class FullPrintManager(private val httpClient: OkHttpClient,
+                       labelTemplates: List<LabelTemplate>,
+                       private val userPrinterRepository: UserPrinterRepository,
+                       private val printerRepository: PrinterRepository,
+                       private val gson: Gson,
+                       private val trustManager: X509TrustManager,
+                       publisher : SystemEventHandler,
+                       private val environment: Environment,
+                       kvStore: KVStore): LocalPrintManager(labelTemplates, publisher, kvStore) {
 
     private val remotePrinters = CopyOnWriteArraySet<RemotePrinter>()
 
@@ -345,7 +346,7 @@ open class FullPrintManager(private val httpClient: OkHttpClient,
     }
 
     @EventListener(PrintersRegistered::class)
-    open fun onPrinterAdded(event: PrintersRegistered) {
+    fun onPrinterAdded(event: PrintersRegistered) {
         logger.trace("received ${event.printers.size} printers from ${event.remoteHost}")
         val existing = remotePrinters.filter { it.remoteHost == event.remoteHost }
         logger.trace("saved printers: $remotePrinters")

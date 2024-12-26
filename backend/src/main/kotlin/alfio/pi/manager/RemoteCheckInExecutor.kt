@@ -34,7 +34,7 @@ import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
 
 @Component
-open class RemoteCheckInExecutor(private val gson: Gson,
+class RemoteCheckInExecutor(private val gson: Gson,
                             @Qualifier("masterConnectionConfiguration") private val master: RemoteApiAuthenticationDescriptor,
                             private val httpClient: OkHttpClient,
                             @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
@@ -42,7 +42,7 @@ open class RemoteCheckInExecutor(private val gson: Gson,
 
     private val logger = LoggerFactory.getLogger(RemoteCheckInExecutor::class.java)
 
-    open fun remoteBulkCheckIn(eventKey: String, scanLogEntries: List<ScanLog>, identifierTransformer: (List<ScanLog>) -> List<Map<String, String?>>) : Map<String, TicketAndCheckInResult> {
+    fun remoteBulkCheckIn(eventKey: String, scanLogEntries: List<ScanLog>, identifierTransformer: (List<ScanLog>) -> List<Map<String, String?>>) : Map<String, TicketAndCheckInResult> {
         return tryOrDefault<Map<String, TicketAndCheckInResult>>().invoke({
             val username = userRepository.findById(scanLogEntries.first { userRepository.findById(it.userId).isPresent }.userId).get().username
             val identifierCodes = identifierTransformer.invoke(scanLogEntries)

@@ -1,5 +1,5 @@
 plugins {
-  id "com.moowork.node" version "1.3.1"
+  id "com.github.node-gradle.node" version "7.1.0"
 }
 
 apply plugin:'java'
@@ -10,10 +10,10 @@ node {
   distBaseUrl = "https://direct.nodejs.org/dist"
   download = true
   workDir = file("${project.projectDir}/node")
-  nodeModulesDir = file("${project.projectDir}/")
+//  nodeModulesDir = file("${project.projectDir}/")
 }
 
-task npmClean(type: Delete) {
+tasks.register('npmClean', Delete) {
   final def webDir = "${rootDir}/frontend"
   delete "${webDir}/node"
   delete "${webDir}/node_modules"
@@ -29,13 +29,13 @@ clean.dependsOn(npmClean)
 processResources.dependsOn(npm_run_build)
 
 jar {
-  baseName = 'alfio-pi-frontend'
+  archiveBaseName = 'alfio-pi-frontend'
   version = "${project.version}"
-  into("META-INF/resources/webjars/${baseName}/${project.version}") {
+  into("META-INF/resources/webjars/${archiveBaseName}/${project.version}") {
       from 'dist'
   }
 }
 
 // run all task
-task runAll {}
+tasks.register('runAll') {}
 runAll.dependsOn(npm_run_start)

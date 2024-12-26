@@ -18,18 +18,19 @@
 package alfio.pi.util
 
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Component
 import java.util.*
 import java.util.regex.Pattern
 
 @Component
-open class PasswordGenerator(environment: Environment) {
+class PasswordGenerator(environment: Environment) {
 
-    private val PASSWORD_CHARACTERS: CharArray
-    private val DEV_MODE: Boolean = environment.acceptsProfiles("dev")
-    private val MAX_LENGTH = 14
-    private val MIN_LENGTH = 10
-    private val VALIDATION_PATTERN: Pattern
+    private final val passwordCharacters: CharArray
+    private final val devMode: Boolean = environment.acceptsProfiles(Profiles.of("dev"))
+    private final val maxLength = 14
+    private final val minLength = 10
+    private final val validationPattern: Pattern
 
     init {
         val chars = LinkedList<Char>()
@@ -38,20 +39,20 @@ open class PasswordGenerator(environment: Environment) {
         chars += '0' .. '9'
         chars += arrayOf('#','~','!', '-', '_', '/', '^', '&', '+', '%', '(',')','=')
 
-        PASSWORD_CHARACTERS = chars.toCharArray()
-        VALIDATION_PATTERN = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\\p{Punct})(?=\\S+$).{$MIN_LENGTH,}$")//source: http://stackoverflow.com/a/3802238
+        passwordCharacters = chars.toCharArray()
+        validationPattern = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*\\p{Punct})(?=\\S+$).{$minLength,}$")//source: http://stackoverflow.com/a/3802238
     }
 
     fun generateRandomPassword(): String {
-        if (DEV_MODE) {
+        if (devMode) {
             return "abcd"
         }
-        val length = MIN_LENGTH + Knuth.gen.nextInt(MAX_LENGTH - MIN_LENGTH + 1)
-        return PASSWORD_CHARACTERS.toTypedArray().shuffle().take(length).joinToString(separator = "")
+        val length = minLength + Knuth.gen.nextInt(maxLength - minLength + 1)
+        return passwordCharacters.toTypedArray().shuffle().take(length).joinToString(separator = "")
     }
 
     fun isValid(password: String?): Boolean {
-        return password != null && password.isNotBlank() && VALIDATION_PATTERN.matcher(password).matches()
+        return password != null && password.isNotBlank() && validationPattern.matcher(password).matches()
     }
 }
 
@@ -60,7 +61,7 @@ open class PasswordGenerator(environment: Environment) {
  * source https://rosettacode.org/wiki/Knuth_shuffle#Kotlin
  */
 object Knuth {
-    internal val gen = java.util.Random()
+    internal val gen = Random()
 }
 
 fun <T> Array<T>.shuffle(): Array<T> {

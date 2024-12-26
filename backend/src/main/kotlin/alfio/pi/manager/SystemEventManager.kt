@@ -40,7 +40,7 @@ interface SystemEventHandler {
 
 @Component
 @Profile("printer")
-open class SystemEventHandlerDummy : SystemEventHandler {
+class SystemEventHandlerDummy : SystemEventHandler {
     override fun notifyAllSessions(event: SystemEvent) {
     }
 }
@@ -48,9 +48,9 @@ open class SystemEventHandlerDummy : SystemEventHandler {
 
 @Component
 @Profile("server", "full")
-open class SystemEventHandlerImpl(private val gson: Gson,
-                              private val kvStore: KVStore,
-                              private val eventRepository: EventRepository): SystemEventHandler, TextWebSocketHandler() {
+class SystemEventHandlerImpl(private val gson: Gson,
+                             private val kvStore: KVStore,
+                             private val eventRepository: EventRepository): SystemEventHandler, TextWebSocketHandler() {
     private val logger = LoggerFactory.getLogger(SystemEventHandler::class.java)
     private val sessions = CopyOnWriteArraySet<WebSocketSession>()
     private val lastCheckTimestamp = AtomicReference<Date>(Date())
@@ -67,7 +67,7 @@ open class SystemEventHandlerImpl(private val gson: Gson,
     }
 
     @Scheduled(fixedDelay = 100L)
-    open fun checkSessions() {
+    fun checkSessions() {
         sessions.filter { !it.isOpen }.forEach {
             logger.debug("removing closed session with ID {}", it.id)
             sessions.remove(it)
@@ -75,7 +75,7 @@ open class SystemEventHandlerImpl(private val gson: Gson,
     }
 
     @Scheduled(fixedDelay = 1000L)
-    open fun fetchAndSendNewScans() {
+    fun fetchAndSendNewScans() {
         kvStore.loadNew(lastCheckTimestamp.getAndSet(Date()))
             .asSequence()
             .groupBy { it.eventKey }
