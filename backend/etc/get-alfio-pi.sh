@@ -63,13 +63,13 @@ echo
 #echo
 
 print_bold "Importing Alf.io-PI key"
-sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0xC9AA0F906AF4106C
+sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0x682497B470AC18A3
 print_bold "done."
 
 print_bold "Downloading Alf.io-PI v$ALFIO_VERSION"
 rm -f "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 wget "https://github.com/alfio-event/alf.io-PI/releases/download/v${ALFIO_RELEASE}/alf.io-pi_${ALFIO_VERSION}_all.deb" -P /tmp/
-sudo dpkg-sig --verify -k C9AA0F906AF4106C "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
+sudo dpkg-sig --verify -k 682497B470AC18A3 "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 print_bold "done."
 
 print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
