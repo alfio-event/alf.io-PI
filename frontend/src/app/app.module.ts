@@ -80,10 +80,7 @@ import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.componen
     DragulaModule,
     QRCodeModule,
     RouterModule.forRoot([
-      { path: '', component: HomeComponent, children: [
-        { path: 'user/new', component: UserEditComponent },
-        { path: 'user/edit/:userId', component: UserEditComponent }
-      ] },
+      { path: '', redirectTo: '/check-in', pathMatch: 'full' },
       { path: 'scan-log', children: [
         { path: '', redirectTo: 'view', pathMatch: 'full' },
         { path: 'view', component: ScanLogComponent },
@@ -98,7 +95,6 @@ import {SidebarWatchComponent} from "./components/sidebar/sidebar.watch.componen
       { path: 'settings', component: SettingsComponent},
       { path: 'power-off', component: ConfirmPowerOffComponent},
       { path: 'system-info', component: SystemInfoComponent }
-
     ])
   ],
   providers: [UserService, EventService, PrinterService, WindowRef, UserNotifierService, ScanLogService, ServerEventsService, ScanService, ConfigurationService],
