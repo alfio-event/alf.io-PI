@@ -1,6 +1,6 @@
 <div class="card w-100">
   <div class="card-header d-flex justify-content-between">
-    <h3>Last {{maxEntries}} scans</h3>
+    <h3>Latest {{maxEntries}} scans</h3>
     <loading-indicator [observable]="progressManager.observable"></loading-indicator>
   </div>
   <div class="card-block" *ngIf="entries.length == 0">
@@ -30,15 +30,6 @@
       <tr *ngFor="let ee of entries">
         <td style="width: 5px" [ngClass]="'bg-' + ee.boxColorClass"></td>
         <td>
-            <div ngbDropdown class="hidden-md-down">
-              <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
-              <div class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                <div *ngFor="let printer of printers; last as isLast">
-                  <button class="dropdown-item" (click)="reprint(ee.entry, printer)">{{printer.name}}</button>
-                  <div class="dropdown-divider" *ngIf="!isLast"></div>
-                </div>
-              </div>
-            </div>
             <div class="hidden-lg-up">
               <a class="btn btn-outline-warning" [routerLink]="['/scan-log/event/',ee.entry.eventKey,'entry', ee.entry.id, 'reprint']"><i class="fa fa-print"></i> <span class="sr-only">Print</span></a>
             </div>

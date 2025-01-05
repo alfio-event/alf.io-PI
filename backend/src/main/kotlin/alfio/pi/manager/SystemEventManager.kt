@@ -77,7 +77,6 @@ class SystemEventHandlerImpl(private val gson: Gson,
     @Scheduled(fixedDelay = 1000L)
     fun fetchAndSendNewScans() {
         kvStore.loadNew(lastCheckTimestamp.getAndSet(Date()))
-            .asSequence()
             .groupBy { it.eventKey }
             .map { (key, value) -> eventRepository.loadSingle(key) to value}
             .filter { (key, _) -> key.isPresent}

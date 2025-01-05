@@ -308,7 +308,7 @@ class DeskWebSecurity {
 class BasicAuthWebSecurity : WebSecurityConfig() {
     @Bean
     fun basicAuthSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        return http.securityMatchers { matchers -> matchers.requestMatchers({ it.requestURI.startsWith("/admin/api/") }) }
+        return http.securityMatchers { matchers -> matchers.requestMatchers({ it.requestURI.startsWith("/admin/api/") or it.requestURI.startsWith("/api/internal/") }) }
             .anonymous { it.authorities("ROLE_${Role.OPERATOR.name}").principal(Principal { Application.deskUsername }) }
             .csrf { it.disable() }
             .authorizeHttpRequests { it.anyRequest().hasAnyRole(Role.OPERATOR.name) }

@@ -54,15 +54,6 @@
           <div class="col"></div>
         </div>
         <div class="w-100 text-center">
-          <div ngbDropdown class="hidden-md-down">
-            <button class="btn btn-outline-warning" id="dropdownMenu1" ngbDropdownToggle><i class="fa fa-print"></i> <span class="sr-only">Print</span></button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenu1">
-              <div *ngFor="let printer of printers; last as isLast">
-                <button class="dropdown-item" (click)="reprint(printer)">{{printer.name}}</button>
-                <div class="dropdown-divider" *ngIf="!isLast"></div>
-              </div>
-            </div>
-          </div>
           <div class="hidden-lg-up d-flex justify-content-around mt-5">
             <a class="btn btn-outline-secondary" [routerLink]="['/scan-log/view']"><i class="fa fa-backward"></i> back</a>
             <button class="btn btn-outline-warning" (click)="reprint()"><i class="fa fa-print"></i> Print</button>

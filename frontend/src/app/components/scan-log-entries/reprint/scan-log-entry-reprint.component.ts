@@ -16,11 +16,10 @@
  */
 
 
-import {Component, Input, OnInit} from "@angular/core";
+import {Component, OnInit} from "@angular/core";
 import {ProgressManager} from "../../../ProgressManager";
-import {Printer, PrinterService} from "../../printer/printer.service";
-import {ConfigurableLabelContent, ScanLogEntry, ScanLogService} from "../scan-log.service";
-import {EventService, Event} from "../../../shared/event/event.service";
+import {ConfigurableLabelContent, ScanLogService} from "../scan-log.service";
+import {Event, EventService} from "../../../shared/event/event.service";
 import {Observable} from "rxjs/Observable";
 import {ActivatedRoute, Params} from "@angular/router";
 
@@ -35,13 +34,11 @@ export class ScanLogEntryReprintComponent implements OnInit {
 
   progressManager = new ProgressManager();
   content: PreviewContent;
-  printers: Array<Printer> = [];
   event: Event;
 
   constructor(private route: ActivatedRoute,
               private scanLogService: ScanLogService,
-              private eventService: EventService,
-              private printerService: PrinterService) {
+              private eventService: EventService) {
   }
 
   ngOnInit() {
@@ -57,20 +54,18 @@ export class ScanLogEntryReprintComponent implements OnInit {
     this.progressManager
       .monitorCall(() => {
         return Observable.forkJoin(this.scanLogService.getReprintPreview(this.entryId, this.eventKey),
-          this.printerService.loadAllPrinters(),
           this.eventService.getSingleEvent(this.eventKey)
         );
       })
       .subscribe(res => {
-        let [content, printers, event] = res;
-        this.printers = printers.filter(p => p.active);
+        let [content, event] = res;
         this.content = PreviewContent.fromConfigurableLabelContent(content);
         this.event = event;
       });
   }
 
-  reprint(printer?: Printer): void {
-    this.progressManager.monitorCall(() => this.scanLogService.reprint(this.entryId, this.content.toConfigurableLabelContent(), printer))
+  reprint(): void {
+    this.progressManager.monitorCall(() => this.scanLogService.reprint(this.entryId, this.content.toConfigurableLabelContent()))
       .subscribe(res => console.log("printed", res));
   }
 

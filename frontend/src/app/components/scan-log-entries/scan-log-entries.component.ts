@@ -4,7 +4,6 @@ import {ProgressManager} from "../../ProgressManager";
 import {Observable, Subscription} from "rxjs";
 import {Event, EventService} from "../../shared/event/event.service";
 import "rxjs/add/operator/map";
-import {Printer, PrinterService} from "../printer/printer.service";
 import {EventType, ServerEventsService} from "../../server-events.service";
 
 @Component({
@@ -22,7 +21,6 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
   progressManager = new ProgressManager();
   entries: Array<ScanLogEntryWithEvent> = [];
   term: string;
-  printers: Array<Printer> = [];
   currentPage = 1;
   pageSize = 3;
   found = 0;
@@ -31,7 +29,6 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
 
   constructor(private scanLogService: ScanLogService,
               private eventService: EventService,
-              private printerService: PrinterService,
               private serverEventsService: ServerEventsService) {
   }
 
@@ -57,13 +54,11 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
     this.progressManager
       .monitorCall(() => {
         return Observable.forkJoin(this.scanLogService.getEntries(this.currentPage - 1, this.pageSize, this.term),
-          this.eventService.getAllEvents(),
-          this.printerService.loadAllPrinters()
+          this.eventService.getAllEvents()
         );
       })
       .map(res => {
-        let [entries, events, printers] = res;
-        this.printers = printers.filter(p => p.active);
+        let [entries, events] = res;
         this.found = entries.found;
         return entries.values.map(entryWithBoxClass => {
           const entry = entryWithBoxClass.scanLog;
@@ -73,11 +68,6 @@ export class ScanLogEntriesComponent implements OnInit, OnDestroy {
       .subscribe(entries => {
         this.entries = entries
       });
-  }
-
-  reprint(entry: ScanLogEntry, printer: Printer): void {
-    this.progressManager.monitorCall(() => this.scanLogService.reprint(entry.id, null, printer))
-      .subscribe(res => console.log("printed", res));
   }
 
   changePage(newPage: number) {
