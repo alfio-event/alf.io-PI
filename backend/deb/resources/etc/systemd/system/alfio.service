@@ -15,14 +15,16 @@
 
 [Unit]
 Description=Alf.io-PI
-After=syslog.target
+After=alfio-prerequisite.service
 
 [Service]
+EnvironmentFile=@ALFIO_APP_DIR@/alf.io-PI.conf
+WorkingDirectory=@ALFIO_APP_DIR@
 User=pi
-ExecStart=@ALFIO_APP_DIR@/alfio-boot.jar --spring.config.location=classpath:/application.properties,file:@ALFIO_CONFIG_FILE@
+ExecStart=java -Dspring.config.location=classpath:/application.properties,file://@ALFIO_CONFIG_FILE@ -jar @ALFIO_APP_DIR@/alfio-boot.jar
 ExecStop=/bin/kill -TERM $MAINPID
 Restart=always
-SuccessExitStatus=143
+SuccessExitStatus=0
 
 [Install]
 WantedBy=multi-user.target

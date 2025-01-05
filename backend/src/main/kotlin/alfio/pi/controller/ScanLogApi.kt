@@ -24,6 +24,7 @@ import alfio.pi.model.*
 import alfio.pi.repository.*
 import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -76,7 +77,7 @@ class ScanLogApi (private val scanLogRepository: KVStore,
                 principal: Principal?): ResponseEntity<Boolean> {
         val printerId = form.printer
         val content = form.content
-        val desk = environment.acceptsProfiles("desk")
+        val desk = environment.acceptsProfiles(Profiles.of("desk"))
         val username = when {
             principal != null -> principal.name
             desk -> Application.deskUsername

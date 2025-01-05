@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-echo "iw dev wlan0 set power_save off" | cat - /etc/rc.local > /etc/rc.local.alfio && mv /etc/rc.local.alfio /etc/rc.local
-chmod a+x /etc/rc.local
+chown -R pi:pi /home/pi/.config/lxsession
+systemctl enable alfio-prerequisite.service
 systemctl enable alfio.service
+echo 'export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --use-gl=egl"' | sudo tee /etc/chromium.d/egl

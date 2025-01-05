@@ -93,14 +93,6 @@ class PrinterApi (private val transactionManager: PlatformTransactionManager,
 
 @RestController
 @RequestMapping("/api/printers")
-@Profile("printer")
-class LocalPrinterApi(private val printManager: PrintManager) {
-    @RequestMapping(value= ["/{printerName}/print"], method = [(RequestMethod.POST)])
-    fun print(@PathVariable("printerName") printerName: String, @RequestBody ticket: Ticket) = printOnLocalPrinter(printerName, ticket, null).invoke(printManager)
-}
-
-@RestController
-@RequestMapping("/api/printers")
 @Profile("server", "full")
 class RemotePrinterApi(private val applicationEventPublisher: ApplicationEventPublisher) {
     @RequestMapping(value = ["/register"], method = [(RequestMethod.POST)])

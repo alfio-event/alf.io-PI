@@ -46,6 +46,6 @@ class SseApi {
 
     @EventListener(SystemEvent::class)
     fun onSystemEvent(event: SystemEvent) {
-        emitters.forEach { it.send(event, MediaType.APPLICATION_JSON_UTF8) }
+        emitters.forEach { it.send(event, MediaType.APPLICATION_JSON) }
     }
 }

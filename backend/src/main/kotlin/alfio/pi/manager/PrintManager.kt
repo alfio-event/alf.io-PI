@@ -23,10 +23,13 @@ import alfio.pi.repository.UserPrinterRepository
 import alfio.pi.wrapper.tryOrDefault
 import com.google.gson.Gson
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.context.event.EventListener
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Component
 import java.net.InetAddress
 import java.nio.file.Files
@@ -55,61 +58,6 @@ interface PrintManager {
     fun printTestLabel(printer: Printer): Boolean
     fun getLabelContent(ticket: Ticket, labelConfiguration: LabelConfiguration?): ConfigurableLabelContent
     fun shutdown() {}
-}
-
-@Component
-@Profile("printer")
-class PrinterAnnouncer(private val trustManager: X509TrustManager,
-                       private val httpClient: OkHttpClient,
-                       private val printManager: PrintManager,
-                       private val gson: Gson) {
-
-    private val masterUrl = AtomicReference<String>()
-
-    init {
-
-        val jmdns = JmDNS.create(InetAddress.getLocalHost())
-        jmdns.addServiceListener("_http._tcp.local.", object: ServiceListener {
-            override fun serviceRemoved(event: ServiceEvent?) {
-                if (MDNS_NAME == event?.info?.name) {
-                    logger.info("master has been removed... ${event.info}")
-                }
-            }
-
-            override fun serviceAdded(event: ServiceEvent?) {
-            }
-
-            override fun serviceResolved(event: ServiceEvent?) {
-                if (MDNS_NAME == event?.info?.name)  {
-                    val resolvedMasterUrl = event.info.getPropertyString("url")
-                    logger.info("Resolved master url: $resolvedMasterUrl")
-                    masterUrl.set(resolvedMasterUrl)
-                }
-            }
-        })
-        Executors.newScheduledThreadPool(1).scheduleWithFixedDelay({tryOrDefault<Unit>().invoke({uploadPrinters()},{logger.error("error while uploading printers", it)})}, 0, 5, TimeUnit.SECONDS)
-    }
-
-    fun uploadPrinters() {
-        val url = masterUrl.get() ?: return
-        logger.trace("calling master $url")
-        val httpClient = httpClientBuilderWithCustomTimeout(1L to TimeUnit.SECONDS)
-            .invoke(httpClient)
-            .trustKeyStore(trustManager)
-            .build()
-        val request = Request.Builder()
-            .url("$url/api/printers/register")
-            .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(printManager.getAvailablePrinters())))
-            .build()
-        val result = httpClient.newCall(request).execute().use { resp ->
-            logger.trace("response status: ${resp.code()}")
-            resp.isSuccessful
-        }
-        if(!result) {
-            logger.warn("cannot upload printer list...")
-        }
-    }
-
 }
 
 @Component
@@ -160,7 +108,7 @@ class LocalPrintManager(private val labelTemplates: List<LabelTemplate>,
                     logger.trace("Printer $it is connected. Returning it")
                     SystemPrinter(it!!)
                 }
-                .collect(Collectors.toList<SystemPrinter>())
+                .collect(Collectors.toList())
         }
     }, {
         logger.error("cannot load printers", it)
@@ -288,7 +236,7 @@ class FullPrintManager(private val httpClient: OkHttpClient,
         val printer = userPrinterRepository.getOptionalActivePrinter(user.id).map { printerRepository.findById(it.printerId) }
         return when {
             printer.isPresent -> printer
-            environment.acceptsProfiles("desk") -> Optional.ofNullable(super.getAvailablePrinters().firstOrNull()).map { Printer(-1, it.name, null, true) }
+            environment.acceptsProfiles(Profiles.of("desk")) -> Optional.ofNullable(super.getAvailablePrinters().firstOrNull()).map { Printer(-1, it.name, null, true) }
             else -> Optional.empty()
         }
     }
@@ -333,10 +281,10 @@ class FullPrintManager(private val httpClient: OkHttpClient,
             val request = Request.Builder()
                 .addHeader("Authorization", Credentials.basic("printer", "printer"))
                 .url("https://${remotePrinter.remoteHost}:8443/api/printers/${remotePrinter.name}/print")
-                .post(RequestBody.create(MediaType.parse("application/json"), gson.toJson(ticket)))
+                .post(gson.toJson(ticket).toRequestBody("application/json".toMediaTypeOrNull()))
                 .build()
             httpClient.newCall(request).execute().use { resp ->
-                logger.debug("result: ${resp.code()} ${resp.message()}")
+                logger.debug("result: ${resp.code} ${resp.message}")
                 resp.isSuccessful
             }
         } else {

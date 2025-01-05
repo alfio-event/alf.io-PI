@@ -24,15 +24,12 @@ import alfio.pi.repository.AuthorityRepository
 import alfio.pi.repository.UserRepository
 import alfio.pi.util.PasswordGenerator
 import alfio.pi.wrapper.tryOrDefault
-import ch.digitalfondue.npjt.QueryFactory
-import ch.digitalfondue.npjt.QueryRepositoryScanner
-import ch.digitalfondue.npjt.mapper.ZonedDateTimeMapper
+import ch.digitalfondue.npjt.EnableNpjt
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializer
 import com.zaxxer.hikari.HikariDataSource
-import okhttp3.Credentials
 import okhttp3.OkHttpClient
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x500.X500Name
@@ -59,7 +56,6 @@ import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.EnumerablePropertySource
 import org.springframework.core.env.Environment
 import org.springframework.core.env.Profiles
-import org.springframework.http.HttpMethod
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.authentication.AnonymousAuthenticationToken
@@ -68,11 +64,8 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.userdetails.User
-import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfTokenRepository
@@ -114,6 +107,7 @@ private val logger = LoggerFactory.getLogger(Application::class.java)!!
 @SpringBootApplication
 @EnableTransactionManagement
 @EnableScheduling
+@EnableNpjt(basePackages = ["alfio.pi.repository"])
 class Application {
 
 
@@ -135,14 +129,6 @@ class Application {
     @Profile("server", "full")
     fun namedParameterJdbcTemplate(dataSource: DataSource): NamedParameterJdbcTemplate = NamedParameterJdbcTemplate(dataSource)
 
-    @Bean
-    @Profile("server", "full")
-    fun queryFactory(env: Environment, namedParameterJdbcTemplate: NamedParameterJdbcTemplate): QueryFactory {
-        val qf = QueryFactory("HSQLDB", namedParameterJdbcTemplate)
-        qf.addColumnMapperFactory(ZonedDateTimeMapper.Factory())
-        qf.addParameterConverters(ZonedDateTimeMapper.Converter())
-        return qf
-    }
 
     @Bean
     @Profile("server", "full")
@@ -152,9 +138,7 @@ class Application {
 
     @Bean
     fun masterConnectionConfiguration(@Value("\${master.url}") url: String,
-                                      @Value("\${master.username:#{null}}") username: String?,
-                                      @Value("\${master.password:#{null}}") password: String?,
-                                      @Value("\${master.apiKey:#{null}}") apiKey: String?): RemoteApiAuthenticationDescriptor = RemoteApiAuthenticationDescriptor(url, username, password, apiKey)
+                                      @Value("\${master.apiKey}") apiKey: String): RemoteApiAuthenticationDescriptor = RemoteApiAuthenticationDescriptor(url, apiKey)
 
     @Bean
     fun remoteEventsFilter(@Value("\${events.filter:#{null}}") eventNames: String?) = RemoteEventFilter(eventNames.orEmpty())
@@ -174,7 +158,7 @@ class Application {
     @Bean
     @Profile("server", "full")
     fun localServerURL(env: Environment): String {
-        val scheme = if(env.acceptsProfiles("dev")) {
+        val scheme = if(env.acceptsProfiles(Profiles.of("dev"))) {
             "http"
         } else {
             "https"
@@ -195,7 +179,7 @@ class Application {
     fun httpClient(): OkHttpClient = OkHttpClient()
 
     @Bean
-    @Profile("server", "printer", "full")
+    @Profile("server", "full")
     fun trustManager(): X509TrustManager {
         val keyStore = KeyStore.getInstance("JKS")
         keyStore.load(Files.newInputStream(Paths.get(Constants.KEYSTORE_FILE.value)), Constants.KEYSTORE_PASS.value.toCharArray())
@@ -271,10 +255,6 @@ class Application {
     }
 
     companion object {
-        @JvmStatic
-        @Bean
-        @Profile("server", "full")
-        fun queryRepositoryScanner(queryFactory: QueryFactory): QueryRepositoryScanner = QueryRepositoryScanner(queryFactory, "alfio.pi.repository")
         const val deskUsername = "desk-user"
     }
 }
@@ -291,19 +271,7 @@ abstract class WebSecurityConfig {
             .passwordEncoder(passwordEncoder)
     }
 }
-@Configuration
-@Profile("server", "full")
-@Order(0)
-class PrintApiSecurity {
 
-    @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        return http.securityMatchers { matchers -> matchers.requestMatchers(HttpMethod.POST, "/api/printers/register") }
-            .csrf { it.disable() }
-            .authorizeHttpRequests {it.anyRequest().permitAll()}
-            .build()
-    }
-}
 
 @Configuration
 @Profile("desk")
@@ -311,7 +279,7 @@ class PrintApiSecurity {
 class DeskWebSecurity {
 
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun deskSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http.securityMatchers { matchers -> matchers.requestMatchers({ isLocalAddress(it.remoteAddr) }) }
             .anonymous { it.authorities("ROLE_${Role.OPERATOR.name}").principal(Principal { Application.deskUsername }) }
             .csrf { it.csrfTokenRepository(csrfTokenRepository()) }
@@ -319,7 +287,6 @@ class DeskWebSecurity {
             .build()
     }
 
-    @Bean
     fun csrfTokenRepository(): CsrfTokenRepository {
         val repo = CookieCsrfTokenRepository.withHttpOnlyFalse()
         repo.setParameterName("_csrf")
@@ -340,7 +307,7 @@ class DeskWebSecurity {
 @Order(2)
 class BasicAuthWebSecurity : WebSecurityConfig() {
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun basicAuthSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http.securityMatchers { matchers -> matchers.requestMatchers({ it.requestURI.startsWith("/admin/api/") }) }
             .anonymous { it.authorities("ROLE_${Role.OPERATOR.name}").principal(Principal { Application.deskUsername }) }
             .csrf { it.disable() }
@@ -356,7 +323,7 @@ class BasicAuthWebSecurity : WebSecurityConfig() {
 class FormLoginWebSecurity: WebSecurityConfig() {
 
     @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    fun formLoginSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
             .csrf { it.csrfTokenRepository(csrfTokenRepository()) }
             .authorizeHttpRequests {
@@ -368,37 +335,10 @@ class FormLoginWebSecurity: WebSecurityConfig() {
             .build()
     }
 
-    @Bean
     fun csrfTokenRepository(): CsrfTokenRepository {
         val repo = CookieCsrfTokenRepository.withHttpOnlyFalse()
         repo.setParameterName("_csrf")
         return repo
-    }
-}
-@Configuration
-@Profile("printer")
-class PrinterWebSecurity {
-
-    @Bean
-    fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        return http.securityMatchers { matchers -> matchers.anyRequest() }
-            .csrf { it.disable() }
-            .authorizeHttpRequests {
-                it.requestMatchers(antMatcher("/api/printers/**")).authenticated()
-                  .anyRequest().denyAll()
-            }
-            .httpBasic {}
-            .build()
-    }
-
-    @Bean
-    fun inMemoryAuthentication(): InMemoryUserDetailsManager {
-        val user: UserDetails = User.withDefaultPasswordEncoder()
-            .username("printer")
-            .password("printer")
-            .roles("PRINTER")
-            .build()
-        return InMemoryUserDetailsManager(user)
     }
 }
 
@@ -426,16 +366,10 @@ class WebSocketConfiguration(private val systemEventHandler: SystemEventHandlerI
 }
 
 data class ConnectionDescriptor(val url: String, val username: String, val password: String)
-data class RemoteApiAuthenticationDescriptor(val url: String, val username: String?, val password: String?, val apiKey: String?) {
+data class RemoteApiAuthenticationDescriptor(val url: String, val apiKey: String) {
 
     fun authenticationHeaderValue(): String {
-        return if (apiKey != null) {
-            "ApiKey $apiKey"
-        } else if (username != null && password != null) {
-            Credentials.basic(username, password)
-        } else {
-            throw IllegalStateException()
-        }
+        return "ApiKey $apiKey"
     }
 }
 

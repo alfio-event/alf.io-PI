@@ -82,7 +82,7 @@ class RemoteResourceManager(@Qualifier("masterConnectionConfiguration") private 
                 .execute()
                 .use { resp ->
                     if(resp.isSuccessful) {
-                        val body = resp.body()!!.string()
+                        val body = resp.body!!.string()
                         val result: T = gson.fromJson(body, type.type)
                         true to result
                     } else {
@@ -121,8 +121,9 @@ class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager
     }
 
 
-    @Scheduled(fixedDelay = 60L * 60000L)
+    @Scheduled(initialDelay = 60000L, fixedDelay = 60L * 60000L)
     fun sync() {
+        logger.debug("Synchronizing events...")
         doInTransaction<Unit>().invoke(transactionManager, {
             val localEvents = eventRepository.loadAll().filter { eventFilter.accept(it.key) }
             val remoteEvents = remoteResourceManager.getRemoteEventList().filter { eventFilter.accept(it.key!!) }
@@ -165,6 +166,7 @@ class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager
                 "timezone" to r.timeZone))
         }.toTypedArray()
         if(toBeUpdated.isNotEmpty()) {
+            logger.debug("Updating events {}", toBeUpdated)
             jdbc.batchUpdate(eventRepository.bulkUpdate(), toBeUpdated)
         }
     }
@@ -184,6 +186,7 @@ class EventSynchronizer(private val remoteResourceManager: RemoteResourceManager
                 "timezone" to r.timeZone))
         }.toTypedArray()
         if(toBeCreated.isNotEmpty()) {
+            logger.debug("Creating events {}", toBeCreated)
             jdbc.batchUpdate(eventRepository.bulkInsert(), toBeCreated)
         }
     }

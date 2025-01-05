@@ -27,40 +27,32 @@ echo "Some steps require root privileges, so you may be prompted for your Passwo
 echo
 echo
 print_bold "Setting keyboard layout to en_US"
-sudo sed -i 's|XKBLAYOUT=....|XKBLAYOUT="'us'"|g' /etc/default/keyboard
+sudo raspi-config nonint do_change_locale en_US.UTF-8
+sudo raspi-config nonint do_configure_keyboard us
 print_bold "done."
 echo
 
-if [[ "UTC" != "$(date +'%Z')" ]]; then
-    print_bold "Setting Timezone to UTC"
-    sudo rm -f /etc/localtime
-    sudo ln -s /usr/share/zoneinfo/UTC /etc/localtime
-    print_bold "done."
-    echo
-fi
+print_bold "Setting Timezone to UTC"
+sudo raspi-config nonint do_change_timezone 'Etc/UTC'
+print_bold "done."
+echo
 
 print_bold "Updating repos data"
-sudo apt-get update
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com --recv-keys 32E9750179FCEA62
+echo "deb [arch=armhf] https://apt.bell-sw.com/ stable main" | sudo tee /etc/apt/sources.list.d/bellsoft.list
+sudo apt-get update -qq
+sudo apt-get upgrade --assume-yes
 print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes nginx cups cups-client cups-bsd chromium-browser printer-driver-dymo openjdk-17-jdk unclutter wget dirmngr software-properties-common dpkg-sig
+sudo apt-get install --assume-yes bellsoft-java17-lite nginx cups cups-client cups-bsd printer-driver-dymo wget dirmngr software-properties-common xserver-xorg-video-all xserver-xorg-input-all xserver-xorg-core xinit x11-xserver-utils chromium-browser unclutter
 sudo usermod -a -G lpadmin pi
+sudo raspi-config nonint do_wayland W1
 print_bold "done."
 echo
 
-#RPI_NAME=`ifconfig -a wlan0 | grep ether | xargs | cut -c 7-23 | sed "s/://g"| awk '{print toupper($0)}'`
-#print_bold "Setting hostname"
-#sudo sed -i "s/raspberrypi/$RPI_NAME/g" /etc/hosts
-#sudo sed -i "s/raspberrypi/$RPI_NAME/g" /etc/hostname
-#print_bold "done."
-#echo
 
-#print_bold "Updating default Java(tm) installation"
-#sudo update-java-alternatives --set java-1.9.0-openjdk-armhf
-#print_bold "done."
-#echo
 
 print_bold "Importing Alf.io-PI key"
 sudo gpg --keyserver keyserver.ubuntu.com --recv-key 0x682497B470AC18A3
@@ -69,7 +61,6 @@ print_bold "done."
 print_bold "Downloading Alf.io-PI v$ALFIO_VERSION"
 rm -f "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 wget "https://github.com/alfio-event/alf.io-PI/releases/download/v${ALFIO_RELEASE}/alf.io-pi_${ALFIO_VERSION}_all.deb" -P /tmp/
-sudo dpkg-sig --verify -k 682497B470AC18A3 "/tmp/alf.io-pi_${ALFIO_VERSION}_all.deb"
 print_bold "done."
 
 print_bold "Installing Alf.io-PI v$ALFIO_VERSION"
@@ -103,19 +94,8 @@ echo "# Edited by get-alfio-pi.sh on ${NOW}" >> ${CONFIG_FILE_PATH}
 master_url=$(whiptail --inputbox "Enter the Alf.io instance URL" 10 50 --ok-button Save --nocancel "https://" 3>&1 1>&2 2>&3)
 echo "master.url=${master_url}" >> ${CONFIG_FILE_PATH}
 
-authMethod=$(whiptail --radiolist "Authentication method" 30 50 2 --ok-button Save --nocancel "API Key" "(default)" 1 "Username/Password" "(legacy)" 0 3>&1 1>&2 2>&3)
-case ${authMethod} in
-  'Username/Password')
-    username=$(whiptail --inputbox "Enter the Username" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
-    echo "master.username=${username}" >> ${CONFIG_FILE_PATH}
-    password=$(whiptail --passwordbox "Enter the Password" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
-    echo "master.password=${password}" >> ${CONFIG_FILE_PATH}
-    ;;
-  *)
-    api_key=$(whiptail --inputbox "Enter the API Key" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
-    echo "master.apiKey=${api_key}" >> ${CONFIG_FILE_PATH}
-    ;;
-esac
+api_key=$(whiptail --inputbox "Enter the API Key" 10 50 --ok-button Save --nocancel 3>&1 1>&2 2>&3)
+echo "master.apiKey=${api_key}" >> ${CONFIG_FILE_PATH}
 
 print_bold "Configuration complete."
 echo

@@ -154,7 +154,7 @@ class CheckInDataManagerTest {
         val mockUserRepository = mock<UserRepository> {
             on { findByUsername(any()) } doReturn Optional.of(mockUser)
         }
-        val masterConfiguration = RemoteApiAuthenticationDescriptor("", null, null, "blabla")
+        val masterConfiguration = RemoteApiAuthenticationDescriptor("", "blabla")
         val categoryColorConfiguration = CategoryColorConfiguration("", emptyMap())
         val mockPrintManager = mock<PrintManager>()
         if(labelConfiguration != null) {

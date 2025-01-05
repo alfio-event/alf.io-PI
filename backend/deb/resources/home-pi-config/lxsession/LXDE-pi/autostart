@@ -1,6 +1,8 @@
 @xscreensaver -no-splash
-@unclutter -display :0 -noevents -grab
+@unclutter -display :0 -noevents -grab -root
 @xset s off
 @xset s noblank
 @xset -dpms
-@/usr/bin/chromium-browser --kiosk --start-maximized --allow-running-insecure-content --allow-insecure-localhost --remember-cert-error-decisions --no-default-browser-check --disable-pinch --touchpad-overscroll-history-navigation=0 --disable-touch-drag-drop --overscroll-history-navigation=0 --incognito http://localhost
+@sed -i 's/"exited_cleanly": false/"exited_cleanly": true/' ~/.config/chromium/Default/Preferences
+@sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/'   ~/.config/chromium/Default/Preferences
+@/usr/bin/chromium-browser --start-maximized --kiosk --allow-running-insecure-content --disable-infobars --allow-insecure-localhost --noerrdialogs --no-first-run --remember-cert-error-decisions --no-default-browser-check --disable-pinch --disable-translate --touchpad-overscroll-history-navigation=0 --disable-touch-drag-drop --overscroll-history-navigation=0 --incognito --fast --fast-start http://localhost

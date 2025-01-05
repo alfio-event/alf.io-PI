@@ -1,0 +1,9 @@
+[Unit]
+Description=Alf.io prerequisites
+After=network.target
+
+[Service]
+ExecStart=@ALFIO_UTILS_DIR@/alfio-prerequisite.sh
+
+[Install]
+WantedBy=multi-user.target

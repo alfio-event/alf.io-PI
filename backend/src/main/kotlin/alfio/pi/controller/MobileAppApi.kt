@@ -24,6 +24,7 @@ import alfio.pi.model.Event
 import alfio.pi.repository.EventRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
@@ -44,7 +45,7 @@ class CheckInApi(private val checkInDataManager: CheckInDataManager,
                        @RequestBody ticketCode: TicketCode,
                        principal: Principal?): ResponseEntity<CheckInResponse> {
 
-        val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
+        val username = if((principal == null) and environment.acceptsProfiles(Profiles.of("desk"))) Application.deskUsername else principal?.name
         logger.info("ticket {}: received code {}", ticketIdentifier, ticketCode.code)
         return Optional.ofNullable(username)
             .map {
@@ -64,7 +65,7 @@ class CheckInApi(private val checkInDataManager: CheckInDataManager,
                    @PathVariable("ticketIdentifier") ticketIdentifier: String,
                    @RequestBody ticketCode: TicketCode,
                    principal: Principal?) : ResponseEntity<Boolean> {
-        val username = if((principal == null) and environment.acceptsProfiles("desk")) Application.deskUsername else principal?.name
+        val username = if((principal == null) and environment.acceptsProfiles(Profiles.of("desk"))) Application.deskUsername else principal?.name
         return Optional.ofNullable(username)
             .map {
                 ResponseEntity.ok(checkInDataManager.forcePrintLabel(eventName, ticketIdentifier, (ticketCode.code!!).substringAfter('/'), it!!))

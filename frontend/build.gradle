@@ -27,11 +27,11 @@ clean.dependsOn(npmClean)
 // build task for npm
 //processResources.dependsOn(npm_install)
 processResources.dependsOn(npm_run_build)
-
+var frontendArchiveBasename = 'alfio-pi-frontend'
 jar {
-  archiveBaseName = 'alfio-pi-frontend'
+  archiveBaseName = frontendArchiveBasename
   version = "${project.version}"
-  into("META-INF/resources/webjars/${archiveBaseName}/${project.version}") {
+  into("META-INF/resources/webjars/${frontendArchiveBasename}/${project.version}") {
       from 'dist'
   }
 }
