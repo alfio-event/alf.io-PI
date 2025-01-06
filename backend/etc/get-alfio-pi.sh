@@ -46,7 +46,7 @@ print_bold "done."
 echo
 
 print_bold "Installing dependencies"
-sudo apt-get install --assume-yes bellsoft-java17-lite nginx cups cups-client cups-bsd printer-driver-dymo wget dirmngr software-properties-common xserver-xorg-video-all xserver-xorg-input-all xserver-xorg-core xinit x11-xserver-utils chromium-browser unclutter
+sudo apt-get install --assume-yes bellsoft-java17-lite nginx cups cups-client cups-bsd printer-driver-dymo wget dirmngr software-properties-common xserver-xorg-video-all xserver-xorg-input-all xserver-xorg-core xinit x11-xserver-utils chromium-browser unclutter-xfixes
 sudo usermod -a -G lpadmin pi
 sudo raspi-config nonint do_wayland W1
 print_bold "done."

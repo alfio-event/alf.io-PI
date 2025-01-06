@@ -5,11 +5,8 @@
 @import "../node_modules/virtual-keyboard/dist/css/keyboard.min.css";
 @import "../node_modules/virtual-keyboard/dist/css/keyboard-basic.min.css";
 
-.draggable {
-  cursor: move;
-  cursor: grab;
-  cursor: -moz-grab;
-  cursor: -webkit-grab;
+html, body {
+  overscroll-behavior-x: none;
 }
 
 .pointer {

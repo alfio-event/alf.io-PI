@@ -1,5 +1,5 @@
 @xscreensaver -no-splash
-@unclutter -display :0 -noevents -grab -root
+@unclutter -d :0 --hide-on-touch --start-hidden --timeout 0.2
 @xset s off
 @xset s noblank
 @xset -dpms
