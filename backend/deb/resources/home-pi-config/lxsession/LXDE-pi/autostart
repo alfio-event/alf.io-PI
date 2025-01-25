@@ -1,3 +1,4 @@
+@/home/pi/bin/rotate_touchscreen.sh
 @xscreensaver -no-splash
 @unclutter -d :0 --hide-on-touch --start-hidden --timeout 0.2
 @xset s off

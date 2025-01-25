@@ -78,6 +78,8 @@ else
 fi
 echo
 
+sudo dphys-swapfile swapoff && sudo dphys-swapfile uninstall && sudo systemctl disable dphys-swapfile.service
+
 print_bold "Congratulations! Alf.io-PI has been successfully installed!"
 echo
 print_bold "Now it's time to edit the configuration..."

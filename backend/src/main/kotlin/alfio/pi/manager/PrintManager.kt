@@ -316,7 +316,12 @@ fun OkHttpClient.Builder.trustKeyStore(trustManager: X509TrustManager): OkHttpCl
 
 fun lsUsbDevice(s: String): String {
     val deviceBus = s.split(".")
-    return "Bus ${deviceBus[0].trim().padStart(3, '0')} Device ${deviceBus[1].trim().padStart(3, '0')}:"
+    if (deviceBus.size < 4) {
+        logger.trace("deviceBus is not supported: {}", s)
+        return "NOT VALID"
+    }
+    // Bus 001 Device 004: ID 0424:7800
+    return "Bus ${deviceBus[0].trim().padStart(3, '0')} Device ${deviceBus[1].trim().padStart(3, '0')}: ID ${deviceBus[2].trim().padStart(4, '0')}:${deviceBus[3].trim().padStart(4, '0')}"
 }
 
 fun matchLsUsbOutput(matcher: String, lsUsbOut: java.io.InputStream): Boolean {
