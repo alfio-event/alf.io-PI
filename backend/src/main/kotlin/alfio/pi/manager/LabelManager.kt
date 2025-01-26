@@ -165,7 +165,8 @@ private fun printAdditionalRows(additionalRows: List<String>,
                                 maxLengthAdditionalRows: Array<Pair<Int, Float>>,
                                 padded: Boolean = false,
                                 previousRowOffset: Float = 0F,
-                                pageWidth: Float = 0F) {
+                                pageWidth: Float = 0F,
+                                checkboxSize: Float? = null) {
     val rowsToPrint = if(additionalRows.isEmpty() && labelContent.checkbox) {
         arrayListOf("")
     } else {
@@ -177,7 +178,7 @@ private fun printAdditionalRows(additionalRows: List<String>,
         val displayCheckbox = index == rowsToPrint.size - 1 && labelContent.checkbox
         if (displayCheckbox) {
             it.newLineAtOffset(0F, rowOffset)
-            it.setFont(font, rowOffset.absoluteValue)
+            it.setFont(font, checkboxSize ?: rowOffset.absoluteValue)
             it.showText("\u2610")
         }
         val optimizedContent = optimizeText(content, maxLengthAdditionalRows, true)
@@ -208,7 +209,7 @@ private fun textBlock(pageContentStream: PDPageContentStream, consumer: (PDPageC
 }
 
 @Component
-class ZebraZD410: LabelTemplate {
+open class ZebraZD410: LabelTemplate {
 
     override fun getCUPSMediaName(): String = "w162h288"//"oe_w162h288_2.25x4in"
 
@@ -251,7 +252,58 @@ class ZebraZD410: LabelTemplate {
     }
 
     override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean = name.startsWith("Alfio-ZBR-")
+        && (layout?.mediaName == getCUPSMediaName())
 }
+
+@Component
+class ZebraZD41057x76: ZebraZD410() {
+
+    override fun getCUPSMediaName(): String = "Custom.57x76mm"
+
+    override fun getDescription(): String = "Zebra ZD410 - 57x76 mm (3007209-T)"
+
+    override fun getPageDimensions(): PDRectangle = PDRectangle(convertMMToPoint(57.15F), convertMMToPoint(76.2F))
+
+    override fun writeContent(stream: PDPageContentStream,
+                              pageWidth: Float,
+                              labelContent: LabelContent,
+                              fontLoader: (InputStream) -> PDFont) {
+        val font = fontLoader.invoke(ZebraZD41057x76::class.java.getResourceAsStream("/font/DejaVuSansMono.ttf"))
+        stream.use {page ->
+            page.transform(Matrix(0F, 1F, -1F, 0F, pageWidth, 0F))
+            textBlock(page) { pd ->
+                val firstRowContent = optimizeText(labelContent.firstRow, arrayOf(12 to 26F, 13 to 24F, 14 to 22F, 16 to 20F, 17 to 18F, 19 to 17F), true)
+                pd.setFont(font, firstRowContent.second)
+                pd.newLineAtOffset(5F, 130F)
+                pd.showText(firstRowContent.first)
+                val secondRowContent = optimizeText(labelContent.secondRow, arrayOf(17 to 18F, 19 to 17F, 21 to 16F, 23 to 14F), true)
+
+                pd.setFont(font, secondRowContent.second)
+                pd.newLineAtOffset(0F, -30F)
+                pd.showText(secondRowContent.first)
+
+                val maxLengthAdditionalRows = arrayOf(18 to 11F, 20 to 10F)
+                val additionalRows = labelContent.additionalRows.orEmpty().take(3)
+                val range = 0..additionalRows.size.coerceAtLeast(1)
+                printAdditionalRows(additionalRows, pd, range.map { if (it == 0) -30F else -25F }.toTypedArray(), labelContent, font, maxLengthAdditionalRows, checkboxSize = 15F)
+            }
+
+
+            page.drawImage(labelContent.qrCode, 145F, 20F, 60F, 60F)
+
+            textBlock(page) { pd ->
+                pd.setFont(font, 7F)
+                pd.newLineAtOffset(155F, 10F)
+                pd.showText(labelContent.qrText)
+            }
+
+        }
+    }
+
+    override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean = name.startsWith("Alfio-ZBR-")
+        && (layout?.mediaName == null || layout.mediaName == getCUPSMediaName())
+}
+
 
 @Component
 class BixolonTX220: ZebraZD410() {
