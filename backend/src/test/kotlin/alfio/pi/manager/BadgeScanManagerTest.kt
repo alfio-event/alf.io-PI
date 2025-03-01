@@ -20,9 +20,9 @@ import alfio.pi.model.*
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.UserRepository
 import com.google.gson.Gson
-import com.nhaarman.mockitokotlin2.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.*
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -41,7 +41,7 @@ class BadgeScanManagerTest {
         assertNotNull(response.ticket)
         assertEquals("", response.ticket?.firstName)
         assertEquals("", response.ticket?.lastName)
-        assertNull("", response.ticket?.email)
+        assertNull(response.ticket?.email)
         assertEquals(uuid, response.ticket?.uuid)
         verify(store).insertBadgeScan(eq(eventId), any())
         verify(store).insertBadgeScanLog(eq(eventId), eq(uuid), eq(1), eq(CheckInStatus.BADGE_SCAN_SUCCESS), eq(CheckInStatus.RETRY), any())

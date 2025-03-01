@@ -19,25 +19,33 @@ package alfio.pi.manager
 
 import alfio.pi.CategoryColorConfiguration
 import alfio.pi.RemoteApiAuthenticationDescriptor
+import alfio.pi.getZonedDateTimeSerializer
 import alfio.pi.model.*
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.UserRepository
-import com.google.gson.Gson
-import com.nhaarman.mockitokotlin2.*
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonPrimitive
+import com.google.gson.JsonSerializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.*
 import java.nio.charset.StandardCharsets
-import java.util.*
 import java.security.GeneralSecurityException
+import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
+import java.util.*
 import javax.crypto.Cipher
-
 
 
 class CheckInDataManagerTest {
 
     private val eventId = "key"
+
+    private val gson = GsonBuilder().registerTypeAdapter(ZonedDateTime::class.java, getZonedDateTimeSerializer()).create()
 
     @Test
     fun testCalcHash256() {
@@ -143,7 +151,7 @@ class CheckInDataManagerTest {
         val mockKVStore = mock<KVStore> {
             on { loadSuccessfulScanForTicket(eq(eventId), eq(ticketUUid)) } doReturn Optional.empty()
             on { isAttendeeDataPresent(eq(eventId), eq(hashedHmac)) } doReturn true
-            on { getAttendeeData(eq(eventId), eq(hashedHmac)) } doReturn encrypt("$ticketUUid/$hmac", Gson().toJson(ticketData))
+            on { getAttendeeData(eq(eventId), eq(hashedHmac)) } doReturn encrypt("$ticketUUid/$hmac", gson.toJson(ticketData))
             on { loadLabelConfiguration(eq(eventId)) } doReturn Optional.ofNullable(labelConfiguration)
         }
         val mockEvent = Event(eventId, "name", null, Date.from(ZonedDateTime.now().plusHours(1).toInstant()), Date.from(ZonedDateTime.now().plusHours(10).toInstant()), null, 17, true, null, "UTC")
@@ -160,7 +168,7 @@ class CheckInDataManagerTest {
         if(labelConfiguration != null) {
             whenever(mockPrintManager.printLabel(any<User>(), any(), any())).thenReturn(labelConfiguration.enabled)
         }
-        val checkInDataManager = CheckInDataManager(masterConfiguration, mockEventRepository, mockKVStore, mockUserRepository, mock(), Gson(), mock(), mockPrintManager, mock(), true, null, categoryColorConfiguration, mock())
+        val checkInDataManager = CheckInDataManager(masterConfiguration, mockEventRepository, mockKVStore, mockUserRepository, mock(), gson, mock(), mockPrintManager, mock(), true, null, categoryColorConfiguration, mock())
         return Triple(mockKVStore, mockPrintManager, checkInDataManager)
     }
 

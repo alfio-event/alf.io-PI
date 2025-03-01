@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import java.io.ByteArrayInputStream
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 
 class LabelManagerTest {
@@ -51,8 +53,9 @@ class LabelManagerTest {
 
     @Test
     fun testGenerateLabelDymoWithThreeAdditionalRows() {
-        var bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", null,false).invoke(DymoLW450Turbo41x89())
+        var bytes = generatePDFLabel("George", "William", listOf("Company Name", "", "[ ] T-SHIRT  [ ] WED [ ] THU [ ] FRI"), "12345678", UUID.randomUUID().toString(), "12345678", null,false).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
+        Files.write(Path.of("/tmp/first-test.pdf"), bytes)
         bytes = generatePDFLabel("George", "William", listOf("First", "Second", "Third"), "12345678", UUID.randomUUID().toString(), "12345678", null, true).invoke(DymoLW450Turbo41x89())
         assertTrue(bytes.isNotEmpty())
     }

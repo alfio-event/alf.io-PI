@@ -27,8 +27,8 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.9.25'
-    id 'org.jetbrains.kotlin.plugin.spring' version '1.9.25'
+    id 'org.jetbrains.kotlin.jvm' version '2.0.20'
+    id 'org.jetbrains.kotlin.plugin.spring' version '2.0.20'
     id 'org.springframework.boot' version '3.4.1'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'net.researchgate.release' version '2.7.0'
@@ -104,8 +104,8 @@ dependencies {
     implementation('com.zaxxer:HikariCP:3.3.1')
     implementation('ch.digitalfondue.npjt-extra:npjt-extra:2.0.4')
     implementation("org.apache.pdfbox:pdfbox:3.0.2")
-    implementation("com.google.zxing:core:3.4.0")
-    implementation("com.google.zxing:javase:3.4.0")
+    implementation("com.google.zxing:core:3.5.1")
+    implementation("com.google.zxing:javase:3.5.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation('com.google.code.gson:gson')
     implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
@@ -115,7 +115,7 @@ dependencies {
     runtimeOnly('org.flywaydb:flyway-database-hsqldb')
     runtimeOnly project(':frontend')
     testImplementation('org.springframework.boot:spring-boot-starter-test')
-    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 }
 
 bootRun {
@@ -233,3 +233,10 @@ tasks.register('generateScript', Copy) {
     filter(ReplaceTokens, tokens: TOKENS)
 }
 generateScript.dependsOn(packageDeb)
+
+tasks.withType(Test).configureEach {
+    it.useJUnitPlatform()
+    it.testLogging {
+        events "FAILED"
+    }
+}

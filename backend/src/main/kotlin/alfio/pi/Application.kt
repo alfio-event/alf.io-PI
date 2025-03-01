@@ -188,25 +188,6 @@ class Application {
         return trustManagerFactory.trustManagers[0] as X509TrustManager
     }
 
-    private fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
-        val timeFormatter = DateTimeFormatterBuilder()
-            .appendValue(ChronoField.HOUR_OF_DAY, 2)
-            .appendLiteral(':')
-            .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
-            .optionalStart()
-            .appendLiteral(':')
-            .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
-            .toFormatter(Locale.ROOT)
-        return JsonSerializer { src, _, _ -> JsonPrimitive(src.withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(DateTimeFormatter.ISO_LOCAL_DATE)
-            .appendLiteral('T')
-            .append(timeFormatter)
-            .appendLiteral('Z')
-            .toFormatter(Locale.ROOT)))
-        }
-    }
-
     @Bean
     @Profile("server", "full")
     fun initializer() = ApplicationListener<ContextRefreshedEvent> {
@@ -491,3 +472,22 @@ fun isLocalAddress(address: String) = tryOrDefault<Boolean>().invoke({
     val inetAddress = InetAddress.getByName(address)
     inetAddress.isAnyLocalAddress || inetAddress.isLoopbackAddress || NetworkInterface.getByInetAddress(inetAddress) != null
 }, {false})
+
+fun getZonedDateTimeSerializer(): JsonSerializer<ZonedDateTime> {
+    val timeFormatter = DateTimeFormatterBuilder()
+        .appendValue(ChronoField.HOUR_OF_DAY, 2)
+        .appendLiteral(':')
+        .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+        .optionalStart()
+        .appendLiteral(':')
+        .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+        .toFormatter(Locale.ROOT)
+    return JsonSerializer { src, _, _ -> JsonPrimitive(src.withZoneSameInstant(ZoneId.of("UTC")).format(DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(DateTimeFormatter.ISO_LOCAL_DATE)
+        .appendLiteral('T')
+        .append(timeFormatter)
+        .appendLiteral('Z')
+        .toFormatter(Locale.ROOT)))
+    }
+}
