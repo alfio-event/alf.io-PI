@@ -67,6 +67,10 @@ md-dialog-container.mat-dialog-container {
   background-color: #343a40;
 }
 
+.bg-purple {
+  background-color: #5f05a8 !important;
+}
+
 .btn-dark {
   color: #fff;
   background-color: #343a40;
