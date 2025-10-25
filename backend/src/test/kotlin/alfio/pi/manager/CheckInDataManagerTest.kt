@@ -24,19 +24,13 @@ import alfio.pi.model.*
 import alfio.pi.repository.EventRepository
 import alfio.pi.repository.UserRepository
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.nio.charset.StandardCharsets
 import java.security.GeneralSecurityException
-import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
-import java.time.temporal.ChronoField
 import java.util.*
 import javax.crypto.Cipher
 
@@ -56,14 +50,14 @@ class CheckInDataManagerTest {
     fun testSuccessfulCheckIn() {
         val ticketUUid = UUID.randomUUID().toString()
         val hmac = UUID.randomUUID().toString()
-        val (mockKVStore, mockPrintManager, checkInDataManager) = buildCheckInDataManager(ticketUUid, hmac)
+        val (mockKVStore, mockPrintManager, checkInDataManager, badgeScanManager) = buildCheckInDataManager(ticketUUid, hmac)
 
         val response = checkInDataManager.doPerformCheckIn(eventId, hmac, "test", ticketUUid)
         assertNotNull(response.result)
         assertEquals(CheckInStatus.SUCCESS, response.result.status)
         assertNotNull(response.ticket)
         verify(mockKVStore).insertScanLog(eq(eventId), eq(ticketUUid), any(), eq(CheckInStatus.SUCCESS), eq(CheckInStatus.RETRY), eq(false), any())
-        verify(mockKVStore).insertBadgeScan(eq(eventId), any())
+        verify(badgeScanManager).registerBadgePrinted(eq(eventId), any(), eq(ticketUUid), any())
         verify(mockPrintManager, never()).printLabel(any<User>(), any(), any())
     }
 
@@ -71,14 +65,14 @@ class CheckInDataManagerTest {
     fun testSuccessfulCheckInWithLabelPrinting() {
         val ticketUUid = UUID.randomUUID().toString()
         val hmac = UUID.randomUUID().toString()
-        val (mockKVStore, mockPrintManager, checkInDataManager) = buildCheckInDataManager(ticketUUid, hmac, labelConfiguration = LabelConfiguration(eventId, "{}", true))
+        val (mockKVStore, mockPrintManager, checkInDataManager, badgeScanManager) = buildCheckInDataManager(ticketUUid, hmac, labelConfiguration = LabelConfiguration(eventId, "{}", true))
 
         val response = checkInDataManager.doPerformCheckIn(eventId, hmac, "test", ticketUUid)
         assertNotNull(response.result)
         assertEquals(CheckInStatus.SUCCESS, response.result.status)
         assertNotNull(response.ticket)
         verify(mockKVStore).insertScanLog(eq(eventId), eq(ticketUUid), any(), eq(CheckInStatus.SUCCESS), eq(CheckInStatus.RETRY), eq(true), any())
-        verify(mockKVStore).insertBadgeScan(eq(eventId), any())
+        verify(badgeScanManager).registerBadgePrinted(eq(eventId), any(), eq(ticketUUid), any())
         verify(mockPrintManager).printLabel(any<User>(), any(), any())
     }
 
@@ -124,11 +118,13 @@ class CheckInDataManagerTest {
         verify(mockPrintManager, never()).printLabel(any<User>(), any(), any())
     }
 
+    data class TestContext(val kvStore: KVStore, val printManager: PrintManager, val checkInDataManage: CheckInDataManager, val badgeScanManager: BadgeScanManager)
+
     private fun buildCheckInDataManager(ticketUUid: String,
                                         hmac: String,
                                         checkInAllowedFrom: ZonedDateTime = ZonedDateTime.now().minusHours(1),
                                         checkInAllowedTo: ZonedDateTime = ZonedDateTime.now().plusHours(2),
-                                        labelConfiguration: LabelConfiguration? = null): Triple<KVStore, PrintManager, CheckInDataManager> {
+                                        labelConfiguration: LabelConfiguration? = null): TestContext {
         val hashedHmac = calcHash256(hmac)
 
         val ticketData = TicketData(
@@ -168,8 +164,9 @@ class CheckInDataManagerTest {
         if(labelConfiguration != null) {
             whenever(mockPrintManager.printLabel(any<User>(), any(), any())).thenReturn(labelConfiguration.enabled)
         }
-        val checkInDataManager = CheckInDataManager(masterConfiguration, mockEventRepository, mockKVStore, mockUserRepository, mock(), gson, mock(), mockPrintManager, mock(), true, null, categoryColorConfiguration, mock())
-        return Triple(mockKVStore, mockPrintManager, checkInDataManager)
+        val badgeScanManager = mock<BadgeScanManager>()
+        val checkInDataManager = CheckInDataManager(masterConfiguration, mockEventRepository, mockKVStore, mockUserRepository, mock(), gson, mock(), mockPrintManager, mock(), true, null, categoryColorConfiguration, mock(), badgeScanManager)
+        return TestContext(mockKVStore, mockPrintManager, checkInDataManager, badgeScanManager)
     }
 
     private fun encrypt(key: String, payload: String): String {

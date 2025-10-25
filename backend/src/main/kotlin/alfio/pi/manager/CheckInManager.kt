@@ -72,7 +72,8 @@ class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val
                          @Value("\${checkIn.forcePaymentOnSite:false}") private val checkInForcePaymentOnSite: Boolean,
                          @Value("\${checkIn.categories.blacklist:#{null}}") private val categoriesBlacklist: String?,
                          private val categoryColorConfiguration: CategoryColorConfiguration,
-                         private val remoteCheckInExecutor: RemoteCheckInExecutor) {
+                         private val remoteCheckInExecutor: RemoteCheckInExecutor,
+                         private val badgeScanManager: BadgeScanManager) {
 
 
     private val logger = LoggerFactory.getLogger(CheckInDataManager::class.java)
@@ -140,7 +141,7 @@ class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val
             .map { (event, user) ->
                 val eventKey = event.key
                 kvStore.loadSuccessfulScanForTicket(eventKey, uuid)
-                    .map(buildDuplicateScanResult(eventKey, event))
+                    .map(buildDuplicateScanResult(eventKey, event, username))
                     .orElseGet {
                         val localDataResult = getLocalTicketData(event, uuid, hmac)
                         if (localDataResult.isSuccessful() || checkBypassSuccessTicketState(localDataResult)) {
@@ -162,7 +163,7 @@ class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val
                                 val labelPrinted = remoteResult.isSuccessfulOrRetry() && printingEnabled && printManager.printLabel(user, ticket, LabelConfigurationAndContent(configuration, null))
                                 val jsonPayload = gson.toJson(includeHmacIfNeeded(ticket, remoteResult, hmac))
                                 kvStore.insertScanLog(eventKey, uuid, user.id, localStatus, remoteResult.result.status, labelPrinted, jsonPayload)
-                                kvStore.insertBadgeScan(eventKey, badgeScanFromTicket(uuid, event, ticket))
+                                badgeScanManager.registerBadgePrinted(eventKey, event, uuid, ticket)
                             }
                             logger.trace("returning status $localStatus for ticket $uuid (${ticket.fullName})")
                             TicketAndCheckInResult(ticket, CheckInResult(localStatus, boxColorClass = categoryColorConfiguration.getColorFor(ticket)))
@@ -173,35 +174,14 @@ class CheckInDataManager(@Qualifier("masterConnectionConfiguration") private val
             }.orElseGet{ EmptyTicketResult() }
     }
 
-    private fun buildDuplicateScanResult(eventKey: String, event: Event): (ScanLog) -> CheckInResponse {
+    private fun buildDuplicateScanResult(eventKey: String, event: Event, username: String): (ScanLog) -> CheckInResponse {
         return fun(existing: ScanLog): CheckInResponse {
             if (existing.ticket != null) {
-                kvStore.insertBadgeScan(eventKey, badgeScanFromTicket(existing.ticketUuid, event, existing.ticket))
+                badgeScanManager.performBadgeScan(eventKey, existing.ticketUuid, username)
             }
             return DuplicateScanResult(originalScanLog = existing)
         }
     }
-
-
-    private fun badgeScanFromTicket(uuid: String, event: Event, ticket: Ticket): BadgeScan {
-        val timezone = event.timezone!!
-        return BadgeScan(uuid, SUCCESS, ZonedDateTime.now(ZoneId.of(timezone)),
-            toZonedDateTimeOrElse(ticket.ticketValidityStart, timezone, event.begin),
-            toZonedDateTimeOrElse(ticket.ticketValidityEnd, timezone, event.end),
-            ticket.categoryName.orEmpty(),
-            ticket.checkInStrategy
-        )
-    }
-
-    private fun toZonedDateTimeOrElse(ms: String?, timeZone: String, default: ZonedDateTime): ZonedDateTime {
-        val tz = ZoneId.of(timeZone)
-        return if(ms.isNullOrBlank()) {
-            default.withZoneSameInstant(tz)
-        } else {
-            Instant.ofEpochMilli(ms.toLong()).atZone(tz)
-        }
-    }
-
 
     private fun checkIfBlacklisted(localResult: TicketAndCheckInResult): CheckInResponse = if(isBlacklisted(localResult)) {
         logger.warn("Scanned blacklisted category [${localResult.ticket?.categoryName}]")

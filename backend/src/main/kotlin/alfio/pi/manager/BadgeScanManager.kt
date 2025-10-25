@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -41,6 +42,9 @@ class BadgeScanManager(private val eventRepository: EventRepository,
 
     private val logger = LoggerFactory.getLogger(BadgeScanManager::class.java)
 
+    fun registerBadgePrinted(eventKey: String, event: Event, uuid: String, ticket: Ticket) {
+        kvStore.insertBadgeScan(eventKey, badgeScanFromTicket(uuid, event, ticket))
+    }
     fun performBadgeScan(eventName: String, uuid: String, username: String) : CheckInResponse {
         val event = eventRepository.loadSingle(eventName)
         if(!event.isPresent) {
@@ -111,6 +115,25 @@ class BadgeScanManager(private val eventRepository: EventRepository,
             }
             logger.info("******** upload completed (${event.key}: ${response.size}) **********")
         }, { logger.error("unable to upload pending badge scan", it)})
+    }
+
+    private fun badgeScanFromTicket(uuid: String, event: Event, ticket: Ticket): BadgeScan {
+        val timezone = event.timezone!!
+        return BadgeScan(uuid, SUCCESS, ZonedDateTime.now(ZoneId.of(timezone)),
+            toZonedDateTimeOrElse(ticket.ticketValidityStart, timezone, event.begin),
+            toZonedDateTimeOrElse(ticket.ticketValidityEnd, timezone, event.end),
+            ticket.categoryName.orEmpty(),
+            ticket.checkInStrategy
+        )
+    }
+
+    private fun toZonedDateTimeOrElse(ms: String?, timeZone: String, default: ZonedDateTime): ZonedDateTime {
+        val tz = ZoneId.of(timeZone)
+        return if(ms.isNullOrBlank()) {
+            default.withZoneSameInstant(tz)
+        } else {
+            Instant.ofEpochMilli(ms.toLong()).atZone(tz)
+        }
     }
 
 }
