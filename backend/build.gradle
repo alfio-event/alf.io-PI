@@ -39,7 +39,7 @@ ext {
     getVersionName = {
         def currentVersion = project.version.toString()
         if(currentVersion.contains("SNAPSHOT")) {
-            "0.9.12"
+            "0.12.0"
         } else {
             currentVersion
         }
@@ -47,7 +47,7 @@ ext {
 
     getBuildNumber = {
         if(project.version.toString().contains("SNAPSHOT")) {
-            "100"
+            "99"
         } else {
             "1"
         }
