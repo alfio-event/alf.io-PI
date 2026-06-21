@@ -252,7 +252,7 @@ open class ZebraZD410: LabelTemplate {
     }
 
     override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean = name.startsWith("Alfio-ZBR-")
-        && (layout?.mediaName == getCUPSMediaName())
+        && (layout?.mediaName == null || layout.mediaName == getCUPSMediaName())
 }
 
 @Component
@@ -301,7 +301,7 @@ class ZebraZD41057x76: ZebraZD410() {
     }
 
     override fun supportsPrinter(name: String, layout: LabelLayout?): Boolean = name.startsWith("Alfio-ZBR-")
-        && (layout?.mediaName == null || layout.mediaName == getCUPSMediaName())
+        && layout?.mediaName == getCUPSMediaName()
 }
 
 
